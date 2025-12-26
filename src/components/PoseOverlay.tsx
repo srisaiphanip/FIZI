@@ -9,10 +9,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Circle, Line, G } from 'react-native-svg';
-import type { Pose } from '@tensorflow-models/pose-detection';
+import { AppPose, Keypoint } from '../types';
 
 interface PoseOverlayProps {
-    poses: Pose[];
+    poses: AppPose[];
     width: number;
     height: number;
     formScore?: number; // 0-100, affects skeleton color
@@ -108,9 +108,9 @@ export default function PoseOverlay({
     const skeletonColor = getFormColor(formScore);
     const jointColor = getJointColor(formScore);
 
-    const renderSkeleton = (pose: Pose, poseIndex: number) => {
+    const renderSkeleton = (pose: AppPose, poseIndex: number) => {
         const keypoints = pose.keypoints;
-        const validKeypoints = keypoints.filter(k => (k.score || 0) > MIN_SCORE);
+        const validKeypoints = keypoints.filter((k: Keypoint) => (k.score || 0) > MIN_SCORE);
 
         // Helper to get color for a keypoint based on its index
         const getKeypointColor = (index: number): string => {
@@ -164,9 +164,9 @@ export default function PoseOverlay({
                 })}
 
                 {/* Keypoint Circles - with body part coloring */}
-                {validKeypoints.map((kp, kpIndex) => {
+                {validKeypoints.map((kp: Keypoint, kpIndex: number) => {
                     // Find original index to determine color
-                    const originalIndex = keypoints.findIndex(k => k === kp);
+                    const originalIndex = keypoints.findIndex((k: Keypoint) => k === kp);
                     const pointColor = getKeypointColor(originalIndex);
 
                     return (

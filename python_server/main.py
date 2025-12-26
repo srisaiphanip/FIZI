@@ -85,69 +85,72 @@ def detect_pose():
         img_rgb = cv2.cvtColor(img_padded, cv2.COLOR_BGR2RGB)
         results = pose.process(img_rgb)
         
+        # New imports inside or at top; assuming top is better but replace_file_content targets certain lines
+        from angle_calculator import get_exercise_angles
+        from rep_counter import rep_counter
+        from form_validator import validate_form
+
+        exercise_id = data.get('exerciseId', 'push-ups')
+
         response_data = {
             "keypoints": [],
             "angles": {},
             "score": 0,
-            "processed_dims": {"w": w, "h": h} # Tell frontend original aspect
+            "stage": None,
+            "rep_count": 0,
+            "feedback": [],
+            "processed_dims": {"w": w, "h": h}
         }
 
+
         if results.pose_landmarks:
-            # 1. Landmarks
             landmarks = results.pose_landmarks.landmark
             keypoints = []
             
-            # Complete MediaPipe Pose landmark names (all 33 landmarks)
             mp_names = {
-                0: "nose",
-                1: "left_eye_inner", 2: "left_eye", 3: "left_eye_outer",
+                0: "nose", 1: "left_eye_inner", 2: "left_eye", 3: "left_eye_outer",
                 4: "right_eye_inner", 5: "right_eye", 6: "right_eye_outer",
-                7: "left_ear", 8: "right_ear",
-                9: "mouth_left", 10: "mouth_right",
-                11: "left_shoulder", 12: "right_shoulder",
-                13: "left_elbow", 14: "right_elbow",
-                15: "left_wrist", 16: "right_wrist",
-                17: "left_pinky", 18: "right_pinky",
-                19: "left_index", 20: "right_index",
-                21: "left_thumb", 22: "right_thumb",
-                23: "left_hip", 24: "right_hip",
-                25: "left_knee", 26: "right_knee",
-                27: "left_ankle", 28: "right_ankle",
-                29: "left_heel", 30: "right_heel",
+                7: "left_ear", 8: "right_ear", 9: "mouth_left", 10: "mouth_right",
+                11: "left_shoulder", 12: "right_shoulder", 13: "left_elbow", 14: "right_elbow",
+                15: "left_wrist", 16: "right_wrist", 17: "left_pinky", 18: "right_pinky",
+                19: "left_index", 20: "right_index", 21: "left_thumb", 22: "right_thumb",
+                23: "left_hip", 24: "right_hip", 25: "left_knee", 26: "right_knee",
+                27: "left_ankle", 28: "right_ankle", 29: "left_heel", 30: "right_heel",
                 31: "left_foot_index", 32: "right_foot_index"
             }
 
             for idx, lm in enumerate(landmarks):
-                name = mp_names.get(idx, f"point_{idx}")
-                
-                # Correct coordinates back to original image aspect ratio (remove padding)
-                # lm.x/lm.y are [0,1] in 640x640 space
                 corrected_x = (lm.x * target_size - x_offset) / new_w
                 corrected_y = (lm.y * target_size - y_offset) / new_h
-                
                 keypoints.append({
                     "x": corrected_x, "y": corrected_y, "z": lm.z,
-                    "score": lm.visibility, "name": name
+                    "score": lm.visibility, "name": mp_names.get(idx, f"point_{idx}")
                 })
             
             response_data["keypoints"] = keypoints
             response_data["score"] = 1.0
 
-            # 2. Angle Detections (Calculated using OpenCV/Numpy logic)
-            # Left Elbow Angle (Shoulder -> Elbow -> Wrist)
-            response_data["angles"]["left_elbow"] = calculate_angle(landmarks[11], landmarks[13], landmarks[15])
-            # Right Elbow Angle
-            response_data["angles"]["right_elbow"] = calculate_angle(landmarks[12], landmarks[14], landmarks[16])
-            # Left Knee Angle (Hip -> Knee -> Ankle)
-            response_data["angles"]["left_knee"] = calculate_angle(landmarks[23], landmarks[25], landmarks[27])
-            # Right Knee Angle
-            response_data["angles"]["right_knee"] = calculate_angle(landmarks[24], landmarks[26], landmarks[28])
+            # 1. Dynamic Angle Calculation
+            print(f"\n🎯 Processing {exercise_id}")
+            angles = get_exercise_angles(landmarks, exercise_id)
+            print(f"📐 Calculated angles: {angles}")
+            response_data["angles"] = angles
 
-            # 3. Optional: DRAW using OpenCV on the server (useful for server-side debugging logs if saved)
-            # For now, we just ensure mp_draw is used correctly. 
-            # In a local dev environment, you could call cv2.imshow here.
+            # 2. Stateful Rep Counting
+            rep_stats = rep_counter.update(exercise_id, angles)
+            print(f"📊 Rep stats: stage={rep_stats['current_stage']}, count={rep_stats['count']}")
+            response_data["stage"] = rep_stats['current_stage']
+            response_data["rep_count"] = rep_stats['count']
+
+            # 3. Form Validation
+            feedback = validate_form(exercise_id, landmarks, angles)
+            print(f"💬 Feedback: {feedback}")
+            response_data["feedback"] = feedback
+        else:
+            print("❌ No pose detected in this frame")
 
         return jsonify(response_data)
+
 
     except Exception as e:
         print(f"Error in pose: {e}")

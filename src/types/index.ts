@@ -37,7 +37,7 @@ export interface Keypoint {
     score: number;
 }
 
-export interface Pose {
+export interface AppPose {
     keypoints: Keypoint[];
     score: number;
 }
@@ -46,7 +46,7 @@ export interface FormCheck {
     name: string;
     description: string;
     severity: 'error' | 'warning' | 'tip';
-    checkFunction: (pose: Pose) => boolean;
+    checkFunction: (pose: AppPose) => boolean;
     feedback: {
         visual: string;
         audio: string;
@@ -110,6 +110,7 @@ export interface Exercise {
     description?: string;
     steps?: string[];
     tips?: string[];
+    requiredLevel?: number; // Level needed to unlock this exercise
 }
 
 /**
@@ -148,6 +149,12 @@ export interface UserProfile {
         plankSeconds?: number;
     };
     equipmentAccess?: 'bodyweight' | 'home_equipment' | 'gym';
+
+    // Progression fields
+    level: number;
+    xp: number;
+    totalWorkouts: number;
+    unlockedExercises?: string[]; // IDs of manually unlocked or special exercises
     availableEquipment?: string[];
     workoutPlanId?: string;
 

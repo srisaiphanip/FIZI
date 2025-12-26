@@ -34,6 +34,9 @@ class AuthService {
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 transformationPhotos: [],
+                level: 1,
+                xp: 0,
+                totalWorkouts: 0,
             };
 
             // Add photoURL only if it exists
@@ -107,6 +110,10 @@ class AuthService {
                     createdAt: data.createdAt?.toDate() || new Date(),
                     updatedAt: data.updatedAt?.toDate() || new Date(),
                     transformationPhotos: data.transformationPhotos || [],
+                    level: data.level || 1,
+                    xp: data.xp || 0,
+                    totalWorkouts: data.totalWorkouts || 0,
+                    unlockedExercises: data.unlockedExercises || [],
                 };
 
                 // Add optional photoURL if it exists
