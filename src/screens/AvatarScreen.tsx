@@ -24,6 +24,7 @@ import {
     AVATAR_LEVELS,
     ACHIEVEMENTS
 } from '../services/AvatarService';
+import { exercises } from '../models/exercises'; // Import exercises data
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
 
 interface AvatarScreenProps {
@@ -236,7 +237,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 </Text>
                             </View>
                             {avatarState.bodyMetrics.goalWeight && (
-                                <>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                     <View style={styles.metricArrow}>
                                         <Text style={styles.arrowText}>→</Text>
                                     </View>
@@ -246,7 +247,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                             {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
                                         </Text>
                                     </View>
-                                </>
+                                </View>
                             )}
                         </View>
                     ) : (
@@ -292,33 +293,50 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
                 {/* Level Roadmap */}
                 <BlurView intensity={10} tint="light" style={styles.roadmapCard}>
-                    <Text style={styles.sectionTitle}>Level Map</Text>
-                    {AVATAR_LEVELS.map((level) => (
-                        <View
-                            key={level.level}
-                            style={[
-                                styles.roadmapItem,
-                                avatarState.level > level.level && styles.roadmapItemActive, // Past
-                                avatarState.level === level.level && styles.roadmapItemCurrent // Current
-                            ]}
-                        >
-                            <Text style={styles.roadmapIcon}>{level.icon}</Text>
-                            <View style={styles.roadmapInfo}>
-                                <Text style={[
-                                    styles.roadmapName,
-                                    avatarState.level >= level.level && styles.roadmapNameActive
-                                ]}>
-                                    Lv.{level.level} - {level.name}
-                                </Text>
-                                <Text style={styles.roadmapReq}>
-                                    {level.minWorkouts} workouts • {level.minReps} reps
-                                </Text>
+                    <Text style={styles.sectionTitle}>Level Map & Unlocks</Text>
+                    {AVATAR_LEVELS.map((level) => {
+                        // Find exercises that unlock at this level
+                        const levelExercises = exercises.filter(ex => ex.unlockLevel === level.level);
+
+                        return (
+                            <View
+                                key={level.level}
+                                style={[
+                                    styles.roadmapItem,
+                                    avatarState.level > level.level && styles.roadmapItemActive, // Past
+                                    avatarState.level === level.level && styles.roadmapItemCurrent // Current
+                                ]}
+                            >
+                                <Text style={styles.roadmapIcon}>{level.icon}</Text>
+                                <View style={styles.roadmapInfo}>
+                                    <Text style={[
+                                        styles.roadmapName,
+                                        avatarState.level >= level.level && styles.roadmapNameActive
+                                    ]}>
+                                        Lv.{level.level} - {level.name}
+                                    </Text>
+                                    <Text style={styles.roadmapReq}>
+                                        {level.minWorkouts} workouts • {level.minReps} reps
+                                    </Text>
+
+                                    {/* Unlocked Exercises List */}
+                                    {levelExercises.length > 0 && (
+                                        <View style={styles.unlockedExercisesContainer}>
+                                            <Text style={styles.unlockedLabel}>Unlocks:</Text>
+                                            <View style={styles.unlockedList}>
+                                                {levelExercises.map(ex => (
+                                                    <Text key={ex.id} style={styles.unlockedItem}>• {ex.displayName}</Text>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                                {avatarState.level >= level.level && (
+                                    <Text style={styles.roadmapCheck}>✓</Text>
+                                )}
                             </View>
-                            {avatarState.level >= level.level && (
-                                <Text style={styles.roadmapCheck}>✓</Text>
-                            )}
-                        </View>
-                    ))}
+                        );
+                    })}
                 </BlurView>
 
                 <View style={{ height: 40 }} />
@@ -660,7 +678,7 @@ const styles = StyleSheet.create({
     },
     roadmapItem: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start', // Align start for multi-line content
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: Colors.glassBorder,
@@ -679,6 +697,7 @@ const styles = StyleSheet.create({
     roadmapIcon: {
         fontSize: 28,
         marginRight: 12,
+        marginTop: 2,
     },
     roadmapInfo: {
         flex: 1,
@@ -700,6 +719,31 @@ const styles = StyleSheet.create({
         color: Colors.accentSuccess,
         fontSize: 18,
         fontWeight: 'bold',
+        marginLeft: 8,
+    },
+
+    // Unlocked Exercises Styles
+    unlockedExercisesContainer: {
+        marginTop: 8,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: 8,
+        padding: 8,
+    },
+    unlockedLabel: {
+        color: Colors.accentCyan,
+        fontSize: 11,
+        fontWeight: 'bold',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    unlockedList: {
+        flexDirection: 'column',
+    },
+    unlockedItem: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+        marginBottom: 2,
     },
 
     // Modal

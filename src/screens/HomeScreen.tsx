@@ -111,6 +111,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     };
 
     const handleSeedData = () => {
+        // 1. Seed Instructions (Fix Images)
         const initialInstructions: ExerciseInstructions[] = [
             {
                 exerciseId: 'push-ups',
@@ -221,7 +222,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         ];
 
         dispatch(seedAllInstructions(initialInstructions));
-        alert('Cloud DB re-synced! Wait 5 seconds, then tap a workout to see your images! 🧪');
+
+        // 2. Fix Schedule (Force Regenerate Plan)
+        if (user?.uid) {
+            console.log('[HomeScreen] Manual Fix: Regenerating plan to enforce Sunday-only rest...');
+            dispatch(updatePlanLevel({
+                userId: user.uid,
+                level: user.progressSystem?.currentLevel || 1
+            }));
+        }
+
+        alert('Fixing Schedule & Images... Wait 5 seconds for update! 🛠️');
     };
 
     return (
@@ -246,7 +257,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     style={styles.xpCard}
                     onPress={() => navigation.navigate('LevelProgress')}
                 >
-                    <BlurView intensity={20} tint="light" style={styles.xpCardContent}>
+                    <BlurView intensity={20} tint="dark" style={styles.xpCardContent}>
                         <View style={styles.xpHeader}>
                             <View>
                                 <Text style={styles.xpLabel}>Current Level</Text>
@@ -282,7 +293,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
 
                 {/* Dynamic Status Card */}
-                <BlurView intensity={30} tint="light" style={styles.todayStatusCard}>
+                <BlurView intensity={30} tint="dark" style={styles.todayStatusCard}>
                     <View style={styles.statusRow}>
                         <View>
                             <Text style={styles.statusLabel}>Today's Status</Text>
@@ -308,7 +319,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
                 {/* Today's Workout Header */}
                 {todaysWorkout && !todaysWorkout.isRestDay && (
-                    <BlurView intensity={20} tint="light" style={styles.todayWorkoutCard}>
+                    <BlurView intensity={20} tint="dark" style={styles.todayWorkoutCard}>
                         <View style={styles.workoutHeader}>
                             <View>
                                 <Text style={styles.workoutTitle}>Today's Workout 🎯</Text>
@@ -333,7 +344,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <View style={styles.exercisesList}>
                         {todaysWorkout.exercises.length > 0 ? (
                             todaysWorkout.exercises.map((exercise, index) => (
-                                <BlurView key={`${exercise.exerciseId}-${index}`} intensity={20} tint="light" style={styles.exerciseCard}>
+                                <BlurView key={`${exercise.exerciseId}-${index}`} intensity={20} tint="dark" style={styles.exerciseCard}>
                                     <View style={styles.exerciseCardHeader}>
                                         <View style={styles.exerciseInfo}>
                                             <View style={styles.exerciseNumberBadge}>
@@ -367,7 +378,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                 </BlurView>
                             ))
                         ) : (
-                            <BlurView intensity={20} tint="light" style={styles.emptyExercisesCard}>
+                            <BlurView intensity={20} tint="dark" style={styles.emptyExercisesCard}>
                                 <Text style={styles.emptyExercisesText}>No exercises found for this session. Try adjusting your profile!</Text>
                             </BlurView>
                         )}
@@ -377,7 +388,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {/* Rest Day Card */}
                 {todaysWorkout && todaysWorkout.isRestDay && (
                     <View>
-                        <BlurView intensity={20} tint="light" style={styles.todayWorkoutCard}>
+                        <BlurView intensity={20} tint="dark" style={styles.todayWorkoutCard}>
                             <View style={styles.workoutHeader}>
                                 <Text style={styles.workoutTitle}>Rest Day 😌</Text>
                                 <Text style={styles.workoutFocus}>{todaysWorkout.focus || 'Recovery is important!'}</Text>
@@ -390,7 +401,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         {nextWorkout && (
                             <View style={styles.nextWorkoutContainer}>
                                 <Text style={styles.nextWorkoutLabel}>Preview: Next Workout 🔜</Text>
-                                <BlurView intensity={15} tint="light" style={styles.nextWorkoutCard}>
+                                <BlurView intensity={15} tint="dark" style={styles.nextWorkoutCard}>
                                     <View style={styles.nextWorkoutHeader}>
                                         <Text style={styles.nextWorkoutTitle}>{nextWorkout.focus}</Text>
                                         <Text style={styles.nextWorkoutDay}>
@@ -468,7 +479,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
                 {/* Recovery Tips */}
                 <View style={styles.section}>
-                    <BlurView intensity={10} tint="light" style={styles.tipsCard}>
+                    <BlurView intensity={10} tint="dark" style={styles.tipsCard}>
                         <Text style={styles.tipsTitle}>{isRestDay ? '🌙 Rest Day Tips' : '💪 Post-Workout Tips'}</Text>
                         <View style={styles.tipsList}>
                             {getRecoveryTips().map((tip, idx) => (
@@ -529,7 +540,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {/* Selected Day Details */}
                 {selectedDayIndex !== null && currentPlan && (
                     <View style={styles.section}>
-                        <BlurView intensity={30} tint="light" style={styles.detailsCard}>
+                        <BlurView intensity={30} tint="dark" style={styles.detailsCard}>
                             {selectedDayIndex === 6 ? (
                                 // Sunday / Rest Day View
                                 <View style={styles.restDayDetailContainer}>
@@ -595,24 +606,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     </View>
                 )}
 
-                {/* Level Training Split Breakdown */}
-                {currentPlan && (
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>📋 Level {currentPlan.planLevel} Training Split</Text>
-                        <View style={styles.splitList}>
-                            {currentPlan.sessions.map((session) => (
-                                <View key={session.day} style={styles.splitItem}>
-                                    <Text style={styles.splitDay}>{session.day}:</Text>
-                                    <Text style={styles.splitFocus}>{session.focus}</Text>
-                                </View>
-                            ))}
-                            <View style={styles.splitItemRest}>
-                                <Text style={styles.splitDayRest}>Sunday:</Text>
-                                <Text style={styles.splitFocusRest}>Complete Rest Day - Focus on recovery.</Text>
-                            </View>
-                        </View>
-                    </View>
-                )}
+                {/* Level Training Split Breakdown - REMOVED */}
 
                 {/* Secondary Actions */}
                 <View style={styles.actionsGrid}>
@@ -620,7 +614,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         style={styles.actionCard}
                         onPress={() => navigation.navigate('History')}
                     >
-                        <BlurView intensity={10} tint="light" style={styles.actionCardBlur}>
+                        <BlurView intensity={10} tint="dark" style={styles.actionCardBlur}>
                             <Text style={styles.actionIcon}>📊</Text>
                             <Text style={styles.actionTitle}>History</Text>
                         </BlurView>
@@ -630,7 +624,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         style={styles.actionCard}
                         onPress={() => navigation.navigate('Avatar')}
                     >
-                        <BlurView intensity={10} tint="light" style={styles.actionCardBlur}>
+                        <BlurView intensity={10} tint="dark" style={styles.actionCardBlur}>
                             <Text style={styles.actionIcon}>🏆</Text>
                             <Text style={styles.actionTitle}>Avatar</Text>
                         </BlurView>
@@ -642,15 +636,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <Text style={styles.logoutText}>Sign Out</Text>
                 </TouchableOpacity>
 
-                {/* DB Sync Button */}
+                {/* DB Sync Button
                 {__DEV__ && (
                     <TouchableOpacity
                         style={[styles.logoutButton, { marginTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }]}
                         onPress={handleSeedData}
                     >
-                        <Text style={[styles.logoutText, { color: Colors.accentCyan }]}>🧪 Final Sync: Fix AI Images</Text>
+                        <Text style={[styles.logoutText, { color: Colors.accentCyan }]}>🧪 Fix Schedule & AI Images</Text>
                     </TouchableOpacity>
-                )}
+                )} */}
+
+
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -663,8 +659,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        padding: Spacing.l,
-        paddingTop: 60,
+        padding: Spacing.m,
+        paddingTop: 80,
+        paddingBottom: 100,
     },
     header: {
         flexDirection: 'row',
@@ -674,89 +671,389 @@ const styles = StyleSheet.create({
     },
     greeting: {
         fontSize: 16,
-        color: Colors.textSecondary,
+        color: Colors.accentCyan,
+        fontWeight: '600',
+        letterSpacing: 1,
         marginBottom: 4,
+        textTransform: 'uppercase',
     },
     title: {
-        fontSize: 28,
+        fontSize: 32,
+        fontWeight: '800',
+        color: Colors.textPrimary,
+        letterSpacing: 0.5,
+    },
+    avatarCircle: {
+        width: 56,
+        height: 56,
+        borderRadius: Layout.borderRadius.round,
+        backgroundColor: Colors.glassSurface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.accentCyan,
+        ...Shadows.glow,
+    },
+    avatarText: {
+        fontSize: 24,
         fontWeight: 'bold',
         color: Colors.textPrimary,
     },
-    avatarCircle: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+    section: {
+        marginBottom: Spacing.l,
+    },
+
+    // XP Card
+    xpCard: {
+        borderRadius: Layout.borderRadius.l,
+        overflow: 'hidden',
+        marginBottom: Spacing.l,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        ...Shadows.card,
+    },
+    xpCardContent: {
+        padding: Spacing.m,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    xpHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.s,
+    },
+    xpLabel: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontWeight: '600',
+    },
+    levelValue: {
+        fontSize: 36,
+        fontWeight: '900',
+        color: Colors.textPrimary,
+        textShadowColor: Colors.primaryStart,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    },
+    xpCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: Colors.glassHighlight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+    },
+    xpEmoji: {
+        fontSize: 24,
+    },
+    xpBarContainer: {
+        marginTop: Spacing.s,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.s,
+    },
+    xpBarBg: {
+        flex: 1,
+        height: 8,
+        backgroundColor: Colors.glassSurface,
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    xpBarFill: {
+        height: '100%',
+        borderRadius: 4,
+    },
+    xpPercentage: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.accentCyan,
+        width: 40,
+        textAlign: 'right',
+    },
+
+    // Today Status Grid
+    todayStatusCard: {
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        overflow: 'hidden',
+        marginBottom: Spacing.l,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+    },
+    statusRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    statusLabel: {
+        fontSize: 12,
+        color: Colors.textTertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    statusDate: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+        marginTop: 4,
+    },
+    statusBadgeContainer: {},
+    statusBadgeWorkout: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(34, 211, 238, 0.15)', // Cyan tint
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: Layout.borderRadius.s,
+        borderWidth: 1,
+        borderColor: Colors.accentCyan,
+    },
+    statusBadgeRest: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: Layout.borderRadius.s,
+        borderWidth: 1,
+        borderColor: Colors.textSecondary,
+    },
+    statusEmoji: {
+        marginRight: 6,
+        fontSize: 14,
+    },
+    statusBadgeText: {
+        color: Colors.textPrimary,
+        fontWeight: '700',
+        fontSize: 12,
+        letterSpacing: 0.5,
+    },
+
+    // Workout Card
+    todayWorkoutCard: {
+        borderRadius: Layout.borderRadius.l,
+        padding: Spacing.m,
+        overflow: 'hidden',
+        marginBottom: Spacing.l,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    workoutHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: Spacing.m,
+    },
+    workoutTitle: {
+        fontSize: 14,
+        color: Colors.accentPink,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    workoutFocus: {
+        fontSize: 28,
+        fontWeight: '800',
+        color: Colors.textPrimary,
+    },
+    viewLibraryLink: {
+        backgroundColor: Colors.glassSurface,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: Layout.borderRadius.s,
+    },
+    viewLibraryText: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+        fontWeight: '600',
+    },
+    workoutDuration: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        fontWeight: '500',
+    },
+
+    // Exercise List
+    exercisesList: {
+        gap: Spacing.m,
+        marginBottom: Spacing.l,
+    },
+    exerciseCard: {
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+    exerciseCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.m,
+    },
+    exerciseInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.m,
+    },
+    exerciseNumberBadge: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         backgroundColor: Colors.glassSurface,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
         borderColor: Colors.glassBorder,
     },
-    avatarText: {
-        fontSize: 20,
+    exerciseNumber: {
+        color: Colors.textSecondary,
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    exerciseCardName: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+        marginBottom: 2,
+    },
+    exerciseCardTarget: {
+        fontSize: 13,
+        color: Colors.accentCyan,
+        fontWeight: '600',
+    },
+    completedBadge: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: Colors.accentSuccess,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Shadows.glow,
+    },
+    completedIcon: {
+        color: '#000',
         fontWeight: 'bold',
-        color: Colors.primaryStart,
+        fontSize: 14,
     },
-    section: {
-        marginBottom: Spacing.l,
-    },
-
-    // Stats Card
-    statsCard: {
-        borderRadius: Layout.borderRadius.l,
-        padding: Spacing.l,
-        overflow: 'hidden',
+    startExerciseButton: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderRadius: Layout.borderRadius.s,
+        backgroundColor: Colors.glassSurface,
         borderWidth: 1,
         borderColor: Colors.glassBorder,
-        marginBottom: Spacing.xl,
     },
-    statsHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.m,
+    startExerciseButtonCompleted: {
+        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+        borderColor: Colors.accentSuccess,
     },
-    statsTitle: {
-        fontSize: 16,
+    startExerciseButtonText: {
+        color: Colors.textPrimary,
         fontWeight: '600',
-        color: Colors.textPrimary,
+        fontSize: 14,
     },
-    statsSubtitle: {
-        fontSize: 12,
-        color: Colors.accentCyan,
-    },
-    statsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+    emptyExercisesCard: {
+        padding: Spacing.l,
+        borderRadius: Layout.borderRadius.m,
         alignItems: 'center',
+        backgroundColor: Colors.glassSurface,
     },
-    statItem: {
-        alignItems: 'center',
-    },
-    statValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-    },
-    statLabel: {
-        fontSize: 12,
+    emptyExercisesText: {
         color: Colors.textSecondary,
-        marginTop: 4,
-    },
-    statDivider: {
-        width: 1,
-        height: 30,
-        backgroundColor: Colors.glassBorder,
+        textAlign: 'center',
     },
 
-    // Start Button
+    // Next Workout Preview
+    nextWorkoutContainer: {
+        marginTop: Spacing.l,
+    },
+    nextWorkoutLabel: {
+        fontSize: 14,
+        color: Colors.textTertiary,
+        marginBottom: Spacing.s,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontWeight: 'bold',
+    },
+    nextWorkoutCard: {
+        padding: Spacing.m,
+        borderRadius: Layout.borderRadius.m,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        overflow: 'hidden',
+    },
+    nextWorkoutHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.s,
+    },
+    nextWorkoutTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+    },
+    nextWorkoutDay: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        fontWeight: '600',
+    },
+    nextExercisesPreview: {
+        marginBottom: Spacing.m,
+    },
+    nextExerciseItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    nextExerciseBullet: {
+        color: Colors.accentCyan,
+        marginRight: 8,
+        fontSize: 16,
+    },
+    nextExerciseName: {
+        color: Colors.textSecondary,
+        fontSize: 14,
+    },
+    moreExercisesText: {
+        color: Colors.textTertiary,
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: 4,
+    },
+    viewPlanButton: {
+        alignItems: 'center',
+        paddingVertical: 8,
+        borderTopWidth: 1,
+        borderTopColor: Colors.glassBorder,
+    },
+    viewPlanButtonText: {
+        color: Colors.accentCyan,
+        fontWeight: '600',
+        fontSize: 13,
+    },
+
+    // Start Button (Main)
     startButtonContainer: {
-        ...Shadows.glow,
         marginBottom: Spacing.l,
+        ...Shadows.glow,
     },
     startButton: {
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
     startButtonContent: {
         flexDirection: 'row',
@@ -768,239 +1065,108 @@ const styles = StyleSheet.create({
         fontSize: 32,
     },
     startButtonText: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 22,
+        fontWeight: '900',
         color: Colors.textPrimary,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
     },
     startButtonSubtext: {
         fontSize: 12,
         color: 'rgba(255, 255, 255, 0.8)',
-    },
-
-    // Actions Grid
-    actionsGrid: {
-        flexDirection: 'row',
-        gap: Spacing.m,
-        marginBottom: Spacing.xl,
-    },
-    actionCard: {
-        flex: 1,
-        borderRadius: Layout.borderRadius.m,
-        overflow: 'hidden',
-        height: 100,
-    },
-    actionCardBlur: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: Colors.glassSurface,
-    },
-    actionIcon: {
-        fontSize: 28,
-        marginBottom: 8,
-    },
-    actionTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.textPrimary,
-    },
-
-    // Today's Workout Card
-    todayWorkoutCard: {
-        borderRadius: Layout.borderRadius.l,
-        padding: Spacing.l,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        marginBottom: Spacing.xl,
-    },
-    workoutHeader: {
-        marginBottom: Spacing.m,
-    },
-    workoutTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: 4,
-    },
-    workoutFocus: {
-        fontSize: 14,
-        color: Colors.accentCyan,
-    },
-    workoutDuration: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        marginBottom: Spacing.m,
-    },
-    exercisesScroll: {
-        marginTop: Spacing.s,
-    },
-    exerciseChip: {
-        backgroundColor: 'rgba(108, 99, 255, 0.2)',
-        borderRadius: Layout.borderRadius.m,
-        padding: 12,
-        marginRight: Spacing.s,
-        minWidth: 120,
-    },
-    exerciseName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.textPrimary,
-        marginBottom: 4,
-    },
-    exerciseDetails: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-    },
-
-    // Exercise List
-    exercisesList: {
-        gap: Spacing.m,
-        marginBottom: Spacing.xl,
-    },
-    exerciseCard: {
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: Colors.glassSurface,
-    },
-    exerciseCardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.m,
-    },
-    exerciseInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-        gap: Spacing.m,
-    },
-    exerciseNumberBadge: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: Colors.primaryStart,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    exerciseNumber: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-    },
-    exerciseCardName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-    },
-    exerciseCardTarget: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        marginTop: 2,
-    },
-    completedBadge: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: Colors.accentSuccess,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    completedIcon: {
-        fontSize: 16,
-        color: Colors.textPrimary,
-        fontWeight: 'bold',
-    },
-    startExerciseButton: {
-        backgroundColor: Colors.primaryStart,
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        alignItems: 'center',
-    },
-    startExerciseButtonCompleted: {
-        backgroundColor: 'rgba(108, 99, 255, 0.5)',
-    },
-    startExerciseButtonText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-    },
-
-    restDayMessage: {
-        fontSize: 14,
-        color: Colors.textSecondary,
-        lineHeight: 20,
-        textAlign: 'center',
-        marginTop: Spacing.s,
-    },
-
-    logoutButton: {
-        alignItems: 'center',
-        padding: Spacing.m,
-    },
-    logoutText: {
-        color: Colors.textTertiary,
-        fontSize: 14,
-    },
-
-    // Dynamic Status Card
-    todayStatusCard: {
-        borderRadius: Layout.borderRadius.l,
-        padding: Spacing.l,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        marginBottom: Spacing.xl,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    statusRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    statusLabel: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        textTransform: 'uppercase',
+        fontWeight: '500',
         letterSpacing: 1,
-        marginBottom: 4,
     },
-    statusDate: {
-        fontSize: 22,
-        fontWeight: 'bold',
+
+    // Section Titles
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
         color: Colors.textPrimary,
+        marginBottom: Spacing.m,
+        paddingLeft: Spacing.xs,
+        borderLeftWidth: 3,
+        borderLeftColor: Colors.accentCyan,
     },
-    statusBadgeContainer: {
+
+    // Weekly Grid
+    weeklyGrid: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.s,
+    },
+    gridDayCard: {
+        width: (Dimensions.get('window').width - Spacing.l * 2 - Spacing.xs * 6) / 7,
+        aspectRatio: 0.6,
+        borderRadius: Layout.borderRadius.s,
+        backgroundColor: Colors.glassSurface,
         alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'transparent',
     },
-    statusBadgeRest: {
-        alignItems: 'center',
+    gridDayToday: {
+        borderColor: Colors.accentPink,
+        backgroundColor: 'rgba(244, 114, 182, 0.1)',
+        ...Shadows.glow,
     },
-    statusBadgeWorkout: {
-        alignItems: 'center',
+    gridDaySelected: {
+        borderColor: Colors.accentCyan,
+        backgroundColor: 'rgba(34, 211, 238, 0.1)',
     },
-    statusEmoji: {
-        fontSize: 32,
+    gridDayRest: {
+        opacity: 0.5,
+    },
+    gridDayLabel: {
+        fontSize: 10,
+        color: Colors.textSecondary,
+        marginBottom: 4,
+        fontWeight: '600',
+    },
+    gridDayLabelToday: {
+        color: Colors.accentPink,
+        fontWeight: 'bold',
+    },
+    gridDayLabelSelected: {
+        color: Colors.accentCyan,
+        fontWeight: 'bold',
+    },
+    gridDayLabelRest: {
+        color: Colors.textTertiary,
+    },
+    gridDayIcon: {
+        fontSize: 14,
         marginBottom: 4,
     },
-    statusBadgeText: {
-        fontSize: 14,
-        fontWeight: 'bold',
+    gridDayFocus: {
+        fontSize: 8,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+    },
+    gridDayFocusToday: {
+        color: Colors.accentPink,
+    },
+    gridDayFocusSelected: {
         color: Colors.accentCyan,
+    },
+    gridDayFocusRest: {
+        color: Colors.textTertiary,
+    },
+    gridHint: {
+        textAlign: 'center',
+        color: Colors.textTertiary,
+        fontSize: 10,
+        marginTop: Spacing.s,
     },
 
     // Recovery Grid
     recoveryGrid: {
         flexDirection: 'row',
         gap: Spacing.s,
-        marginBottom: Spacing.m,
     },
     recoveryButton: {
         flex: 1,
-        paddingVertical: Spacing.m,
+        paddingVertical: 12,
         borderRadius: Layout.borderRadius.m,
         backgroundColor: Colors.glassSurface,
         alignItems: 'center',
@@ -1008,223 +1174,35 @@ const styles = StyleSheet.create({
         borderColor: Colors.glassBorder,
     },
     recoveryButtonGood: {
-        backgroundColor: Colors.accentSuccess,
+        backgroundColor: 'rgba(74, 222, 128, 0.1)',
         borderColor: Colors.accentSuccess,
     },
     recoveryButtonModerate: {
-        backgroundColor: '#D97706', // Yellow/Orange
-        borderColor: '#D97706',
+        backgroundColor: 'rgba(250, 204, 21, 0.1)',
+        borderColor: Colors.accentYellow,
     },
     recoveryButtonPoor: {
-        backgroundColor: Colors.accentError,
+        backgroundColor: 'rgba(248, 113, 113, 0.1)',
         borderColor: Colors.accentError,
     },
     recoveryButtonText: {
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontSize: 14,
+        fontWeight: '600',
         color: Colors.textSecondary,
     },
     recoveryButtonTextActive: {
         color: Colors.textPrimary,
+        fontWeight: '800',
     },
 
-    // Tips Card
-    tipsCard: {
-        padding: Spacing.l,
-        borderRadius: Layout.borderRadius.l,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        overflow: 'hidden',
-    },
-    tipsTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.m,
-    },
-    tipsList: {
-        gap: Spacing.s,
-    },
-    tipItem: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        padding: Spacing.s,
-        borderRadius: Layout.borderRadius.s,
-    },
-    tipText: {
-        fontSize: 13,
-        color: Colors.textSecondary,
-    },
-
-    // Split List
-    splitList: {
-        gap: Spacing.s,
-        backgroundColor: Colors.glassSurface,
-        borderRadius: Layout.borderRadius.l,
-        padding: Spacing.m,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-    },
-    splitItem: {
-        flexDirection: 'row',
-        paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-        gap: 8,
-    },
-    splitItemRest: {
-        flexDirection: 'row',
-        paddingVertical: 8,
-        gap: 8,
-    },
-    splitDay: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.primaryStart,
-        width: 80,
-    },
-    splitFocus: {
-        fontSize: 13,
-        color: Colors.textSecondary,
-        flex: 1,
-    },
-    splitDayRest: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.accentSuccess,
-        width: 80,
-    },
-    splitFocusRest: {
-        fontSize: 13,
-        color: Colors.textSecondary,
-        flex: 1,
-    },
-
-    // Existing Styles...
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.m,
-    },
-    weeklyScroll: {
-        marginBottom: Spacing.m,
-    },
-    dayCard: {
-        width: 100,
-        padding: Spacing.s,
-        borderRadius: Layout.borderRadius.m,
-        marginRight: Spacing.s,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    },
-    todayDayCard: {
-        borderColor: Colors.primaryStart,
-        backgroundColor: 'rgba(108, 99, 255, 0.1)',
-        borderWidth: 2,
-    },
-    dayLabel: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        fontWeight: 'bold',
-        marginBottom: 8,
-    },
-    todayLabel: {
-        color: Colors.primaryStart,
-    },
-    dayStatus: {
-        alignItems: 'center',
-        gap: 4,
-    },
-    dayIcon: {
-        fontSize: 18,
-    },
-    dayFocus: {
-        fontSize: 10,
-        color: Colors.textTertiary,
-        textAlign: 'center',
-    },
-
-
-    // Weekly Grid
-    weeklyGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.s,
-    },
-    gridDayCard: {
-        flex: 1,
-        minWidth: width / 4.2, // Adjusted for 7 days
-        padding: Spacing.s,
-        borderRadius: Layout.borderRadius.m,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        marginBottom: 8,
-    },
-    gridDayRest: {
-        borderColor: 'rgba(34, 197, 94, 0.3)', // Green shade for rest
-        backgroundColor: 'rgba(34, 197, 94, 0.05)',
-    },
-    gridDayToday: {
-        borderColor: 'rgba(168, 85, 247, 0.5)', // Purple indicator
-        backgroundColor: 'rgba(168, 85, 247, 0.1)',
-    },
-    gridDaySelected: {
-        borderColor: Colors.primaryStart,
-        backgroundColor: 'rgba(108, 99, 255, 0.1)',
-    },
-    gridDayLabel: {
-        fontSize: 12,
-        color: Colors.textTertiary,
-        fontWeight: 'bold',
-        marginBottom: 4,
-    },
-    gridDayLabelToday: {
-        color: '#A855F7',
-    },
-    gridDayLabelRest: {
-        color: Colors.accentSuccess,
-    },
-    gridDayLabelSelected: {
-        color: Colors.primaryStart,
-    },
-    gridDayIcon: {
-        fontSize: 24,
-        marginBottom: 4,
-    },
-    gridDayFocus: {
-        fontSize: 11,
-        color: Colors.textSecondary,
-        textAlign: 'center',
-        fontWeight: '600',
-    },
-    gridDayFocusToday: {
-        color: Colors.textPrimary,
-    },
-    gridDayFocusRest: {
-        color: 'rgba(255, 255, 255, 0.4)',
-    },
-    gridDayFocusSelected: {
-        color: Colors.textPrimary,
-    },
-    gridHint: {
-        fontSize: 12,
-        color: Colors.textTertiary,
-        marginTop: Spacing.s,
-        fontStyle: 'italic',
-    },
-
-    // Selected Details
+    // Details Card
     detailsCard: {
+        padding: Spacing.m,
         borderRadius: Layout.borderRadius.l,
-        padding: Spacing.l,
+        backgroundColor: 'rgba(0,0,0,0.3)',
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
     },
     detailsHeader: {
         flexDirection: 'row',
@@ -1235,226 +1213,192 @@ const styles = StyleSheet.create({
     detailsTitleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: Spacing.s,
         flex: 1,
     },
     detailsTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '700',
         color: Colors.textPrimary,
-        flex: 1,
     },
     detailsDurationBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.primaryStart,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 8,
         gap: 4,
+        backgroundColor: Colors.glassSurface,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        borderRadius: Layout.borderRadius.s,
     },
     detailsDurationText: {
-        fontSize: 12,
-        fontWeight: 'bold',
         color: Colors.textPrimary,
+        fontSize: 12,
+        fontWeight: '600',
     },
     detailsNotes: {
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
         padding: Spacing.m,
-        borderRadius: Layout.borderRadius.m,
+        borderRadius: Layout.borderRadius.s,
         marginBottom: Spacing.m,
     },
     detailsNotesText: {
-        fontSize: 13,
         color: Colors.textSecondary,
-        lineHeight: 18,
+        fontStyle: 'italic',
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    restDayDetailContainer: {
+        alignItems: 'center',
     },
     exercisesTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
+        fontSize: 14,
+        color: Colors.textTertiary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
         marginBottom: Spacing.s,
+        fontWeight: '600',
     },
     detailsExercises: {
         gap: 8,
     },
     detailExerciseItem: {
         flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-        padding: Spacing.s,
-        borderRadius: Layout.borderRadius.s,
-        gap: 8,
+        gap: Spacing.s,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.glassBorder,
     },
     detailExerciseNumber: {
-        fontSize: 14,
+        color: Colors.accentCyan,
         fontWeight: 'bold',
-        color: Colors.primaryStart,
+        width: 24,
     },
     detailExerciseText: {
-        fontSize: 14,
         color: Colors.textSecondary,
+        fontSize: 14,
+        flex: 1,
     },
-    restDayDetailContainer: {
-        paddingVertical: Spacing.s,
-    },
-    // Progression Styles
-    xpCard: {
-        marginHorizontal: Spacing.l,
-        marginBottom: Spacing.l,
+
+    // Tips Card
+    tipsCard: {
+        padding: Spacing.m,
         borderRadius: Layout.borderRadius.l,
         overflow: 'hidden',
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+    },
+    tipsTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+        marginBottom: Spacing.m,
+    },
+    tipsList: {
+        gap: 8,
+    },
+    tipItem: {
+        flexDirection: 'row',
+        gap: 12,
+        alignItems: 'center',
+    },
+    tipText: {
+        color: Colors.textSecondary,
+        fontSize: 14,
+        lineHeight: 20,
+    },
+
+    // Rest Day Details (Specific to Sunday view text etc)
+    restDayMessage: {
+        color: Colors.textSecondary,
+        fontSize: 16,
+        lineHeight: 24,
+        marginBottom: Spacing.m,
+    },
+
+    // Action Grid
+    actionsGrid: {
+        flexDirection: 'row',
+        gap: Spacing.m,
+        marginBottom: Spacing.l,
+    },
+    actionCard: {
+        flex: 1,
+        height: 110,
+        borderRadius: Layout.borderRadius.m,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
         ...Shadows.card,
     },
-    xpCardContent: {
-        padding: Spacing.m,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-    },
-    xpHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.s,
-    },
-    xpLabel: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-    },
-    levelValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-    },
-    xpCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(108, 99, 255, 0.1)',
+    actionCardBlur: {
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: Colors.glassSurface,
     },
-    xpEmoji: {
-        fontSize: 20,
+    actionIcon: {
+        fontSize: 32,
+        marginBottom: 8,
     },
-    xpBarContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    xpBarBg: {
-        flex: 1,
-        height: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    xpBarFill: {
-        height: '100%',
-        borderRadius: 4,
-    },
-    xpPercentage: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: Colors.primaryStart,
-        width: 35,
-    },
-    viewLibraryLink: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-    },
-    viewLibraryText: {
+    actionTitle: {
         fontSize: 14,
-        color: Colors.primaryStart,
-        fontWeight: 'bold',
-    },
-    emptyExercisesCard: {
-        padding: Spacing.xl,
-        borderRadius: Layout.borderRadius.l,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        alignItems: 'center',
-        marginVertical: Spacing.m,
-    },
-    emptyExercisesText: {
-        color: Colors.textSecondary,
-        fontSize: 16,
-        textAlign: 'center',
-        lineHeight: 24,
-    },
-    nextWorkoutContainer: {
-        marginTop: Spacing.l,
-        marginBottom: Spacing.m,
-    },
-    nextWorkoutLabel: {
-        fontSize: 18,
-        fontWeight: 'bold',
         color: Colors.textPrimary,
-        marginBottom: Spacing.s,
-        marginLeft: Spacing.s,
+        fontWeight: '600',
+        letterSpacing: 0.5,
     },
-    nextWorkoutCard: {
-        borderRadius: Layout.borderRadius.l,
-        padding: Spacing.l,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        overflow: 'hidden',
-    },
-    nextWorkoutHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+
+    // Logout
+    logoutButton: {
         alignItems: 'center',
-        marginBottom: Spacing.m,
+        paddingVertical: Spacing.m,
     },
-    nextWorkoutTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.primaryStart,
-    },
-    nextWorkoutDay: {
-        fontSize: 14,
-        color: Colors.textSecondary,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    nextExercisesPreview: {
-        gap: Spacing.s,
-        marginBottom: Spacing.m,
-    },
-    nextExerciseItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    nextExerciseBullet: {
-        color: Colors.primaryStart,
-        fontSize: 18,
-        marginRight: 8,
-    },
-    nextExerciseName: {
-        color: Colors.textSecondary,
-        fontSize: 16,
-    },
-    moreExercisesText: {
+    logoutText: {
         color: Colors.textTertiary,
         fontSize: 14,
+        fontWeight: '600',
+    },
+
+    // Training Split (Legacy support or new style)
+    splitList: {
+        gap: 8,
+    },
+    splitItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.glassBorder,
+    },
+    splitDay: {
+        color: Colors.accentCyan,
+        fontWeight: '600',
+        width: 80,
+    },
+    splitFocus: {
+        color: Colors.textSecondary,
+        flex: 1,
+    },
+    splitItemRest: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.glassBorder,
+        opacity: 0.7,
+    },
+    splitDayRest: {
+        color: Colors.accentPink,
+        fontWeight: '600',
+        width: 80,
+    },
+    splitFocusRest: {
+        color: Colors.textTertiary,
+        flex: 1,
         fontStyle: 'italic',
-        marginTop: 4,
     },
-    viewPlanButton: {
-        backgroundColor: 'rgba(108, 99, 255, 0.1)',
-        paddingVertical: 10,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(108, 99, 255, 0.3)',
-    },
-    viewPlanButtonText: {
-        color: Colors.primaryStart,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
+
+
+
+
 });

@@ -31,10 +31,23 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
-# typescript
-*.tsbuildinfo
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+.env/
+
+# temporary files
+*.txt
+*.log
+mock-pose.js
 
 # generated native folders
 /ios

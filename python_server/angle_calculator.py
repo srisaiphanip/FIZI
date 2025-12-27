@@ -71,19 +71,41 @@ def get_exercise_angles(landmarks, exercise_id, min_confidence=0.3):
     if safe_angle(12, 24, 26, 'right_hip'):
         angles_calculated += 1
 
-    # FALLBACK: If no angles were calculated (too strict filtering), try without confidence check
-    if angles_calculated == 0:
-        print("⚠️  No angles with confidence check, calculating without filtering...")
+    # TORSO INCLINATION (Shoulder to Hip relative to vertical)
+    # 0 = Upright, 90 = Horizontal, 180 = Inverted
+    def calculate_inclination(p1, p2):
         try:
-            angles['left_elbow'] = round(calculate_angle(landmarks[11], landmarks[13], landmarks[15]), 1)
-            angles['right_elbow'] = round(calculate_angle(landmarks[12], landmarks[14], landmarks[16]), 1)
-            angles['left_knee'] = round(calculate_angle(landmarks[23], landmarks[25], landmarks[27]), 1)
-            angles['right_knee'] = round(calculate_angle(landmarks[24], landmarks[26], landmarks[28]), 1)
-            angles['left_shoulder'] = round(calculate_angle(landmarks[13], landmarks[11], landmarks[23]), 1)
-            angles['right_shoulder'] = round(calculate_angle(landmarks[14], landmarks[12], landmarks[24]), 1)
-            angles['left_hip'] = round(calculate_angle(landmarks[11], landmarks[23], landmarks[25]), 1)
-            angles['right_hip'] = round(calculate_angle(landmarks[12], landmarks[24], landmarks[26]), 1)
-        except Exception as e:
-            print(f"❌ Fallback angle calculation failed: {e}")
+             # Vector p1 -> p2 (e.g., Shoulder -> Hip)
+             dy = p2.y - p1.y
+             dx = p2.x - p1.x
+             angle = np.degrees(np.arctan2(dy, dx))
+             # Convert to deviation from vertical (0 degrees = upright standing)
+             # arctan2(dy, dx): -90 or 270 is up, 90 is down.
+             # Standard image coords: Y increases downwards.
+             # So Shoulder(y0) < Hip(y1). dy > 0. 
+             # Vertical (standing): dy > 0, dx ~ 0. angle ~ 90.
+             # Horizontal (plank): dy ~ 0, dx > 0 (or < 0). angle ~ 0 or 180.
+             
+             # Normalized inclination: 0 to 90
+             # 0 = Vertical (Standing)
+             # 90 = Horizontal (Plank)
+             inclination = abs(abs(angle) - 90)
+             return round(inclination, 1)
+        except:
+            return 0
+
+    if landmarks[11].visibility > min_confidence and landmarks[23].visibility > min_confidence:
+        angles['torso_inclination'] = calculate_inclination(landmarks[11], landmarks[23])
+
+    # FALLBACK: If core angles were missed due to confidence, try without filtering
+    # This prevents total detection failure
+    if angles_calculated < 4: 
+        try:
+            angles['left_elbow'] = angles.get('left_elbow', round(calculate_angle(landmarks[11], landmarks[13], landmarks[15]), 1))
+            angles['right_elbow'] = angles.get('right_elbow', round(calculate_angle(landmarks[12], landmarks[14], landmarks[16]), 1))
+            angles['left_knee'] = angles.get('left_knee', round(calculate_angle(landmarks[23], landmarks[25], landmarks[27]), 1))
+            angles['right_knee'] = angles.get('right_knee', round(calculate_angle(landmarks[24], landmarks[26], landmarks[28]), 1))
+        except:
+            pass
 
     return angles

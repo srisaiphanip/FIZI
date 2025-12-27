@@ -20,20 +20,8 @@ def validate_form(exercise_id, landmarks, angles):
         if left_elbow.visibility > 0.5 and left_shoulder.visibility > 0.5:
             # Elbow should be relatively aligned vertically with shoulder
             elbow_drift = abs(left_elbow.x - left_shoulder.x)
-            if elbow_drift > 0.15:  # More than 15% screen width
+            if elbow_drift > 0.22:  
                 feedback.append("Keep your elbows fixed at your sides")
-        
-        # Check 2: Full range of motion
-        left_elbow_angle = angles.get('left_elbow', 0)
-        right_elbow_angle = angles.get('right_elbow', 0)
-        
-        if left_elbow_angle > 0 and left_elbow_angle < 160:
-            if max(left_elbow_angle, right_elbow_angle) > 150:
-                pass  # Good - arm is extended
-            elif min(left_elbow_angle, right_elbow_angle) < 100:
-                pass  # Good - arm is curled
-            else:
-                feedback.append("Use full range of motion")
     
     # === PUSH-UPS ===
     elif exercise_id == 'push-ups':
@@ -50,16 +38,11 @@ def validate_form(exercise_id, landmarks, angles):
             expected_hip_y = (shoulder.y + ankle.y) / 2
             hip_deviation = abs(hip.y - expected_hip_y)
             
-            if hip_deviation > 0.1:  # 10% of screen height
+            if hip_deviation > 0.14:  
                 if hip.y > expected_hip_y:
                     feedback.append("Engage your core - hips are sagging")
                 else:
                     feedback.append("Lower your hips - don't pike up")
-        
-        # Check 2: Elbow depth
-        left_elbow_angle = angles.get('left_elbow', 180)
-        if left_elbow_angle > 100:
-            feedback.append("Go deeper - bend elbows to 90 degrees")
     
     # === SQUATS ===
     elif exercise_id == 'squats':
@@ -106,15 +89,47 @@ def validate_form(exercise_id, landmarks, angles):
     
     # === SHOULDER PRESS ===
     elif exercise_id == 'shoulder-press':
-        left_elbow = angles.get('left_elbow', 0)
-        if left_elbow > 0 and left_elbow < 160:
-            if left_elbow < 100:
-                feedback.append("Lower the weights more at the bottom")
+        pass # Posture checks only - ROM handled by counter
     
     # === LUNGES ===
     elif exercise_id == 'lunges':
-        left_knee = angles.get('left_knee', 180)
-        if left_knee < 160 and left_knee > 110:
-            feedback.append("Go lower - front thigh should be parallel")
+        # Check torso
+        inclination = angles.get('torso_inclination', 0)
+        if inclination > 35:
+            feedback.append("Keep your chest up - don't lean forward")
+        else:
+            # If in 'down' phase but not deep enough
+            # We can't easily know phase without state, but if both are straightish it's 'up'.
+            pass
+
+    # === JUMPING JACKS ===
+    elif exercise_id == 'jumping-jacks':
+        # Check arm symmetry
+        left = angles.get('left_shoulder', 0)
+        right = angles.get('right_shoulder', 0)
+        if abs(left - right) > 40:
+            feedback.append("Move arms symmetrically")
+        
+    # === DUMBBELL ROWS ===
+    elif exercise_id == 'dumbbell-rows':
+        # Check if bent over
+        inclination = angles.get('torso_inclination', 0)
+        if inclination < 35:
+             feedback.append("Bend over more - keep your back flat")
+             
+    # === MOUNTAIN CLIMBERS ===
+    elif exercise_id == 'mountain-climbers':
+        inclination = angles.get('torso_inclination', 90)
+        if inclination < 50:
+            feedback.append("Lower your hips - maintain a plank position")
+
+    # === BURPEES ===
+    elif exercise_id == 'burpees':
+        # Simple stability check during plank phase
+        left_elbow = angles.get('left_elbow', 0)
+        if left_elbow > 160: 
+             inclination = angles.get('torso_inclination', 0)
+             if inclination > 40 and inclination < 70:
+                 feedback.append("Keep your core engaged during the plank")
     
     return feedback

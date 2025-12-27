@@ -143,20 +143,9 @@ export class PlanGeneratorService {
     }
 
     private static isWorkoutDay(day: number, frequency: number): boolean {
-        // If user wants rest ONLY on Sunday, they need a 6-day frequency.
-        // But we'll try to honor Saturday as a workout day for everyone.
-
-        if (frequency >= 6) return day !== 0; // 6 days: Rest on Sunday
-
-        // Custom distribution that favors Saturday (day 6) and keeps Sunday (day 0) as rest
-        switch (frequency) {
-            case 5: return [1, 2, 4, 5, 6].includes(day); // Mon, Tue, Thu, Fri, Sat (Rest: Wed, Sun)
-            case 4: return [1, 2, 4, 6].includes(day);    // Mon, Tue, Thu, Sat (Rest: Wed, Fri, Sun)
-            case 3: return [1, 3, 6].includes(day);       // Mon, Wed, Sat (Rest: Tue, Thu, Fri, Sun)
-            case 2: return [2, 6].includes(day);          // Tue, Sat
-            case 1: return day === 6;                     // Sat
-            default: return day !== 0;                    // Fallback to 6 days if frequency is weird
-        }
+        // STRICT REQUIREMENT: Rest ONLY on Sunday (day 0).
+        // This effectively enforces a 6-day workout week (Mon-Sat).
+        return day !== 0;
     }
 
     /**

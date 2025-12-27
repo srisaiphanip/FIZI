@@ -37,7 +37,7 @@ export const AppConfig = {
         /**
          * Enable haptic/vibration feedback
          */
-        enableHapticFeedback: true,
+        enableHapticFeedback: false,
     },
 
     /**

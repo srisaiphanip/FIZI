@@ -6,10 +6,10 @@
 EXERCISE_CONFIGS = {
     'push-ups': {
         'name': 'Push-ups',
-        'key_angles': ['left_elbow', 'right_elbow'],
+        'key_angles': ['left_elbow', 'right_elbow', 'torso_inclination'],
         'stages': [
-            {'name': 'down', 'ranges': {'left_elbow': (50, 115), 'right_elbow': (50, 115)}},
-            {'name': 'up', 'ranges': {'left_elbow': (150, 185), 'right_elbow': (150, 185)}}
+            {'name': 'up', 'ranges': {'left_elbow': (130, 200), 'right_elbow': (130, 200), 'torso_inclination': (45, 105)}},
+            {'name': 'down', 'ranges': {'left_elbow': (30, 135), 'right_elbow': (30, 135), 'torso_inclination': (45, 105)}}
         ],
         'form_checks': [
             {'name': 'body_alignment', 'type': 'alignment', 'threshold': 15}
@@ -17,31 +17,31 @@ EXERCISE_CONFIGS = {
     },
     'squats': {
         'name': 'Squats',
-        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
+        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip', 'torso_inclination'],
         'stages': [
-            {'name': 'down', 'ranges': {'left_knee': (60, 120), 'right_knee': (60, 120)}},
-            {'name': 'up', 'ranges': {'left_knee': (150, 185), 'right_knee': (150, 185)}}
+            {'name': 'up', 'ranges': {'left_knee': (130, 200), 'right_knee': (130, 200), 'torso_inclination': (-15, 45)}},
+            {'name': 'down', 'ranges': {'left_knee': (40, 140), 'right_knee': (40, 140)}}
         ],
         'form_checks': [
-            {'name': 'knee_stability', 'type': 'alignment', 'threshold': 10}
+            {'name': 'knee_stability', 'type': 'alignment', 'threshold': 15}
         ]
     },
     'bicep-curls': {
         'name': 'Bicep Curls',
         'key_angles': ['left_elbow', 'right_elbow'],
         'stages': [
-            {'name': 'up', 'ranges': {'left_elbow': (20, 100), 'right_elbow': (20, 100)}},
-            {'name': 'down', 'ranges': {'left_elbow': (135, 185), 'right_elbow': (135, 185)}}
+            {'name': 'down', 'ranges': {'left_elbow': (115, 200), 'right_elbow': (115, 200)}},
+            {'name': 'up', 'ranges': {'left_elbow': (5, 120), 'right_elbow': (5, 120)}}
         ],
         'form_checks': [
-            {'name': 'elbow_fixed', 'type': 'position', 'threshold': 10}
+            {'name': 'elbow_fixed', 'type': 'position', 'threshold': 15}
         ]
     },
     'plank': {
         'name': 'Plank',
-        'key_angles': ['left_elbow', 'left_hip', 'left_knee'],
+        'key_angles': ['left_elbow', 'left_hip', 'left_knee', 'torso_inclination'],
         'stages': [
-            {'name': 'hold', 'ranges': {'left_hip': (160, 185), 'left_elbow': (70, 110)}}
+            {'name': 'hold', 'ranges': {'left_hip': (140, 200), 'left_elbow': (50, 130), 'torso_inclination': (50, 100)}}
         ],
         'form_checks': []
     },
@@ -49,8 +49,8 @@ EXERCISE_CONFIGS = {
         'name': 'Lunges',
         'key_angles': ['left_knee', 'right_knee'],
         'stages': [
-            {'name': 'down', 'ranges': {'left_knee': (80, 100), 'right_knee': (80, 100)}},
-            {'name': 'up', 'ranges': {'left_knee': (160, 180), 'right_knee': (160, 180)}}
+            {'name': 'up', 'ranges': {'left_knee': (140, 200), 'right_knee': (140, 200)}},
+            {'name': 'down', 'ranges': {'left_knee': (60, 120), 'right_knee': (60, 120)}}
         ],
         'form_checks': []
     },
@@ -58,8 +58,8 @@ EXERCISE_CONFIGS = {
         'name': 'Jumping Jacks',
         'key_angles': ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip'],
         'stages': [
-            {'name': 'open', 'ranges': {'left_shoulder': (150, 180), 'right_shoulder': (150, 180)}},
-            {'name': 'closed', 'ranges': {'left_shoulder': (0, 30), 'right_shoulder': (0, 30)}}
+            {'name': 'closed', 'ranges': {'left_shoulder': (-10, 50), 'right_shoulder': (-10, 50)}},
+            {'name': 'open', 'ranges': {'left_shoulder': (130, 200), 'right_shoulder': (130, 200)}}
         ],
         'form_checks': []
     },
@@ -67,8 +67,8 @@ EXERCISE_CONFIGS = {
         'name': 'Shoulder Press',
         'key_angles': ['left_elbow', 'right_elbow'],
         'stages': [
-            {'name': 'up', 'ranges': {'left_elbow': (150, 180), 'right_elbow': (150, 180)}},
-            {'name': 'down', 'ranges': {'left_elbow': (60, 90), 'right_elbow': (60, 90)}}
+            {'name': 'down', 'ranges': {'left_elbow': (40, 120), 'right_elbow': (40, 120)}},
+            {'name': 'up', 'ranges': {'left_elbow': (130, 200), 'right_elbow': (130, 200)}}
         ],
         'form_checks': []
     },
@@ -76,26 +76,26 @@ EXERCISE_CONFIGS = {
         'name': 'Dumbbell Rows',
         'key_angles': ['left_elbow', 'right_elbow'],
         'stages': [
-            {'name': 'up', 'ranges': {'left_elbow': (30, 70), 'right_elbow': (30, 70)}},
-            {'name': 'down', 'ranges': {'left_elbow': (150, 180), 'right_elbow': (150, 180)}}
+            {'name': 'down', 'ranges': {'left_elbow': (130, 200), 'right_elbow': (130, 200)}},
+            {'name': 'up', 'ranges': {'left_elbow': (10, 100), 'right_elbow': (10, 100)}}
         ],
         'form_checks': []
     },
     'mountain-climbers': {
         'name': 'Mountain Climbers',
-        'key_angles': ['left_knee', 'right_knee'],
+        'key_angles': ['left_knee', 'right_knee', 'torso_inclination'],
         'stages': [
-            {'name': 'left_in', 'ranges': {'left_knee': (40, 80)}},
-            {'name': 'right_in', 'ranges': {'right_knee': (40, 80)}}
+            {'name': 'neutral', 'ranges': {'left_knee': (120, 200), 'right_knee': (120, 200), 'torso_inclination': (50, 100)}},
+            {'name': 'active', 'ranges': {'left_knee': (20, 110), 'right_knee': (20, 110), 'torso_inclination': (50, 100)}} 
         ],
         'form_checks': []
     },
     'burpees': {
         'name': 'Burpees',
-        'key_angles': ['left_hip', 'left_knee', 'left_elbow'],
+        'key_angles': ['left_hip', 'left_knee', 'left_elbow', 'torso_inclination'],
         'stages': [
-            {'name': 'plank', 'ranges': {'left_elbow': (160, 180), 'left_hip': (160, 180)}},
-            {'name': 'stand', 'ranges': {'left_hip': (160, 180), 'left_knee': (160, 180)}}
+            {'name': 'stand', 'ranges': {'torso_inclination': (-10, 50)}},
+            {'name': 'plank', 'ranges': {'torso_inclination': (60, 100), 'left_elbow': (130, 200)}}
         ],
         'form_checks': []
     }

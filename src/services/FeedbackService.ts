@@ -113,9 +113,9 @@ class FeedbackService {
      */
     processFormValidation(validation: FormValidation): void {
         if (validation.isValid) {
-            // Good form - occasional positive feedback
-            if (Math.random() < 0.1) { // 10% chance
-                this.speak('Good form!', 1);
+            // Good form - occasional positive feedback (Reduced from 0.3)
+            if (Math.random() < 0.1) {
+                this.speak('Keep it up!', 1);
             }
             return;
         }
@@ -128,10 +128,10 @@ class FeedbackService {
         const warningError = errors.find(e => e.severity === 'warning');
 
         if (criticalError) {
-            this.vibrate('error');
+            // vibration removed as per user request
             this.speak(criticalError.audioCue, 3);
         } else if (warningError) {
-            this.vibrate('medium');
+            // vibration removed as per user request
             this.speak(warningError.audioCue, 2);
         }
     }
@@ -143,13 +143,11 @@ class FeedbackService {
         // Announce every 5 reps or milestone
         if (repCount % 5 === 0 && repCount > 0) {
             this.speak(`${repCount} reps completed`, 2);
+            // Vibrate only on major milestones
             this.vibrate('success');
         }
 
-        // Form feedback based on score
-        if (formScore < 60) {
-            this.vibrate('light');
-        }
+        // Form feedback based on score (vibration removed)
     }
 
     /**

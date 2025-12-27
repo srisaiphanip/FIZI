@@ -17,98 +17,102 @@ class RepCounter:
         self.state = {
             'count': 0,
             'current_stage': None,
-            'previous_stage': None,
+            'active_hit': False, 
+            'good_frames': 0, # Frames with valid form since start of rep
+            'total_frames': 0, # Total frames since start of rep
             'last_transition_time': 0,
-            'exercise_id': exercise_id
+            'exercise_id': exercise_id,
+            'rejection_reason': None # Reason why the last rep attempt was rejected
         }
 
-    def update(self, exercise_id, angles):
-        # Initialize exercise_id if this is the first call
-        if self.state['exercise_id'] is None:
-            self.state['exercise_id'] = exercise_id
-            print(f"🎬 Starting session with: {exercise_id}")
-        
-        # Log if exercise_id changes but DON'T auto-reset
-        if self.state['exercise_id'] != exercise_id:
-            print(f"⚠️  Exercise changed: {self.state['exercise_id']} → {exercise_id}")
-            print(f"   Keeping count at: {self.state['count']} (continuous counting)")
-            # Update to new exercise but keep count
-            self.state['exercise_id'] = exercise_id
-            # Reset stage info for the new exercise
-            self.state['current_stage'] = None
-            self.state['previous_stage'] = None
+    def update(self, exercise_id, angles, form_is_valid=True):
+        # Only reset if the exercise ID actually changed to a NEW valid exercise
+        if exercise_id and self.state['exercise_id'] != exercise_id:
+            self.reset(exercise_id)
             
         config = EXERCISE_CONFIGS.get(exercise_id)
         if not config or not angles:
             return self.state
 
         stages = config['stages']
+        if len(stages) < 2: return self.state # Needs at least 2 stages to count
+
+        rest_stage = stages[0]['name']
+        active_stage = stages[1]['name']
+        
         best_stage = None
         max_score = -1.0
 
-        # === STAGE DETECTION (Fuzzy Matching) ===
+        # === 1. Permissive Joint Scoring ===
         for stage in stages:
-            score = 0
-            count = 0
-            
-            # Special logic for exercises that can be single-arm
-            can_be_single_arm = exercise_id in ['bicep-curls', 'dumbbell-rows', 'lateral-raises', 'hammer-curls']
+            mandatory_scores = []
+            limb_scores = [] # For left/right pairs
             
             for joint, (min_angle, max_angle) in stage['ranges'].items():
                 if joint in angles:
                     angle = angles[joint]
-                    center = (min_angle + max_angle) / 2
-                    diff = abs(angle - center)
-                    # Score based on proximity to center (100 is perfect)
-                    joint_score = max(0, 100 - diff)
-                    
-                    if can_be_single_arm:
-                        # For single arm, we take the BEST score of available joints
-                        score = max(score, joint_score)
+                    if min_angle <= angle <= max_angle:
+                        score = 100
                     else:
-                        score += joint_score
-                    count += 1
+                        center = (min_angle + max_angle) / 2
+                        span = (max_angle - min_angle)
+                        diff = abs(angle - center) - span/2
+                        score = max(0, 100 - (diff * 2))
+                    
+                    if 'left' in joint or 'right' in joint:
+                        limb_scores.append(score)
+                    else:
+                        mandatory_scores.append(score)
             
-            if count > 0:
-                final_score = score if can_be_single_arm else (score / count)
-                if final_score > max_score and final_score > 40:  # Threshold
-                    max_score = final_score
-                    best_stage = stage['name']
+            m_avg = sum(mandatory_scores)/len(mandatory_scores) if mandatory_scores else 100
+            l_max = max(limb_scores) if limb_scores else 100
+            
+            final_score = (m_avg + l_max) / 2
+            if final_score > max_score and final_score > 20: 
+                max_score = final_score
+                best_stage = stage['name']
 
-        # === REP COUNTING - SIMPLE CYCLE LOGIC ===
+        # === 2. Robust State Machine ===
         current_time = time.time()
-        debounce_time = 0.5  # Minimum time between stage transitions
+        debounce_time = 0.15 
         
-        # Only process if we have a valid stage and enough time has passed
+        # Track frame quality throughout the entire rep cycle
+        if self.state['active_hit']:
+            self.state['total_frames'] += 1
+            if form_is_valid:
+                self.state['good_frames'] += 1
+
+        self.state['rejection_reason'] = None # Clear on every frame unless just completed
+
         if best_stage and (current_time - self.state['last_transition_time'] >= debounce_time):
-            prev_stage = self.state['current_stage']
-            
-            # Stage changed - this is a transition
-            if best_stage != prev_stage and prev_stage is not None:
+            # A. Record hitting the "Active" stage
+            if best_stage == active_stage and not self.state['active_hit']:
+                self.state['active_hit'] = True
+                self.state['good_frames'] = 1 if form_is_valid else 0
+                self.state['total_frames'] = 1
                 self.state['last_transition_time'] = current_time
-                
-                # SIMPLE RULE: For 2-stage exercises, count when returning to FIRST stage
-                # E.g., bicep curls ['up', 'down']: up→down→UP ← count here
-                # E.g., push-ups ['down', 'up']: down→up→DOWN ← count here
-                if len(stages) >= 2:
-                    first_stage = stages[0]['name']   # The "rest" position
-                    second_stage = stages[1]['name']  # The "active" position
-                    
-                    # Count a rep when: we were at second stage AND now at first stage
-                    # This means we completed: first → second → first (full cycle)
-                    if prev_stage == second_stage and best_stage == first_stage:
-                        self.state['count'] += 1
-                        print(f"✅ REP #{self.state['count']}! {exercise_id}: {second_stage}→{first_stage}")
-                        print(f"   Confidence: {max_score:.1f}/100")
-                    else:
-                        print(f"📊 Stage: {prev_stage}→{best_stage} (count: {self.state['count']})")
-                
-                # Update previous stage
-                self.state['previous_stage'] = prev_stage
+                print(f"🔥 ACTIVE HIT: {exercise_id} ({max_score:.1f}%)")
             
-            # Update current stage
+            # B. Record returning to "Rest" stage -> COMPLETE REP
+            elif best_stage == rest_stage and self.state['active_hit']:
+                # Quality Ratio check: Require > 80% good form frames for "PERFECT" count
+                quality_ratio = self.state['good_frames'] / self.state['total_frames'] if self.state['total_frames'] > 0 else 0
+                
+                if quality_ratio >= 0.8:
+                    self.state['count'] += 1
+                    print(f"\n🌟 PERFECT REP #{self.state['count']}! | Quality Score: {quality_ratio:.1%}")
+                else:
+                    self.state['rejection_reason'] = f"Rep rejected ({quality_ratio:.0%}). Maintain form throughout the MOVE."
+                    print(f"\n❌ REP REJECTED! | Quality: {quality_ratio:.1%} (Below 80% bar)")
+                
+                self.state['active_hit'] = False 
+                self.state['good_frames'] = 0
+                self.state['total_frames'] = 0
+                self.state['last_transition_time'] = current_time
+            
             self.state['current_stage'] = best_stage
-        
+            self.state['score'] = max_score
+
         return self.state
 
 # Global singleton for simplicity in local dev
