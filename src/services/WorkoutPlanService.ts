@@ -21,7 +21,8 @@ import {
     where,
     getDocs,
     writeBatch,
-    Timestamp
+    Timestamp,
+    serverTimestamp
 } from 'firebase/firestore';
 
 class WorkoutPlanService {
@@ -119,6 +120,43 @@ class WorkoutPlanService {
         } catch (error) {
             console.error('Error updating exercise completion:', error);
             return false;
+        }
+    }
+
+    /**
+     * Get exercise instructions from Firestore
+     */
+    async getExerciseInstructions(exerciseId: string): Promise<ExerciseInstructions | null> {
+        try {
+            const docRef = doc(db, 'exercise_instructions', exerciseId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return docSnap.data() as ExerciseInstructions;
+            }
+            return null;
+        } catch (error) {
+            console.error('Error getting exercise instructions:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Seeds initial instructions (Bulk write)
+     */
+    async seedInstructions(instructionsList: ExerciseInstructions[]): Promise<void> {
+        try {
+            const batch = writeBatch(db);
+            instructionsList.forEach(instruction => {
+                const ref = doc(db, 'exercise_instructions', instruction.exerciseId);
+                batch.set(ref, {
+                    ...instruction,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+            });
+            await batch.commit();
+        } catch (error) {
+            console.error('Error seeding instructions:', error);
+            throw error;
         }
     }
 }

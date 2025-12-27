@@ -595,7 +595,24 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     </View>
                 )}
 
-
+                {/* Level Training Split Breakdown */}
+                {currentPlan && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>📋 Level {currentPlan.planLevel} Training Split</Text>
+                        <View style={styles.splitList}>
+                            {currentPlan.sessions.map((session) => (
+                                <View key={session.day} style={styles.splitItem}>
+                                    <Text style={styles.splitDay}>{session.day}:</Text>
+                                    <Text style={styles.splitFocus}>{session.focus}</Text>
+                                </View>
+                            ))}
+                            <View style={styles.splitItemRest}>
+                                <Text style={styles.splitDayRest}>Sunday:</Text>
+                                <Text style={styles.splitFocusRest}>Complete Rest Day - Focus on recovery.</Text>
+                            </View>
+                        </View>
+                    </View>
+                )}
 
                 {/* Secondary Actions */}
                 <View style={styles.actionsGrid}>
@@ -625,7 +642,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <Text style={styles.logoutText}>Sign Out</Text>
                 </TouchableOpacity>
 
-
+                {/* DB Sync Button */}
+                {__DEV__ && (
+                    <TouchableOpacity
+                        style={[styles.logoutButton, { marginTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }]}
+                        onPress={handleSeedData}
+                    >
+                        <Text style={[styles.logoutText, { color: Colors.accentCyan }]}>🧪 Final Sync: Fix AI Images</Text>
+                    </TouchableOpacity>
+                )}
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -1030,7 +1055,49 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
     },
 
-
+    // Split List
+    splitList: {
+        gap: Spacing.s,
+        backgroundColor: Colors.glassSurface,
+        borderRadius: Layout.borderRadius.l,
+        padding: Spacing.m,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+    },
+    splitItem: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+        gap: 8,
+    },
+    splitItemRest: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        gap: 8,
+    },
+    splitDay: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.primaryStart,
+        width: 80,
+    },
+    splitFocus: {
+        fontSize: 13,
+        color: Colors.textSecondary,
+        flex: 1,
+    },
+    splitDayRest: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.accentSuccess,
+        width: 80,
+    },
+    splitFocusRest: {
+        fontSize: 13,
+        color: Colors.textSecondary,
+        flex: 1,
+    },
 
     // Existing Styles...
     sectionTitle: {

@@ -33,9 +33,10 @@ class AuthService {
                 fitnessGoal: 'weight_loss',
                 fitnessProfile: {
                     equipmentAccess: 'bodyweight',
+                    availableEquipment: [],
                     experienceLevel: 'beginner',
                     fitnessGoals: [],
-                    healthConstraints: [],
+                    healthIssues: [],
                     availableDays: 3
                 },
                 progressSystem: {
@@ -129,7 +130,7 @@ class AuthService {
                         equipmentAccess: data.equipmentAccess || data.equipmentAvailable || 'bodyweight',
                         experienceLevel: data.workoutExperience || 'beginner',
                         fitnessGoals: data.fitnessGoals || [data.fitnessGoal] || [],
-                        healthConstraints: data.healthConstraints || [],
+                        healthIssues: data.healthIssues || data.healthConstraints || [],
                         availableDays: data.availableDays || 3
                     },
                     progressSystem: data.progressSystem || {
