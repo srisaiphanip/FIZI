@@ -153,6 +153,7 @@ export interface PlannedExercise {
     exerciseId: string; // Internal system ID
     id?: string;        // Compatibility with Exercise object
     name: string;      // Display name
+    displayName?: string; // Human-friendly name
     exerciseName?: string; // Legacy field for compatibility
     sets: number;
     reps: string | number;      // e.g., "8-12", "5", "max"

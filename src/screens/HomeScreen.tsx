@@ -32,11 +32,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             dispatch(fetchWorkoutPlan(user.uid));
         }
 
+        if (todaysWorkout) {
+            console.log('[HomeScreen] Today\'s Workout:', todaysWorkout.title);
+            console.log('[HomeScreen] Exercises count:', todaysWorkout.exercises?.length || 0);
+            if (todaysWorkout.exercises?.length > 0) {
+                console.log('[HomeScreen] First Exercise:', todaysWorkout.exercises[0].name);
+            }
+        }
+
         const today = new Date().getDay();
         if (today !== 0) {
             setSelectedDayIndex(today - 1);
         }
-    }, [dispatch, user?.uid]);
+    }, [dispatch, user?.uid, todaysWorkout?.id]);
 
 
     const handleSignOut = async () => {
@@ -56,10 +64,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             targetReps: exercise.reps,
             fromPlan: true
         });
-    };
-
-    const handleRecoveryChange = (status: 'good' | 'moderate' | 'poor') => {
-        dispatch(setRecoveryStatus(status));
     };
 
     const getRecoveryTips = () => {
@@ -87,6 +91,24 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     };
 
     const isRestDay = todaysWorkout?.isRestDay || !todaysWorkout;
+
+    const getNextWorkout = () => {
+        if (!currentPlan) return null;
+        const today = new Date().getDay();
+        // Look for the next workout day in the next 7 days
+        for (let i = 1; i <= 7; i++) {
+            const checkDay = (today + i) % 7;
+            const session = currentPlan.sessions.find(s => s.dayOfWeek === checkDay && !s.isRestDay && s.type !== 'rest');
+            if (session && session.exercises.length > 0) return session;
+        }
+        return null;
+    };
+
+    const nextWorkout = isRestDay ? getNextWorkout() : null;
+
+    const handleRecoveryChange = (status: 'good' | 'moderate' | 'poor') => {
+        dispatch(setRecoveryStatus(status));
+    };
 
     const handleSeedData = () => {
         const initialInstructions: ExerciseInstructions[] = [
@@ -309,54 +331,93 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {/* Exercise List */}
                 {todaysWorkout && !todaysWorkout.isRestDay && (
                     <View style={styles.exercisesList}>
-                        {todaysWorkout.exercises.map((exercise, index) => (
-                            <BlurView key={`${exercise.exerciseId}-${index}`} intensity={20} tint="light" style={styles.exerciseCard}>
-                                <View style={styles.exerciseCardHeader}>
-                                    <View style={styles.exerciseInfo}>
-                                        <View style={styles.exerciseNumberBadge}>
-                                            <Text style={styles.exerciseNumber}>{index + 1}</Text>
+                        {todaysWorkout.exercises.length > 0 ? (
+                            todaysWorkout.exercises.map((exercise, index) => (
+                                <BlurView key={`${exercise.exerciseId}-${index}`} intensity={20} tint="light" style={styles.exerciseCard}>
+                                    <View style={styles.exerciseCardHeader}>
+                                        <View style={styles.exerciseInfo}>
+                                            <View style={styles.exerciseNumberBadge}>
+                                                <Text style={styles.exerciseNumber}>{index + 1}</Text>
+                                            </View>
+                                            <View>
+                                                <Text style={styles.exerciseCardName}>{exercise.displayName || exercise.name || exercise.exerciseName}</Text>
+                                                <Text style={styles.exerciseCardTarget}>
+                                                    {exercise.sets} sets × {exercise.reps} reps
+                                                </Text>
+                                            </View>
                                         </View>
-                                        <View>
-                                            <Text style={styles.exerciseCardName}>{exercise.name || exercise.exerciseName}</Text>
-                                            <Text style={styles.exerciseCardTarget}>
-                                                {exercise.sets} sets × {exercise.reps} reps
-                                            </Text>
-                                        </View>
+                                        {exercise.completed && (
+                                            <View style={styles.completedBadge}>
+                                                <Text style={styles.completedIcon}>✓</Text>
+                                            </View>
+                                        )}
                                     </View>
-                                    {exercise.completed && (
-                                        <View style={styles.completedBadge}>
-                                            <Text style={styles.completedIcon}>✓</Text>
-                                        </View>
-                                    )}
-                                </View>
 
-                                <TouchableOpacity
-                                    style={[
-                                        styles.startExerciseButton,
-                                        exercise.completed && styles.startExerciseButtonCompleted
-                                    ]}
-                                    onPress={() => handleStartExercise(exercise)}
-                                >
-                                    <Text style={styles.startExerciseButtonText}>
-                                        {exercise.completed ? 'Repeat Exercise' : 'Start Exercise'} →
-                                    </Text>
-                                </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.startExerciseButton,
+                                            exercise.completed && styles.startExerciseButtonCompleted
+                                        ]}
+                                        onPress={() => handleStartExercise(exercise)}
+                                    >
+                                        <Text style={styles.startExerciseButtonText}>
+                                            {exercise.completed ? 'Repeat Exercise' : 'Start Exercise'} →
+                                        </Text>
+                                    </TouchableOpacity>
+                                </BlurView>
+                            ))
+                        ) : (
+                            <BlurView intensity={20} tint="light" style={styles.emptyExercisesCard}>
+                                <Text style={styles.emptyExercisesText}>No exercises found for this session. Try adjusting your profile!</Text>
                             </BlurView>
-                        ))}
+                        )}
                     </View>
                 )}
 
                 {/* Rest Day Card */}
                 {todaysWorkout && todaysWorkout.isRestDay && (
-                    <BlurView intensity={20} tint="light" style={styles.todayWorkoutCard}>
-                        <View style={styles.workoutHeader}>
-                            <Text style={styles.workoutTitle}>Rest Day 😌</Text>
-                            <Text style={styles.workoutFocus}>{todaysWorkout.focus || 'Recovery is important!'}</Text>
-                        </View>
-                        <Text style={styles.restDayMessage}>
-                            {todaysWorkout.notes || 'Take today to recover and prepare for your next workout.'}
-                        </Text>
-                    </BlurView>
+                    <View>
+                        <BlurView intensity={20} tint="light" style={styles.todayWorkoutCard}>
+                            <View style={styles.workoutHeader}>
+                                <Text style={styles.workoutTitle}>Rest Day 😌</Text>
+                                <Text style={styles.workoutFocus}>{todaysWorkout.focus || 'Recovery is important!'}</Text>
+                            </View>
+                            <Text style={styles.restDayMessage}>
+                                {todaysWorkout.notes || 'Take today to recover and prepare for your next workout.'}
+                            </Text>
+                        </BlurView>
+
+                        {nextWorkout && (
+                            <View style={styles.nextWorkoutContainer}>
+                                <Text style={styles.nextWorkoutLabel}>Preview: Next Workout 🔜</Text>
+                                <BlurView intensity={15} tint="light" style={styles.nextWorkoutCard}>
+                                    <View style={styles.nextWorkoutHeader}>
+                                        <Text style={styles.nextWorkoutTitle}>{nextWorkout.focus}</Text>
+                                        <Text style={styles.nextWorkoutDay}>
+                                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][nextWorkout.dayOfWeek || 0]}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.nextExercisesPreview}>
+                                        {nextWorkout.exercises.slice(0, 3).map((ex, idx) => (
+                                            <View key={idx} style={styles.nextExerciseItem}>
+                                                <Text style={styles.nextExerciseBullet}>•</Text>
+                                                <Text style={styles.nextExerciseName}>{ex.displayName || ex.name}</Text>
+                                            </View>
+                                        ))}
+                                        {nextWorkout.exercises.length > 3 && (
+                                            <Text style={styles.moreExercisesText}>+ {nextWorkout.exercises.length - 3} more exercises</Text>
+                                        )}
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.viewPlanButton}
+                                        onPress={() => setSelectedDayIndex(nextWorkout.dayOfWeek || 0)}
+                                    >
+                                        <Text style={styles.viewPlanButtonText}>View Full Plan</Text>
+                                    </TouchableOpacity>
+                                </BlurView>
+                            </View>
+                        )}
+                    </View>
                 )}
 
                 {/* Main Action - Start Workout */}
@@ -1308,5 +1369,92 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: Colors.primaryStart,
         fontWeight: 'bold',
+    },
+    emptyExercisesCard: {
+        padding: Spacing.xl,
+        borderRadius: Layout.borderRadius.l,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        alignItems: 'center',
+        marginVertical: Spacing.m,
+    },
+    emptyExercisesText: {
+        color: Colors.textSecondary,
+        fontSize: 16,
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    nextWorkoutContainer: {
+        marginTop: Spacing.l,
+        marginBottom: Spacing.m,
+    },
+    nextWorkoutLabel: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
+        marginBottom: Spacing.s,
+        marginLeft: Spacing.s,
+    },
+    nextWorkoutCard: {
+        borderRadius: Layout.borderRadius.l,
+        padding: Spacing.l,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        overflow: 'hidden',
+    },
+    nextWorkoutHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.m,
+    },
+    nextWorkoutTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.primaryStart,
+    },
+    nextWorkoutDay: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    nextExercisesPreview: {
+        gap: Spacing.s,
+        marginBottom: Spacing.m,
+    },
+    nextExerciseItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    nextExerciseBullet: {
+        color: Colors.primaryStart,
+        fontSize: 18,
+        marginRight: 8,
+    },
+    nextExerciseName: {
+        color: Colors.textSecondary,
+        fontSize: 16,
+    },
+    moreExercisesText: {
+        color: Colors.textTertiary,
+        fontSize: 14,
+        fontStyle: 'italic',
+        marginTop: 4,
+    },
+    viewPlanButton: {
+        backgroundColor: 'rgba(108, 99, 255, 0.1)',
+        paddingVertical: 10,
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(108, 99, 255, 0.3)',
+    },
+    viewPlanButtonText: {
+        color: Colors.primaryStart,
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

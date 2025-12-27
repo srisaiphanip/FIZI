@@ -13,8 +13,28 @@ export class PlanGeneratorService {
      * Generates a personalized workout plan based on the user's profile
      */
     static generatePlan(userId: string, profile: UserProfile): WorkoutPlan {
-        const availableExercises = this.filterExercises(profile);
-        const sessions = this.createSessions(profile, availableExercises);
+        // Robustness: Ensure profile has necessary nested objects
+        const safeProfile: UserProfile = {
+            ...profile,
+            progressSystem: profile.progressSystem || {
+                currentLevel: profile.level || 1,
+                currentXP: profile.xp || 0,
+                levelProgress: ((profile.xp || 0) % 1000) / 10,
+                totalWorkouts: profile.totalWorkouts || 0,
+                achievements: []
+            },
+            fitnessProfile: profile.fitnessProfile || {
+                equipmentAccess: 'bodyweight',
+                availableEquipment: [],
+                experienceLevel: 'beginner',
+                fitnessGoals: ['Weight Loss'],
+                healthIssues: [],
+                availableDays: 3
+            }
+        };
+
+        const availableExercises = this.filterExercises(safeProfile);
+        const sessions = this.createSessions(safeProfile, availableExercises);
         const metrics = this.calculateMetrics(sessions);
 
         return {
@@ -43,16 +63,14 @@ export class PlanGeneratorService {
         const availableEquipment = profile.fitnessProfile.availableEquipment || [];
         const { currentLevel } = profile.progressSystem;
 
-        return exercises.filter(ex => {
+        const filtered = exercises.filter(ex => {
             // 1. Level check
             const isUnlocked = ex.unlockLevel <= currentLevel;
             if (!isUnlocked) return false;
 
             // 2. Granular Equipment check
-            // If user has 'gym' access, traditionally they have everything
             if (equipmentAccess === 'gym') return true;
 
-            // Otherwise, check specific items
             const hasRequiredItems = ex.requiredEquipment.length === 0 ||
                 ex.requiredEquipment.every(req => availableEquipment.includes(req));
 
@@ -61,6 +79,15 @@ export class PlanGeneratorService {
             // 3. High-level category fallback
             return this.checkEquipmentMatch(equipmentAccess, ex.equipmentRequired);
         });
+
+        // Safety Fallback: If no exercises found (e.g. data mismatch), 
+        // return at least basic bodyweight exercises
+        if (filtered.length === 0) {
+            console.warn('[PlanGenerator] No exercises matched filters. Using bodyweight fallback.');
+            return exercises.filter(ex => ex.equipmentRequired === 'bodyweight' && ex.unlockLevel <= currentLevel);
+        }
+
+        return filtered;
     }
 
     private static checkEquipmentMatch(userAccess: 'bodyweight' | 'home' | 'gym', exerciseReq: 'bodyweight' | 'home' | 'gym'): boolean {
@@ -88,10 +115,12 @@ export class PlanGeneratorService {
                     day: i + 1,
                     dayOfWeek: i % 7,
                     title: `Full Body Workout - Day ${i + 1}`,
+                    focus: profile.fitnessProfile.fitnessGoals[0] || 'Full Body Strength',
                     exercises: this.selectExercisesForSession(profile, availableExercises),
                     status: 'scheduled',
                     type: 'strength',
-                    duration: 45
+                    duration: 45,
+                    isRestDay: false
                 });
             } else {
                 sessions.push({
@@ -103,7 +132,9 @@ export class PlanGeneratorService {
                     exercises: [],
                     status: 'completed',
                     type: 'rest',
-                    duration: 0
+                    duration: 0,
+                    isRestDay: true,
+                    notes: 'Take today to recover and prepare for your next workout.'
                 });
             }
         }
@@ -112,12 +143,20 @@ export class PlanGeneratorService {
     }
 
     private static isWorkoutDay(day: number, frequency: number): boolean {
+        // If user wants rest ONLY on Sunday, they need a 6-day frequency.
+        // But we'll try to honor Saturday as a workout day for everyone.
+
         if (frequency >= 6) return day !== 0; // 6 days: Rest on Sunday
-        if (frequency >= 5) return day !== 0 && day !== 6; // 5 days: Rest on Weekend
-        if (frequency >= 4) return [1, 2, 4, 5].includes(day); // 4 days: Mon, Tue, Thu, Fri
-        if (frequency >= 3) return [1, 3, 5].includes(day); // 3 days: Mon, Wed, Fri
-        if (frequency >= 2) return [2, 4].includes(day); // 2 days: Tue, Thu
-        return day === 3; // 1 day: Wed
+
+        // Custom distribution that favors Saturday (day 6) and keeps Sunday (day 0) as rest
+        switch (frequency) {
+            case 5: return [1, 2, 4, 5, 6].includes(day); // Mon, Tue, Thu, Fri, Sat (Rest: Wed, Sun)
+            case 4: return [1, 2, 4, 6].includes(day);    // Mon, Tue, Thu, Sat (Rest: Wed, Fri, Sun)
+            case 3: return [1, 3, 6].includes(day);       // Mon, Wed, Sat (Rest: Tue, Thu, Fri, Sun)
+            case 2: return [2, 6].includes(day);          // Tue, Sat
+            case 1: return day === 6;                     // Sat
+            default: return day !== 0;                    // Fallback to 6 days if frequency is weird
+        }
     }
 
     /**

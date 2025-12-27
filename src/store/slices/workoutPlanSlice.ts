@@ -127,12 +127,19 @@ const workoutPlanSlice = createSlice({
 
                 // Set today's workout
                 const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+                // For multi-week plans, we want to find a session that matches the current day of the week
+                // and ideally the current week. For now, we'll find any session with matching dayOfWeek.
                 const todaysWorkout = action.payload.sessions.find(
                     (s) => s.dayOfWeek === today
                 );
 
                 if (todaysWorkout) {
-                    state.todaysWorkout = todaysWorkout;
+                    // Ensure isRestDay is set based on type if missing
+                    state.todaysWorkout = {
+                        ...todaysWorkout,
+                        isRestDay: todaysWorkout.isRestDay ?? todaysWorkout.type === 'rest'
+                    };
                 } else {
                     // Create a rest day object
                     state.todaysWorkout = {
@@ -204,12 +211,15 @@ const workoutPlanSlice = createSlice({
 
                 // Set today's workout
                 const today = new Date().getDay();
-                const todaysWorkout = (action.payload.sessions as DailyWorkout[]).find(
-                    (s: DailyWorkout) => s.dayOfWeek === today
+                const todaysWorkout = (action.payload.sessions as any[]).find(
+                    (s) => s.dayOfWeek === today
                 );
 
                 if (todaysWorkout) {
-                    state.todaysWorkout = todaysWorkout;
+                    state.todaysWorkout = {
+                        ...todaysWorkout,
+                        isRestDay: todaysWorkout.isRestDay ?? todaysWorkout.type === 'rest'
+                    };
                 } else {
                     state.todaysWorkout = {
                         id: `rest_level_fallback_${today}`,

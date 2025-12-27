@@ -20,6 +20,7 @@ import {
     query,
     where,
     getDocs,
+    writeBatch,
     Timestamp
 } from 'firebase/firestore';
 
@@ -53,8 +54,24 @@ class WorkoutPlanService {
 
     async saveWorkoutPlan(plan: WorkoutPlan): Promise<string> {
         try {
+            // Deactivate all existing plans for this user first
+            const plansRef = collection(db, 'workout_plans');
+            const q = query(plansRef, where('userId', '==', plan.userId), where('isActive', '==', true));
+            const querySnapshot = await getDocs(q);
+
+            const batch = writeBatch(db);
+            querySnapshot.forEach((doc) => {
+                batch.update(doc.ref, { isActive: false });
+            });
+            await batch.commit();
+
             const planRef = doc(collection(db, 'workout_plans'));
-            const planWithId = { ...plan, id: planRef.id, updatedAt: new Date() };
+            const planWithId = {
+                ...plan,
+                id: planRef.id,
+                isActive: true,
+                updatedAt: new Date()
+            };
             const plainPlan = JSON.parse(JSON.stringify(planWithId));
             await setDoc(planRef, plainPlan);
             return planRef.id;
@@ -102,33 +119,6 @@ class WorkoutPlanService {
         } catch (error) {
             console.error('Error updating exercise completion:', error);
             return false;
-        }
-    }
-
-    async getExerciseInstructions(exerciseId: string): Promise<ExerciseInstructions | null> {
-        try {
-            const instructionsRef = doc(db, 'exercise_instructions', exerciseId);
-            const docSnap = await getDoc(instructionsRef);
-            if (docSnap.exists()) {
-                return docSnap.data() as ExerciseInstructions;
-            }
-            return null;
-        } catch (error) {
-            console.error('Error getting exercise instructions:', error);
-            return null;
-        }
-    }
-
-    async seedInstructions(instructions: ExerciseInstructions[]): Promise<void> {
-        try {
-            for (const item of instructions) {
-                const docRef = doc(db, 'exercise_instructions', item.exerciseId);
-                await setDoc(docRef, { ...item, lastUpdated: Timestamp.now() });
-            }
-            console.log('Successfully seeded instructions');
-        } catch (error) {
-            console.error('Error seeding instructions:', error);
-            throw error;
         }
     }
 }

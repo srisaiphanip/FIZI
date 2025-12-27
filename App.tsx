@@ -7,6 +7,7 @@ import { store, RootState } from './src/store';
 import { auth } from './src/services/firebaseConfig';
 import { authService } from './src/services/authService';
 import { setUser } from './src/store/slices/authSlice';
+import { View, Text } from 'react-native';
 
 // Import screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -42,6 +43,7 @@ function AppContent() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('Login');
   const navigationParamsRef = useRef<NavigationParams>({});
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Check onboarding status on mount
   useEffect(() => {
@@ -73,11 +75,17 @@ function AppContent() {
   // Auth state listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userProfile = await authService.getUserProfile(firebaseUser.uid);
-        store.dispatch(setUser(userProfile));
-      } else {
-        store.dispatch(setUser(null));
+      try {
+        if (firebaseUser) {
+          const userProfile = await authService.getUserProfile(firebaseUser.uid);
+          store.dispatch(setUser(userProfile));
+        } else {
+          store.dispatch(setUser(null));
+        }
+      } catch (error) {
+        console.error('Error in auth state listener:', error);
+      } finally {
+        setCheckingAuth(false);
       }
     });
     return () => unsubscribe();
@@ -85,7 +93,7 @@ function AppContent() {
 
   // Navigation Logic - Only run for auth/onboarding, don't override other screens
   useEffect(() => {
-    if (checkingOnboarding) return;
+    if (checkingOnboarding || checkingAuth) return;
     if (currentScreen === 'Onboarding') return;
 
     // Don't override these screens - user navigated there manually
@@ -112,7 +120,7 @@ function AppContent() {
         setCurrentScreen('Login');
       }
     }
-  }, [isAuthenticated, user, checkingOnboarding]);
+  }, [isAuthenticated, user, checkingOnboarding, checkingAuth]);
 
   // Navigation functions to pass to screens
   const navigation = {
@@ -129,8 +137,13 @@ function AppContent() {
 
   // Render current screen
   const renderScreen = () => {
-    if (checkingOnboarding) {
-      return null; // Or a loading spinner
+    if (checkingOnboarding || checkingAuth) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#6C63FF', fontSize: 24, fontWeight: 'bold' }}>FIZI</Text>
+          <Text style={{ color: '#999', marginTop: 10 }}>Loading your workout...</Text>
+        </View>
+      );
     }
 
     switch (currentScreen) {
@@ -176,4 +189,3 @@ export default function App() {
     </Provider>
   );
 }
-
