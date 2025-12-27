@@ -7,15 +7,28 @@ import AppConfig from '../config/appConfig';
 interface SmartCameraResult {
     poses: Pose[];
     isDetecting: boolean;
+    // Backend Stats
+    repCount: number;
+    stage: string | null;
+    feedback: string[];
+    formScore: number;
+    resetStats: () => Promise<void>;
 }
 
 export const useSmartCamera = (
     isActive: boolean,
-    cameraRef: React.RefObject<any>
+    cameraRef: React.RefObject<any>,
+    exerciseId: string = 'push-ups'
 ): SmartCameraResult => {
     // State
     const [poses, setPoses] = useState<Pose[]>([]);
     const [isDetecting, setIsDetecting] = useState(false);
+
+    // Backend Stats State
+    const [repCount, setRepCount] = useState(0);
+    const [stage, setStage] = useState<string | null>(null);
+    const [feedback, setFeedback] = useState<string[]>([]);
+    const [formScore, setFormScore] = useState(0);
 
     // Refs for loop control (avoid state updates during capture)
     const isProcessingRef = useRef(false);
@@ -44,20 +57,28 @@ export const useSmartCamera = (
             if (photo && photo.base64) {
                 const base64 = photo.base64;
 
-                // 2. Process Pose
-                const detectedPoses = AppConfig.features.enablePoseDetection
-                    ? await poseDetectionService.detectPose(base64)
-                    : [];
+                // 2. Process Pose & Stats via Backend
+                if (AppConfig.features.enablePoseDetection) {
+                    const result = await poseDetectionService.detectPose(base64, exerciseId);
 
-                // 3. Update State
-                if (detectedPoses && detectedPoses.length > 0) {
-                    setPoses(detectedPoses);
-                    missedFramesRef.current = 0;
-                } else {
-                    missedFramesRef.current += 1;
-                    if (missedFramesRef.current > 10) {
-                        setPoses([]);
+                    if (result.poses && result.poses.length > 0) {
+                        setPoses(result.poses);
+                        setRepCount(result.rep_count);
+                        setStage(result.stage);
+                        setFeedback(result.feedback);
+                        setFormScore(result.form_score);
+                        missedFramesRef.current = 0;
+                    } else {
+                        missedFramesRef.current += 1;
+                        if (missedFramesRef.current > 10) {
+                            setPoses([]);
+                            // Optional: Don't reset stats like reps, but maybe feedback?
+                            setStage(null);
+                            setFeedback([]);
+                        }
                     }
+                } else {
+                    setPoses([]);
                 }
             }
         } catch (err) {
@@ -71,7 +92,7 @@ export const useSmartCamera = (
                 loopTimerRef.current = setTimeout(runDetectionLoop, 50); // ~20fps target
             }
         }
-    }, [isActive, cameraRef]);
+    }, [isActive, cameraRef, exerciseId]);
 
     useEffect(() => {
         if (isActive) {
@@ -86,6 +107,8 @@ export const useSmartCamera = (
                 clearTimeout(loopTimerRef.current);
             }
             setPoses([]);
+            setStage(null);
+            setFeedback([]);
         }
 
         return () => {
@@ -95,8 +118,21 @@ export const useSmartCamera = (
         };
     }, [isActive, runDetectionLoop]);
 
+    const resetStats = useCallback(async () => {
+        setRepCount(0);
+        setStage(null);
+        setFeedback([]);
+        setFormScore(0);
+        await poseDetectionService.resetStats(exerciseId);
+    }, [exerciseId]);
+
     return {
         poses,
-        isDetecting
+        isDetecting,
+        repCount,
+        stage,
+        feedback,
+        formScore,
+        resetStats
     };
 };

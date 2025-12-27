@@ -8,10 +8,14 @@
 import { Pose, Keypoint } from '../types';
 
 // Use local IP for testing
-const POSE_API_URL = "http://10.73.24.82:5002";
+const POSE_API_URL = "http://localhost:5002"; // Assumes running on same machine or port forwarded
 
-export interface PoseDetectionResult {
+export interface BackendAnalysisResult {
     poses: Pose[];
+    rep_count: number;
+    stage: string | null;
+    feedback: string[];
+    form_score: number;
     isReady: boolean;
     error: string | null;
 }
@@ -40,6 +44,8 @@ class PoseDetectionService {
     async initialize(): Promise<boolean> {
         try {
             console.log('[PoseDetection] Connecting to Python backend...');
+            // In a real app, you might want to use the actual device IP if running on a phone
+            // For now, localhost is fine if using adb reverse or similar
             const response = await fetch(`${POSE_API_URL}/health`);
             if (response.ok) {
                 console.log('[PoseDetection] Connected to backend!');
@@ -60,10 +66,22 @@ class PoseDetectionService {
     /**
      * Detect poses from a base64 image string
      * @param base64Image - Base64 encoded image frame
-     * @returns Array of detected poses (mapped to local Pose interface)
+     * @param exerciseId - The ID of the exercise being performed
+     * @returns BackendAnalysisResult containing poses and workout stats
      */
-    async detectPose(base64Image: string): Promise<Pose[]> {
-        if (!this.isInitialized) return [];
+    async detectPose(base64Image: string, exerciseId: string = 'push-ups'): Promise<BackendAnalysisResult> {
+        // Default empty result
+        const emptyResult: BackendAnalysisResult = {
+            poses: [],
+            rep_count: 0,
+            stage: null,
+            feedback: [],
+            form_score: 0,
+            isReady: this.isInitialized,
+            error: null
+        };
+
+        if (!this.isInitialized) return emptyResult;
 
         try {
             const response = await fetch(`${POSE_API_URL}/pose`, {
@@ -71,40 +89,22 @@ class PoseDetectionService {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ image: base64Image }),
+                body: JSON.stringify({
+                    image: base64Image,
+                    exerciseId: exerciseId
+                }),
             });
 
-            if (!response.ok) return [];
+            if (!response.ok) return emptyResult;
 
             const data = await response.json();
 
-            if (data.error || !data.keypoints) return [];
+            if (data.error) {
+                return { ...emptyResult, error: data.error };
+            }
 
             // Map backend keypoints to our Keypoint interface
-            // Backend sends normalized [0,1], we need pixels?
-            // Actually our Pose interface uses {position: Point}
-            // but generateMockPose used {x, y}. 
-            // In CameraScreen line 403, we pass `width` and `height` to PoseOverlay.
-            // PoseOverlay typically handles scaling if points are normalized, 
-            // OR we scale them here if we know screen dims. 
-            // Since this service is decoupled from screen dims, let's return NORMALIZED coords (0-1)
-            // and ensure PoseOverlay handles them.
-
-            // WAIT: CameraScreen `generateMockPose` produces ABSOLUTE coordinates based on width/height.
-            // So existing overlays likely expect ABSOLUTE coordinates.
-            // But we don't know the image dimensions here easily without passing them.
-            // The safest bet is to return normalized here and let the Consumer scale, 
-            // OR update the Consumer.
-
-            // However, to avoid breaking `CameraScreen` logic which likely relies on the result being "ready to use":
-            // I should verify where `detectPose` is called.
-            // Currently CameraScreen call site is usually `detector.estimatePoses(tensor)`. 
-            // TFJS returns absolute. 
-
-            // I will update CameraScreen to pass dimensions or handle normalized.
-            // For now, let's assume we return normalized (0-1) and update CameraScreen to scale.
-
-            const keypoints: Keypoint[] = data.keypoints.map((kp: any) => ({
+            const keypoints: Keypoint[] = (data.keypoints || []).map((kp: any) => ({
                 name: kp.name,
                 x: kp.x, // Normalized 0-1
                 y: kp.y, // Normalized 0-1
@@ -113,18 +113,44 @@ class PoseDetectionService {
             }));
 
             // Wrap in Pose object
-            // TFJS returns { keypoints, score, box... }
-            // Our types/index.ts Pose interface: { keypoints: Keypoint[], score: number }
             const pose: Pose = {
                 keypoints: keypoints,
-                score: data.score
+                score: data.score || 0
             };
 
-            return [pose];
+            return {
+                poses: keypoints.length > 0 ? [pose] : [],
+                rep_count: data.rep_count || 0,
+                stage: data.stage || null,
+                feedback: data.feedback || [],
+                form_score: (data.score || 0) * 100, // Assuming 0-1 from backend, converting to 0-100 for frontend
+                isReady: true,
+                error: null
+            };
 
         } catch (error) {
             // console.warn('[PoseDetection] Request failed');
-            return [];
+            return emptyResult;
+        }
+    }
+
+    /**
+     * Reset stats for a specific exercise on the backend
+     */
+    async resetStats(exerciseId: string): Promise<boolean> {
+        if (!this.isInitialized) return false;
+
+        try {
+            await fetch(`${POSE_API_URL}/reset`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ exerciseId }),
+            });
+            console.log(`[PoseDetection] Stats reset for ${exerciseId}`);
+            return true;
+        } catch (error) {
+            console.warn('[PoseDetection] Reset failed:', error);
+            return false;
         }
     }
 

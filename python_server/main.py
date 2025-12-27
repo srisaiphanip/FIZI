@@ -158,6 +158,22 @@ def detect_pose():
 
 
 
+@app.route('/reset', methods=['POST'])
+def reset_stats():
+    try:
+        data = request.json
+        exercise_id = data.get('exerciseId', 'push-ups')
+        
+        # Import rep_counter singleton
+        from rep_counter import rep_counter
+        rep_counter.reset(exercise_id)
+        
+        print(f"🔄 Reset stats for {exercise_id}")
+        return jsonify({"status": "reset", "rep_count": 0})
+    except Exception as e:
+        print(f"Error resetting stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok", "service": "opencv-enhanced-backend"})

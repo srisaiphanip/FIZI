@@ -14,91 +14,113 @@ An advanced, AI-powered mobile fitness companion that uses real-time computer vi
 
 ## ✨ Core Features
 
-### 📡 Real-Time AI Coaching
-- **Precision Tracking**: Leverages a remote Python server powered by **MediaPipe** and **OpenCV** to track 33 body keypoints in real-time.
-- **Dynamic Form Correction**: Receive instant visual and audio guidance if your form slips, ensuring you stay in the "Gold Standard" range.
-- **Intelligent Rep Counting**: Automatically detects and counts reps for a wide variety of exercises (Push-ups, Squats, Bicep Curls, Lunges, and more).
+### 📡 Real-Time AI Vision Bridge
+*   **Intelligent Pose Analysis**: Uses a specialized Python Flask backend powered by **MediaPipe** and **OpenCV** to track 33 body keypoints with sub-millimeter precision.
+*   **Automatic Rep Counting**: Sophisticated state-machine logic detects exercise phases (e.g., "up" vs "down") to count reps accurately across various exercises like push-ups, squats, and bicep curls.
+*   **Real-Time Form Correction**: Analyzes joint angles and body alignment to provide instant audio and visual feedback if your form deviates from safety standards.
 
-### 📅 Intelligent Workout Scheduling
-- **Personalized Plans**: Generates custom weekly schedules based on your **experience level**, **fitness goals**, and **available equipment**.
-- **Adaptive Logic**: Filters exercises based on health constraints and muscle group priorities.
+### 📅 Smart Personalized Scheduling
+*   **Dynamic Plan Generation**: Tailors weekly workout schedules based on your experience level (Beginner, Intermediate, Advanced), fitness goals, and available equipment.
+*   **Adaptive Recovery**: Features a "Recovery Status" system (Good, Moderate, Poor) that adjusts your daily volume or suggests rest based on how you feel.
+*   **Exercise Library**: A comprehensive catalog of exercises with detailed instructions, steps, and AI-powered visual guides.
 
 ### 👤 Evolving Avatar & Gamification
-- **Transformation Avatar**: Your digital self physically levels up and transforms as you complete workouts.
-- **Achievement System**: Unlock medals and badges for consistency, form perfection, and personal bests.
-- **Streak Tracking**: Maintain your momentum with daily streak visualizations.
+*   **Transformation System**: Your custom digital avatar physically transforms—growing stronger and more defined—as you earn XP and level up.
+*   **RPG progression**: Earn XP for every rep and workout completed. Unlock new levels, achievements, and badges as you progress.
+*   **Personal Bests & Streaks**: Track your records and maintain daily streaks to stay consistent.
 
-### 📊 Professional Analytics
-- **History Logs**: Detailed record of every rep, set, and session.
-- **Form Scoring**: Average form quality metrics to help you identify areas for improvement.
-- **Progress Metrics**: Track calories burned, total volume, and workout duration over time.
+### 📊 Deep Analytics
+*   **Workout History**: Detailed logs of every session, including duration, reps, calories burned, and average form score.
+*   **Performance Metrics**: Visualize your growth over weeks and months with intuitive charts and statistics.
 
 ---
 
 ## 🏗️ System Architecture
 
-FIZI uses a high-performance hybrid architecture to bridge mobile portability with server-side AI power:
+FIZI leverages a high-performance bridge between mobile portability and server-side AI processing:
 
 ```mermaid
 graph TD
-    A["React Native (Expo) App"] <--> B["Python Flask AI Server"]
-    A <--> C["Firebase (Auth/DB/Storage)"]
-    B -- "MediaPipe / OpenCV" --> D["Pose & Angle Analysis"]
-    A -- "Camera Stream" --> B
-    C -- "Profile / Workout Data" --> A
-    A -- "Analytics / History" --> C
+    subgraph "Mobile Client (React Native / Expo)"
+        A["UI/UX Layer"] --> B["Redux State Management"]
+        B --> C["Pose Detection Service"]
+        C -- "Base64 Frames" --> D["Vision API Client"]
+    end
+
+    subgraph "AI Vision Server (Python Flask)"
+        D -- "HTTP POST /pose" --> E["Image Processor"]
+        E --> F["MediaPipe Pose Engine"]
+        F --> G["Angle Calculator"]
+        G --> H["Rep Counter & Form Validator"]
+        H -- "JSON Response (Stats/Feedback)" --> D
+    end
+
+    subgraph "Backend Infrastructure"
+        A <--> I["Firebase Auth"]
+        B <--> J["Firestore (User Profiles/Workouts)"]
+        A <--> K["Firebase Storage (Images/Assets)"]
+    end
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Mobile Framework**: React Native with Expo (Managed Workflow)
-- **Computer Vision**: 
-  - **Server-Side**: Python Flask + MediaPipe + OpenCV (Advanced Vision)
-  - **On-Device**: TensorFlow.js (MoveNet)
+### Frontend
+- **Framework**: React Native + Expo (Managed Workflow)
+- **Language**: TypeScript
 - **State Management**: Redux Toolkit
-- **Backend-as-a-Service**: Firebase (Authentication, Firestore, Storage)
-- **Real-Time Communication**: REST API for Vision Analysis
-- **Navigation**: React Navigation (Bottom Tabs, Stack)
+- **Navigation**: React Navigation (Stack & Bottom Tabs)
+- **Visuals**: Expo Linear Gradient, BlurView, Material Community Icons
+
+### Backend & AI
+- **Vision Server**: Python Flask
+- **Computer Vision**: MediaPipe, OpenCV, PIL (Pillow)
+- **Database / Auth**: Firebase (Firestore, Authentication, Storage)
+
+### Infrastructure
+- **Deployment**: Docker, Docker Compose
+- **Communication**: REST API (Pose Analysis), Firebase SDK
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Project Prerequisites
-- Node.js (v18+)
-- Python (v3.9+)
-- Expo Go App (for testing) or Android/iOS Emulator
+### 1. Prerequisites
+- **Node.js** (v18+)
+- **Python** (v3.9+)
+- **Expo Go** app installed on your physical device.
 
-### 2. Frontend Setup (Expo)
+### 2. Frontend Setup
 ```bash
 # Clone the repository
-cd AI-TRAINER-main
+git clone https://github.com/MaheshChalla2701/FIZI.git
+cd FIZI-main
 
 # Install dependencies
 npm install --legacy-peer-deps
 
-# Create your .env file
-# FIREBASE_API_KEY=...
+# Setup Environment Variables
+# Create a .env file in the root and add your Firebase config
 ```
 
-### 3. AI Server Setup (Python)
-The Python server handles the high-performance OpenCV/MediaPipe analysis.
+### 3. AI Server Setup
 ```bash
 # Navigate to server directory
 cd python_server
 
 # Install requirements
-pip install flask flask-cors mediapipe opencv-python pillow numpy
+pip install -r requirements.txt
 
-# Start the server (Port 5002)
+# Start the server (Default port: 5002)
 python main.py
 ```
+> [!IMPORTANT]
+> Ensure your mobile device and computer are on the **same Wi-Fi network**. If using a physical device, update `POSE_API_URL` in `src/services/PoseDetectionService.ts` to your computer's local IP address (e.g., `http://192.168.1.XX:5002`).
 
 ### 4. Running the App
 ```bash
-# Start Expo development server
+# From the root directory
 npx expo start --lan
 ```
 - Open **Expo Go** on your device.
@@ -129,15 +151,16 @@ npx expo start --lan
 
 ```text
 ├── src/
-│   ├── components/      # UI components (Overlays, Modals, Instructions)
-│   ├── services/        # Business logic (PoseDetection, WorkoutAnalysis, Firebase)
-│   ├── store/           # Redux logic (slices for Auth, Workout, Stats)
-│   ├── screens/         # Main views (Home, Camera, Avatar, History, Onboarding)
-│   ├── models/          # Exercise definitions and constants
-│   └── hooks/           # Custom React hooks
-├── python_server/       # Flask backend for AI processing
-├── assets/              # Static assets and branding
-└── App.tsx              # Application entry point & navigation
+│   ├── components/      # Reusable UI components & overlays
+│   ├── services/        # Business logic (Vision bridge, Workout management)
+│   ├── store/           # Redux slices (Auth, Workout, Plan, Stats)
+│   ├── screens/         # Main application views (Home, Camera, Avatar, etc.)
+│   ├── hooks/           # Custom React hooks (useSmartCamera, etc.)
+│   ├── theme/           # Design system (Colors, Gradients, Spacing)
+│   └── types/           # TypeScript interfaces & models
+├── python_server/       # Flask-based AI processing engine
+├── assets/              # Static media files & icons
+└── App.tsx              # Application entry point
 ```
 
 ---

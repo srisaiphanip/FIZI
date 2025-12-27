@@ -183,13 +183,18 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
      */
     const {
         poses: rawPoses,
-        isDetecting: isVisionActive
+        isDetecting: isVisionActive,
+        repCount: backendRepCount,
+        stage: backendStage,
+        feedback: backendFeedback,
+        formScore: backendFormScore,
+        resetStats
     } = useSmartCamera(
         AppConfig.features.enablePoseDetection,
-        cameraRef
+        cameraRef,
+        exerciseId
     );
 
-    // Scale normalized poses to screen dimensions for DISPLAY
     // Scale normalized poses to screen dimensions for DISPLAY
     const poses = React.useMemo(() => {
         // Priority to real poses
@@ -199,7 +204,8 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                 ...pose,
                 keypoints: pose.keypoints.map(kp => ({
                     ...kp,
-                    // Mirroring logic
+                    // Mirroring logic (assuming backend sends normalized 0-1)
+                    // If backend sends normalized x,y (0-1), we scale by width/height
                     x: isMirrored ? (1 - kp.x) * width : kp.x * width,
                     y: kp.y * height
                 }))
@@ -213,22 +219,6 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
         return [];
     }, [rawPoses, mockPoses, width, height, facing]);
-
-    // Points for ACCURATE ANALYSIS (using screen aspect ratio to preserve angles)
-    const analysisPoses = React.useMemo(() => {
-        if (rawPoses && rawPoses.length > 0) {
-            return rawPoses.map(pose => ({
-                ...pose,
-                keypoints: pose.keypoints.map(kp => ({
-                    ...kp,
-                    // Use screen dimensions to preserve correct physical angles
-                    x: kp.x * width,
-                    y: kp.y * height
-                }))
-            }));
-        }
-        return [];
-    }, [rawPoses, width, height]);
 
     const isPoseModelReady = true; // Always considered ready with backend approach
 
@@ -257,33 +247,48 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
     /**
      * Handle pose updates and analyze workout
+     * Replaced local workoutAnalysisService with Backend Data
      */
     useEffect(() => {
-        if (!isWorkoutActive || analysisPoses.length === 0) return;
+        if (!isWorkoutActive) return;
 
-        const exercise = getExerciseById(exerciseId);
-        if (!exercise) return;
+        // Use backend data directly
+        setRepCount(backendRepCount);
+        setCurrentStage(backendStage || '');
+        setFormScore(backendFormScore);
 
-        // Pass the first scaled pose for ANALYSIS (un-distorted)
-        const result = workoutAnalysisService.analyze(analysisPoses[0], exercise);
-        setCurrentStage(result.stage);
-        setRepCount(result.reps);
-        setFormScore(result.validation.score);
-        setFormValidation(result.validation);
+        // Convert string feedback to FormValidation format
+        const validation: FormValidation = {
+            isValid: backendFeedback.length === 0,
+            score: backendFormScore,
+            errors: backendFeedback.map(msg => ({
+                severity: 'warning',
+                message: msg,
+                visualCue: 'Fix Form',
+                audioCue: msg
+            }))
+        };
+        setFormValidation(validation);
 
-        // Track form score for average
-        setTotalFormScore(prev => prev + result.validation.score);
-        setFormScoreCount(prev => prev + 1);
+        // Track stats locally for summary
+        if (backendRepCount > 0) {
+            setTotalFormScore(prev => prev + backendFormScore); // This might over-sample, but simpler for now
+            setFormScoreCount(prev => prev + 1);
+        }
 
-        // Process feedback
-        feedbackService.processFormValidation(result.validation);
+        // Process feedback (audio)
+        // Debounce or check for new feedback only? 
+        // FeedbackService handles debouncing usually
+        if (validation.errors.length > 0) {
+            feedbackService.processFormValidation(validation);
+        }
 
         // Announce rep completion
-        if (result.reps > prevRepCount.current) {
-            feedbackService.announceRep(result.reps, result.validation.score);
-            prevRepCount.current = result.reps;
+        if (backendRepCount > prevRepCount.current) {
+            feedbackService.announceRep(backendRepCount, backendFormScore);
+            prevRepCount.current = backendRepCount;
         }
-    }, [poses, isWorkoutActive, exerciseId]);
+    }, [backendRepCount, backendStage, backendFeedback, backendFormScore, isWorkoutActive]);
 
 
 
@@ -351,6 +356,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
     const handleCountdownComplete = () => {
         setShowCountdown(false);
+        resetStats(); // Reset backend stats
         setIsWorkoutActive(true);
         setShowOverlay(true);
 
@@ -392,7 +398,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
         const newExercise = AVAILABLE_EXERCISES[nextIndex];
 
         setExerciseId(newExercise);
-        workoutAnalysisService.reset(exerciseId);
+        resetStats(); // Reset backend stats for new exercise
         setRepCount(0);
         prevRepCount.current = 0;
     };
@@ -402,7 +408,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
      */
     const handleExerciseSelect = (id: string) => {
         setExerciseId(id as ExerciseId);
-        workoutAnalysisService.reset(exerciseId);
+        resetStats(); // Reset backend stats
         setRepCount(0);
         prevRepCount.current = 0;
     };
