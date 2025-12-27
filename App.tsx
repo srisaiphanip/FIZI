@@ -18,8 +18,10 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import AvatarScreen from './src/screens/AvatarScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import ExerciseInstructionsScreen from './src/screens/ExerciseInstructionsScreen';
+import LevelProgressScreen from './src/screens/LevelProgressScreen';
+import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 
-export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions';
+export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -87,7 +89,7 @@ function AppContent() {
     if (currentScreen === 'Onboarding') return;
 
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions') {
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary') {
       return;
     }
 
@@ -150,6 +152,10 @@ function AppContent() {
         return <OnboardingScreen onComplete={handleOnboardingComplete} />;
       case 'ExerciseInstructions':
         return <ExerciseInstructionsScreen navigation={navigation} />;
+      case 'LevelProgress':
+        return <LevelProgressScreen navigation={navigation} />;
+      case 'ExerciseLibrary':
+        return <ExerciseLibraryScreen navigation={navigation} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }

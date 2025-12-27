@@ -31,6 +31,24 @@ class AuthService {
                 weight: 0,
                 height: 0,
                 fitnessGoal: 'weight_loss',
+                fitnessProfile: {
+                    equipmentAccess: 'bodyweight',
+                    experienceLevel: 'beginner',
+                    fitnessGoals: [],
+                    healthConstraints: [],
+                    availableDays: 3
+                },
+                progressSystem: {
+                    currentLevel: 1,
+                    currentXP: 0,
+                    xpToNextLevel: 1000,
+                    totalWorkoutsCompleted: 0,
+                    unlockedExercises: ['push-ups', 'squats', 'plank', 'jumping-jacks']
+                },
+                workoutCapacity: {
+                    bodyweight: { sets: 3, reps: 10 },
+                    weighted: { sets: 3, reps: 8 }
+                },
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 transformationPhotos: [],
@@ -107,13 +125,31 @@ class AuthService {
                     weight: data.weight || 0,
                     height: data.height || 0,
                     fitnessGoal: data.fitnessGoal || 'weight_loss',
-                    createdAt: data.createdAt?.toDate() || new Date(),
-                    updatedAt: data.updatedAt?.toDate() || new Date(),
+                    fitnessProfile: data.fitnessProfile || {
+                        equipmentAccess: data.equipmentAccess || data.equipmentAvailable || 'bodyweight',
+                        experienceLevel: data.workoutExperience || 'beginner',
+                        fitnessGoals: data.fitnessGoals || [data.fitnessGoal] || [],
+                        healthConstraints: data.healthConstraints || [],
+                        availableDays: data.availableDays || 3
+                    },
+                    progressSystem: data.progressSystem || {
+                        currentLevel: data.level || 1,
+                        currentXP: data.xp || 0,
+                        xpToNextLevel: data.xpToNextLevel || 1000,
+                        totalWorkoutsCompleted: data.totalWorkouts || 0,
+                        unlockedExercises: data.unlockedExercises || []
+                    },
+                    workoutCapacity: data.workoutCapacity || {
+                        bodyweight: { sets: 3, reps: 10 },
+                        weighted: { sets: 3, reps: 8 }
+                    },
+                    workoutPlanId: data.workoutPlanId,
                     transformationPhotos: data.transformationPhotos || [],
                     level: data.level || 1,
                     xp: data.xp || 0,
                     totalWorkouts: data.totalWorkouts || 0,
-                    unlockedExercises: data.unlockedExercises || [],
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+                    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
                 };
 
                 // Add optional photoURL if it exists

@@ -1,0 +1,3 @@
+﻿src/screens/HomeScreen.tsx(302,73): error TS2339: Property 'estimatedDuration' does not exist on type 'WorkoutSession'.
+src/screens/HomeScreen.tsx(456,67): error TS18048: 'session.focus' is possibly 'undefined'.
+verify_plan_generation.ts(14,5): error TS2353: Object literal may only specify known properties, and 'equipmentAccess' does not exist in type 'UserProfile'.

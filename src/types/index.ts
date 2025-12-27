@@ -4,6 +4,10 @@ export interface PlanMetrics {
     weeklyIntensity: number; // 1-10 scale
     targetCalorieBurn?: number;
     expectedProgressPerWeek?: string;
+    totalWorkouts?: number;
+    estimatedCalories?: number;
+    focusMuscles?: string[];
+    weeklyFrequency?: number;
 }
 
 export interface UserProgress {
@@ -37,7 +41,7 @@ export interface Keypoint {
     score: number;
 }
 
-export interface AppPose {
+export interface Pose {
     keypoints: Keypoint[];
     score: number;
 }
@@ -46,7 +50,7 @@ export interface FormCheck {
     name: string;
     description: string;
     severity: 'error' | 'warning' | 'tip';
-    checkFunction: (pose: AppPose) => boolean;
+    checkFunction: (pose: Pose) => boolean;
     feedback: {
         visual: string;
         audio: string;
@@ -81,36 +85,65 @@ export interface ExerciseStage {
     duration?: number;
 }
 
+export interface FormCriteria {
+    primaryAngles: {
+        joint: string;
+        min: number;
+        max: number;
+        optimal: number;
+    }[];
+    maxAllowedErrors?: number;
+}
+
 /**
  * Exercise Definition (Database Model)
  */
 export interface Exercise {
     id: string;
     name: string;
-    category: 'strength' | 'cardio' | 'flexibility';
-    muscleGroups: string[];
-    keypoints: number[]; // Relevant body landmarks
+    displayName?: string; // Human-friendly name
+    category: 'strength' | 'cardio' | 'flexibility' | 'plyometric';
+    muscleGroups: MuscleGroup[] | string[];
+
+    // Core Logic (Functional)
+    keypoints: number[];
     stages: ExerciseStage[];
     formChecks: FormCheck[];
 
-    // Extended fields for workout planning
-    equipment?: string[];
-    difficulty?: 'beginner' | 'intermediate' | 'advanced';
-    primaryGoal?: 'strength' | 'hypertrophy' | 'endurance';
-    contraindications?: string[];
-    alternatives?: string[];
+    // Equipment Requirements
+    equipmentRequired: 'bodyweight' | 'home' | 'gym'; // High-level category
+    requiredEquipment: EquipmentItem[]; // Granular requirements
+    optionalEquipment?: EquipmentItem[];
 
-    // Fields from refined generator
-    sets?: number;
-    reps?: string;
-    rest?: number;
-    notes?: string;
-    modifications?: string[];
-    targetMuscle?: string;
-    description?: string;
-    steps?: string[];
-    tips?: string[];
-    requiredLevel?: number; // Level needed to unlock this exercise
+    // Level System
+    unlockLevel: number;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+
+    // Progression Data
+    baseReps: number;
+    baseSets: number;
+    repIncrement: number;
+    setIncrement: number;
+
+    // Media & UI
+    thumbnailUrl: string;
+    demonstrationVideo?: string;
+    videoUrl?: string; // Alias for demonstrationVideo
+    description: string;
+    instructions: string[]; // Replaces steps
+    steps?: string[];      // Legacy field for compatibility
+    commonMistakes?: string[];
+    tips: string[];
+
+    // Extended Data
+    caloriesPerRep?: number;
+    alternatives?: string[];
+    progressionPath?: string[];
+    formThresholds?: {
+        minAngle?: number;
+        maxAngle?: number;
+        targetAngle?: number;
+    };
 }
 
 /**
@@ -118,16 +151,63 @@ export interface Exercise {
  */
 export interface PlannedExercise {
     exerciseId: string; // Internal system ID
+    id?: string;        // Compatibility with Exercise object
     name: string;      // Display name
     exerciseName?: string; // Legacy field for compatibility
     sets: number;
-    reps: string;      // e.g., "8-12", "5", "max"
+    reps: string | number;      // e.g., "8-12", "5", "max"
     rest: number;      // seconds
     notes?: string;
     modifications?: string[];
     completed?: boolean;
     targetMuscle?: string;
     difficulty?: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export type EquipmentItem =
+    | 'none'
+    | 'dumbbells'
+    | 'resistance_bands'
+    | 'pull_up_bar'
+    | 'yoga_mat'
+    | 'bench'
+    | 'kettlebells'
+    | 'barbell'
+    | 'squat_rack'
+    | 'cable_machine'
+    | 'leg_press_machine'
+    | 'lat_pulldown_machine'
+    | 'smith_machine'
+    | 'ez_bar';
+
+export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'core' | 'fullbody' | 'cardio';
+
+export interface FitnessProfile {
+    equipmentAccess: 'bodyweight' | 'home' | 'gym';
+    availableEquipment: EquipmentItem[];
+    experienceLevel: 'beginner' | 'intermediate' | 'advanced';
+    fitnessGoals: string[];
+    availableDays: number;
+    healthIssues: string[];
+}
+
+export interface ProgressSystem {
+    currentLevel: number;
+    currentXP: number;
+    xpToNextLevel: number;
+    totalWorkoutsCompleted: number;
+    unlockedExercises: string[];
+}
+
+export interface WorkoutCapacity {
+    bodyweight: {
+        sets: number;
+        reps: number;
+    };
+    weighted: {
+        sets: number;
+        reps: number;
+    };
 }
 
 export interface UserProfile {
@@ -139,55 +219,34 @@ export interface UserProfile {
     weight: number; // kg
     height: number; // cm
 
-    // Existing fields (maintained for app compatibility)
+    // Enhanced fields
+    fitnessProfile: FitnessProfile;
+    progressSystem: ProgressSystem;
+    workoutCapacity: WorkoutCapacity;
+
+    // Legacy fields (maintained for compatibility)
     fitnessGoal: 'weight_loss' | 'muscle_gain' | 'endurance' | 'flexibility';
     workoutExperience?: 'beginner' | 'intermediate' | 'advanced';
-    healthIssues?: string[];
-    fitnessAssessment?: {
-        pushups: number;
-        squats?: number;
-        plankSeconds?: number;
-    };
-    equipmentAccess?: 'bodyweight' | 'home_equipment' | 'gym';
-
-    // Progression fields
     level: number;
     xp: number;
     totalWorkouts: number;
-    unlockedExercises?: string[]; // IDs of manually unlocked or special exercises
-    availableEquipment?: string[];
     workoutPlanId?: string;
-
-    // Refined fields (for generator)
-    primaryGoal?: 'weight_loss' | 'muscle_gain' | 'stamina' | 'flexibility';
-    experience?: 'beginner' | 'intermediate' | 'advanced';
-    maxPushups?: number;
-    maxSquats?: number;
-    plankDuration?: number;
-    injuries?: string[];
-    medicalConditions?: string[];
-    location?: 'home_bodyweight' | 'home_equipped' | 'gym';
-    equipment?: string[];
-
     createdAt: Date;
     updatedAt: Date;
-    bodyMetrics?: {
-        chest?: number;
-        waist?: number;
-        arms?: number;
-        legs?: number;
-    };
     transformationPhotos: string[];
 }
 
 export interface WorkoutSession {
-    day: string; // "Monday", etc.
-    dayOfWeek: number; // 0-6
-    focus: string;
+    id: string;
+    day: number | string; // Day 1, Day 2 or "Monday"
+    dayOfWeek?: number;
+    title?: string;
+    focus?: string;
     exercises: PlannedExercise[];
-    duration: number; // minutes
-    estimatedDuration?: number; // Legacy field for compatibility
-    intensity: 'low' | 'moderate' | 'high';
+    duration: number;
+    status: 'scheduled' | 'completed' | 'skipped' | 'in_progress';
+    type: 'strength' | 'cardio' | 'flexibility' | 'rest';
+    intensity?: 'low' | 'moderate' | 'high';
     warmup?: string;
     cooldown?: string;
     notes?: string;
@@ -195,21 +254,28 @@ export interface WorkoutSession {
 }
 
 export interface WorkoutPlan {
-    id: string; // Firestore ID
+    id: string;
     userId: string;
-    planLevel: number;
-    userProfile: UserProfile;
-    planName: string;
-    frequency: number; // workouts per week
-    duration: number; // weeks
-    sessions: WorkoutSession[]; // Replaces weeklySchedule
-    progressionStrategy: string;
+    name: string;
+    description?: string;
+    planLevel?: number;
+    userProfile?: UserProfile;
+    planName?: string; // Legacy
+    frequency: number;
+    duration: number;
+    sessions: WorkoutSession[];
     metrics: PlanMetrics;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    startDate: Date;
+    endDate: Date;
+    status: 'active' | 'completed' | 'archived';
+    levelRequirement?: number;
+    progressionStrategy?: string;
     predictions?: PerformancePrediction;
     nutritionGuidelines?: string;
-    createdAt: Date;
-    updatedAt: Date;
-    isActive: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+    isActive?: boolean;
 }
 
 // Legacy aliases for backward compatibility where possible

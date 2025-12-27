@@ -72,7 +72,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Execution Steps</Text>
                     <View style={styles.stepsTextContainer}>
-                        {exercise.steps?.map((step, index) => (
+                        {(exercise.instructions || exercise.steps)?.map((step: string, index: number) => (
                             <View key={index} style={styles.bulletPointRow}>
                                 <Text style={styles.bulletPoint}>•</Text>
                                 <Text style={styles.stepTextSimple}>{step}</Text>

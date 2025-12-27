@@ -38,11 +38,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         }
     }, [dispatch, user?.uid]);
 
-    const handleLevelChange = (level: number) => {
-        if (user?.uid) {
-            dispatch(updatePlanLevel({ userId: user.uid, level }));
-        }
-    };
 
     const handleSignOut = async () => {
         await dispatch(signOut());
@@ -224,46 +219,45 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     </TouchableOpacity>
                 </View>
 
+                {/* Level & XP Progress Card */}
+                <TouchableOpacity
+                    style={styles.xpCard}
+                    onPress={() => navigation.navigate('LevelProgress')}
+                >
+                    <BlurView intensity={20} tint="light" style={styles.xpCardContent}>
+                        <View style={styles.xpHeader}>
+                            <View>
+                                <Text style={styles.xpLabel}>Current Level</Text>
+                                <Text style={styles.levelValue}>{user?.progressSystem?.currentLevel || 1}</Text>
+                            </View>
+                            <View style={styles.xpCircle}>
+                                <Text style={styles.xpEmoji}>✨</Text>
+                            </View>
+                        </View>
+                        <View style={styles.xpBarContainer}>
+                            <View style={styles.xpBarBg}>
+                                <LinearGradient
+                                    colors={Gradients.primary}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={[
+                                        styles.xpBarFill,
+                                        { width: `${Math.min(100, (user?.progressSystem?.currentXP || 0) % 1000 / 10)}%` }
+                                    ]}
+                                />
+                            </View>
+                            <Text style={styles.xpPercentage}>
+                                {Math.round((user?.progressSystem?.currentXP || 0) % 1000 / 10)}%
+                            </Text>
+                        </View>
+                    </BlurView>
+                </TouchableOpacity>
+
                 {/* Motivational Tip */}
                 <View style={styles.section}>
                     <MotivationalTip />
                 </View>
 
-                {/* Level Selection Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>🎯 Select Your Level</Text>
-                    <View style={styles.levelSelector}>
-                        {[1, 2, 3, 4, 5].map((level) => (
-                            <TouchableOpacity
-                                key={level}
-                                onPress={() => handleLevelChange(level)}
-                                style={[
-                                    styles.levelButton,
-                                    currentPlan?.planLevel === level && styles.levelButtonActive
-                                ]}
-                                disabled={planLoading}
-                            >
-                                {planLoading && currentPlan?.planLevel !== level ? null : (
-                                    <Text style={[
-                                        styles.levelButtonText,
-                                        currentPlan?.planLevel === level && styles.levelButtonTextActive
-                                    ]}>
-                                        Level {level}
-                                    </Text>
-                                )}
-                                {planLoading && currentPlan?.planLevel === level && (
-                                    <ActivityIndicator size="small" color={Colors.textPrimary} />
-                                )}
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                    {currentPlan && (
-                        <View style={styles.levelInfo}>
-                            <Text style={styles.levelName}>{currentPlan.planName}</Text>
-                            <Text style={styles.levelDesc}>{currentPlan.progressionStrategy}</Text>
-                        </View>
-                    )}
-                </View>
 
                 {/* Dynamic Status Card */}
                 <BlurView intensity={30} tint="light" style={styles.todayStatusCard}>
@@ -294,12 +288,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {todaysWorkout && !todaysWorkout.isRestDay && (
                     <BlurView intensity={20} tint="light" style={styles.todayWorkoutCard}>
                         <View style={styles.workoutHeader}>
-                            <Text style={styles.workoutTitle}>Today's Workout 🎯</Text>
-                            <Text style={styles.workoutFocus}>{todaysWorkout.focus}</Text>
+                            <View>
+                                <Text style={styles.workoutTitle}>Today's Workout 🎯</Text>
+                                <Text style={styles.workoutFocus}>{todaysWorkout.focus}</Text>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => navigation.navigate('ExerciseLibrary')}
+                                style={styles.viewLibraryLink}
+                            >
+                                <Text style={styles.viewLibraryText}>Library →</Text>
+                            </TouchableOpacity>
                         </View>
 
                         <Text style={styles.workoutDuration}>
-                            ⏱️ {todaysWorkout.duration || todaysWorkout.estimatedDuration} min  •  {todaysWorkout.exercises.length} exercises
+                            ⏱️ {todaysWorkout.duration} min  •  {todaysWorkout.exercises.length} exercises
                         </Text>
                     </BlurView>
                 )}
@@ -453,7 +455,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                             isSelected && styles.gridDayFocusSelected,
                                             isSunday && styles.gridDayFocusRest
                                         ]} numberOfLines={1}>
-                                            {isSunday ? 'Rest' : (session?.focus.split('(')[0].trim() || 'Workout')}
+                                            {isSunday ? 'Rest' : (session?.focus?.split('(')[0].trim() || 'Workout')}
                                         </Text>
                                     </TouchableOpacity>
                                 );
@@ -1083,52 +1085,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-    // Level Selector
-    levelSelector: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.s,
-        marginBottom: Spacing.m,
-    },
-    levelButton: {
-        flex: 1,
-        minWidth: '30%',
-        paddingVertical: Spacing.m,
-        borderRadius: Layout.borderRadius.m,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-    },
-    levelButtonActive: {
-        backgroundColor: Colors.primaryStart,
-        borderColor: Colors.primaryStart,
-    },
-    levelButtonText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.textSecondary,
-    },
-    levelButtonTextActive: {
-        color: Colors.textPrimary,
-    },
-    levelInfo: {
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-        padding: Spacing.m,
-        borderRadius: Layout.borderRadius.m,
-        marginTop: Spacing.s,
-    },
-    levelName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: 4,
-    },
-    levelDesc: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        fontStyle: 'italic',
-    },
 
     // Weekly Grid
     weeklyGrid: {
@@ -1280,5 +1236,77 @@ const styles = StyleSheet.create({
     },
     restDayDetailContainer: {
         paddingVertical: Spacing.s,
+    },
+    // Progression Styles
+    xpCard: {
+        marginHorizontal: Spacing.l,
+        marginBottom: Spacing.l,
+        borderRadius: Layout.borderRadius.l,
+        overflow: 'hidden',
+        ...Shadows.card,
+    },
+    xpCardContent: {
+        padding: Spacing.m,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+    },
+    xpHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.s,
+    },
+    xpLabel: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    levelValue: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
+    },
+    xpCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(108, 99, 255, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    xpEmoji: {
+        fontSize: 20,
+    },
+    xpBarContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    xpBarBg: {
+        flex: 1,
+        height: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    xpBarFill: {
+        height: '100%',
+        borderRadius: 4,
+    },
+    xpPercentage: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: Colors.primaryStart,
+        width: 35,
+    },
+    viewLibraryLink: {
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+    },
+    viewLibraryText: {
+        fontSize: 14,
+        color: Colors.primaryStart,
+        fontWeight: 'bold',
     },
 });

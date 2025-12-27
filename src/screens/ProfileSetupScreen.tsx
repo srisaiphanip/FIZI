@@ -68,7 +68,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
     const [customHealthIssue, setCustomHealthIssue] = useState('');
 
     // Step 6: Equipment & Location
-    const [equipmentAccess, setEquipmentAccess] = useState<'bodyweight' | 'home_equipment' | 'gym'>('bodyweight');
+    const [equipmentAccess, setEquipmentAccess] = useState<'bodyweight' | 'home' | 'gym'>('bodyweight');
     const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
 
     // Step 7: Plan preview
@@ -126,21 +126,34 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             }
 
             // Create updated profile data
-            const profileUpdate = {
+            const profileUpdate: Partial<UserProfile> = {
                 age: parseInt(age),
                 weight: parseFloat(weight),
                 height: parseFloat(height),
                 fitnessGoal,
                 workoutExperience,
-                healthIssues: allHealthIssues,
-                fitnessAssessment: {
-                    pushups: Math.round(pushups),
-                    squats: Math.round(squats),
-                    plankSeconds: Math.round(plankMinutes * 60), // Convert minutes to seconds
+                fitnessProfile: {
+                    equipmentAccess,
+                    availableEquipment: selectedEquipment as any[],
+                    experienceLevel: workoutExperience,
+                    fitnessGoals: [fitnessGoal],
+                    healthIssues: allHealthIssues,
+                    availableDays: workoutExperience === 'beginner' ? 3 : workoutExperience === 'intermediate' ? 4 : 5
                 },
-                equipmentAccess,
-                availableEquipment: equipmentAccess === 'home_equipment' ? selectedEquipment : [],
+                progressSystem: {
+                    currentLevel: 1,
+                    currentXP: 0,
+                    xpToNextLevel: 1000,
+                    totalWorkoutsCompleted: 0,
+                    unlockedExercises: []
+                },
+                workoutCapacity: {
+                    bodyweight: { sets: 3, reps: 10 },
+                    weighted: { sets: 3, reps: 8 }
+                }
             };
+
+            console.log('[ProfileSetup] Profile update:', JSON.stringify(profileUpdate));
 
             // Update profile in auth slice (updates Local state and Firestore via authService)
             await dispatch(updateProfile(profileUpdate)).unwrap();
@@ -432,7 +445,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             <View style={styles.optionsContainer}>
                                 {[
                                     { value: 'bodyweight', label: 'Home (Bodyweight Only)', emoji: '🏠' },
-                                    { value: 'home_equipment', label: 'Home (With Equipment)', emoji: '🏋️' },
+                                    { value: 'home', label: 'Home (With Equipment)', emoji: '🏋️' },
                                     { value: 'gym', label: 'Gym Access', emoji: '🏢' },
                                 ].map((location) => (
                                     <TouchableOpacity
@@ -441,7 +454,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                             styles.optionButton,
                                             equipmentAccess === location.value && styles.optionButtonActive,
                                         ]}
-                                        onPress={() => setEquipmentAccess(location.value as typeof equipmentAccess)}
+                                        onPress={() => setEquipmentAccess(location.value as any)}
                                     >
                                         <Text style={styles.optionEmoji}>{location.emoji}</Text>
                                         <Text
@@ -457,7 +470,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             </View>
                         </View>
 
-                        {equipmentAccess === 'home_equipment' && (
+                        {equipmentAccess === 'home' && (
                             <View style={styles.inputContainer}>
                                 <Text style={styles.label}>Available Equipment</Text>
                                 <View style={styles.healthIssuesGrid}>
@@ -513,7 +526,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 <Text style={styles.summaryLabel}>Location:</Text>
                                 <Text style={styles.summaryValue}>
                                     {equipmentAccess === 'bodyweight' ? 'Home (Bodyweight)' :
-                                        equipmentAccess === 'home_equipment' ? 'Home (Equipment)' : 'Gym'}
+                                        equipmentAccess === 'home' ? 'Home (Equipment)' : 'Gym'}
                                 </Text>
                             </View>
                             <View style={styles.summaryRow}>

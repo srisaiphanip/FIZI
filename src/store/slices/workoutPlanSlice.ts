@@ -136,15 +136,18 @@ const workoutPlanSlice = createSlice({
                 } else {
                     // Create a rest day object
                     state.todaysWorkout = {
+                        id: `rest_fallback_${today}`,
                         day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today],
                         dayOfWeek: today,
                         focus: 'Rest & Recovery',
                         exercises: [],
                         duration: 0,
+                        status: 'completed',
+                        type: 'rest',
                         intensity: 'low',
                         isRestDay: true,
                         notes: 'Take today to recover and prepare for your next workout.'
-                    };
+                    } as any;
                 }
             })
             .addCase(fetchWorkoutPlan.rejected, (state, action) => {
@@ -209,15 +212,18 @@ const workoutPlanSlice = createSlice({
                     state.todaysWorkout = todaysWorkout;
                 } else {
                     state.todaysWorkout = {
+                        id: `rest_level_fallback_${today}`,
                         day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today],
                         dayOfWeek: today,
                         focus: 'Rest & Recovery',
                         exercises: [],
                         duration: 0,
+                        status: 'completed',
+                        type: 'rest',
                         intensity: 'low',
                         isRestDay: true,
                         notes: 'Take today to recover and prepare for your next workout.'
-                    };
+                    } as any;
                 }
             })
             .addCase(updatePlanLevel.rejected, (state, action) => {

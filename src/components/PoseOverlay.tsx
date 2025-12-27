@@ -9,10 +9,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Circle, Line, G } from 'react-native-svg';
-import { AppPose, Keypoint } from '../types';
+import { Pose, Keypoint } from '../types';
 
 interface PoseOverlayProps {
-    poses: AppPose[];
+    poses: Pose[];
     width: number;
     height: number;
     formScore?: number; // 0-100, affects skeleton color
@@ -108,7 +108,7 @@ export default function PoseOverlay({
     const skeletonColor = getFormColor(formScore);
     const jointColor = getJointColor(formScore);
 
-    const renderSkeleton = (pose: AppPose, poseIndex: number) => {
+    const renderSkeleton = (pose: Pose, poseIndex: number) => {
         const keypoints = pose.keypoints;
         const validKeypoints = keypoints.filter((k: Keypoint) => (k.score || 0) > MIN_SCORE);
 
