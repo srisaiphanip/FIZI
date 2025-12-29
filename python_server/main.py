@@ -14,10 +14,10 @@ CORS(app)
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(
     static_image_mode=False,
-    model_complexity=1, 
+    model_complexity=0,  # OPTIMIZED: 0=fastest, 1=balanced, 2=accurate (using fastest for low latency)
     enable_segmentation=False,
-    min_detection_confidence=0.3,  # Lower for long-distance detection
-    min_tracking_confidence=0.3    # More lenient tracking
+    min_detection_confidence=0.35,  # BALANCED: Works from close and long distance
+    min_tracking_confidence=0.35    # BALANCED: Smooth tracking even from far
 )
 
 # Exercise Modules

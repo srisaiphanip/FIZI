@@ -104,16 +104,16 @@ EXERCISE_CONFIGS = {
         'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
         'stages': [
             {'name': 'down', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}},
-            {'name': 'up', 'ranges': {'left_knee': (40, 90), 'right_knee': (40, 90)}}
+            {'name': 'up', 'ranges': {'left_knee': (30, 100), 'right_knee': (30, 100), 'left_hip': (50, 100)}}
         ],
         'form_checks': []
     },
     'jump-rope': {
         'name': 'Jump Rope',
-        'key_angles': ['left_knee', 'right_knee'],
+        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
         'stages': [
             {'name': 'landed', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}},
-            {'name': 'airborne', 'ranges': {'left_knee': (140, 180), 'right_knee': (140, 180)}}
+            {'name': 'airborne', 'ranges': {'left_knee': (120, 160), 'right_knee': (120, 160), 'left_hip': (150, 190)}}
         ],
         'form_checks': []
     },
@@ -186,10 +186,10 @@ EXERCISE_CONFIGS = {
     },
     'box-jumps': {
         'name': 'Box Jumps',
-        'key_angles': ['left_knee', 'right_knee', 'left_hip'],
+        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
         'stages': [
-            {'name': 'ground', 'ranges': {'left_knee': (70, 110), 'right_knee': (70, 110)}},
-            {'name': 'landed', 'ranges': {'left_knee': (80, 120), 'right_knee': (80, 120)}}
+            {'name': 'ground', 'ranges': {'left_knee': (60, 120), 'right_knee': (60, 120), 'left_hip': (50, 120)}},
+            {'name': 'landed', 'ranges': {'left_knee': (70, 130), 'right_knee': (70, 130), 'left_hip': (60, 130)}}
         ],
         'form_checks': []
     },
@@ -264,10 +264,10 @@ EXERCISE_CONFIGS = {
     },
     'calf-raises': {
         'name': 'Calf Raises',
-        'key_angles': ['left_knee', 'right_knee'],
+        'key_angles': ['left_knee', 'right_knee', 'torso_inclination'],
         'stages': [
-            {'name': 'down', 'ranges': {'left_knee': (170, 200), 'right_knee': (170, 200)}},
-            {'name': 'up', 'ranges': {'left_knee': (170, 200), 'right_knee': (170, 200)}}
+            {'name': 'down', 'ranges': {'left_knee': (165, 200), 'right_knee': (165, 200), 'torso_inclination': (0, 20)}},  # Flat on ground, knees straight
+            {'name': 'up', 'ranges': {'left_knee': (165, 200), 'right_knee': (165, 200), 'torso_inclination': (0, 30)}}     # On toes, body rises, torso shifts slightly
         ],
         'form_checks': []
     },

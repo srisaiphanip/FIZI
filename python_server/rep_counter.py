@@ -121,7 +121,7 @@ class RepCounter:
             if self.state['total_frames'] % 30 == 0:
                  print(f"   ? Check {stage['name']}: {final_score:.1f}%")
 
-            if final_score >= max_score and final_score > 15:  # More lenient threshold 
+            if final_score >= max_score and final_score > 10:  # OPTIMIZED: Very lenient threshold 
                 max_score = final_score
                 best_stage = stage['name']
         
@@ -136,8 +136,8 @@ class RepCounter:
         
         if best_stage:
             # Add minimum hold time to prevent false transitions (debounce)
-            MIN_STAGE_HOLD_TIME = 0.2  # seconds - shorter for more responsive counting
-            MIN_FORM_SCORE = 30  # Minimum 30% match - lenient for long distance
+            MIN_STAGE_HOLD_TIME = 0.1  # seconds - OPTIMIZED: faster response
+            MIN_FORM_SCORE = 20  # Minimum 20% match - OPTIMIZED: more lenient
             
             stage_changed = best_stage != self.state['current_stage']
             time_since_transition = current_time - self.state.get('last_transition_time', 0)

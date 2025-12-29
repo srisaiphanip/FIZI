@@ -457,15 +457,15 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                 facing={facing}
                 ref={cameraRef}
             >
-                {/* Pose Skeleton Overlay - Always show when poses detected */}
-                {poses.length > 0 && (
+                {/* Pose Skeleton Overlay - DISABLED per user request */}
+                {/* {poses.length > 0 && (
                     <PoseOverlay
                         poses={poses}
                         width={width}
                         height={height}
                         formScore={formScore}
                     />
-                )}
+                )} */}
 
                 {/* Form Feedback Overlay */}
                 <FormFeedbackOverlay
