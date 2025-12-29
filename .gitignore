@@ -44,10 +44,14 @@ venv/
 env/
 .env/
 
-# temporary files
-*.txt
+# temporary files (BUT ALLOW requirements.txt for deployment)
 *.log
 mock-pose.js
+reps_state.json
+
+# Allow requirements.txt for deployment
+!requirements.txt
+!**/requirements.txt
 
 # generated native folders
 /ios
