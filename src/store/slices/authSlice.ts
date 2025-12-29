@@ -64,6 +64,18 @@ export const updateProfile = createAsyncThunk(
     }
 );
 
+export const uploadPhoto = createAsyncThunk(
+    'auth/uploadPhoto',
+    async (uri: string, { rejectWithValue }) => {
+        try {
+            const photoURL = await authService.uploadProfilePhoto(uri);
+            return photoURL;
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const authSlice = createSlice({
     name: 'auth',
     initialState,
@@ -135,6 +147,23 @@ const authSlice = createSlice({
                 state.user = action.payload;
             })
             .addCase(updateProfile.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            });
+
+        // Upload Photo
+        builder
+            .addCase(uploadPhoto.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(uploadPhoto.fulfilled, (state, action) => {
+                state.loading = false;
+                if (state.user) {
+                    state.user.photoURL = action.payload;
+                }
+            })
+            .addCase(uploadPhoto.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             });

@@ -100,8 +100,9 @@ cd FIZI-main
 # Install dependencies
 npm install --legacy-peer-deps
 
-# Setup Environment Variables
-# Create a .env file in the root and add your Firebase config
+# Setup Firebase
+# Open src/services/firebaseConfig.ts and replace the 'firebaseConfig' object 
+# with your own credentials from the Firebase Console.
 ```
 
 ### 3. AI Server Setup
@@ -112,16 +113,19 @@ cd python_server
 # Install requirements
 pip install -r requirements.txt
 
-# Start the server (Default port: 5002)
+# Start the server (Runs on Port 5001)
 python main.py
 ```
 > [!IMPORTANT]
-> Ensure your mobile device and computer are on the **same Wi-Fi network**. If using a physical device, update `POSE_API_URL` in `src/services/PoseDetectionService.ts` to your computer's local IP address (e.g., `http://192.168.1.XX:5002`).
+> Ensure your mobile device and computer are on the **same Wi-Fi network**. 
+> 1. Find your computer's local IP address (e.g., `192.168.1.XX`).
+> 2. Open `src/services/PoseDetectionService.ts`.
+> 3. Update `POSE_API_URL` to match your IP: `http://192.168.1.XX:5001`.
 
 ### 4. Running the App
 ```bash
-# From the root directory
-npx expo start --lan
+# From the root project directory
+npx expo start
 ```
 - Open **Expo Go** on your device.
 - Scan the QR code.
@@ -142,7 +146,7 @@ npx expo start --lan
 - [x] **Sprint 7: Data Analytics** - Comprehensive history and personal bests.
 
 ### ⏳ Current Focus
-- [/] **Sprint 8: Optimization** - Refining pose detection latency and model precision.
+- [x] **Sprint 8: Optimization** - Codebase cleanup, bug fixes, and refining app logic.
 - [ ] **Sprint 9: Deployment** - Native build generation and Store submission.
 
 ---

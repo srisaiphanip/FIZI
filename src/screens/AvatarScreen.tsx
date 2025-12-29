@@ -15,9 +15,14 @@ import {
     ActivityIndicator,
     Alert,
     TextInput,
+    Image,
+    Platform,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
+import { uploadPhoto, signOut } from '../store/slices/authSlice';
 import {
     avatarService,
     AvatarState,
@@ -26,12 +31,15 @@ import {
 } from '../services/AvatarService';
 import { exercises } from '../models/exercises'; // Import exercises data
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface AvatarScreenProps {
     navigation: any;
 }
 
 export default function AvatarScreen({ navigation }: AvatarScreenProps) {
+    const dispatch = useAppDispatch();
+    const { user, loading: authLoading } = useAppSelector((state) => state.auth);
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMetricsModal, setShowMetricsModal] = useState(false);
@@ -55,6 +63,31 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
         setLoading(false);
     };
 
+    const handlePickImage = async () => {
+        try {
+            const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!permission.granted) {
+                Alert.alert('Permission Required', 'Please allow access to your photos to upload a profile picture.');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const uri = result.assets[0].uri;
+                await dispatch(uploadPhoto(uri)).unwrap();
+                Alert.alert('Success', 'Profile photo updated!');
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to update photo');
+        }
+    };
+
     const handleUpdateMetrics = async () => {
         const weight = parseFloat(currentWeight);
         const goal = parseFloat(goalWeight);
@@ -73,6 +106,30 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
         loadAvatarState();
         Alert.alert('Success', 'Body metrics updated!');
     };
+
+    const handleSignOut = () => {
+        Alert.alert(
+            'Sign Out',
+            'Are you sure you want to sign out?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Sign Out',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await dispatch(signOut()).unwrap();
+                            // Navigation to Auth stack is handled automatically
+                        } catch (error: any) {
+                            Alert.alert('Error', error.message || 'Failed to sign out');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+
 
     const getAvatarEmoji = (level: number): string => {
         const levelData = AVATAR_LEVELS.find(l => l.level === level);
@@ -122,12 +179,34 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Avatar Display */}
                 <BlurView intensity={20} tint="light" style={styles.avatarCard}>
-                    <LinearGradient
-                        colors={Gradients.primary}
-                        style={styles.avatarCircle}
-                    >
-                        <Text style={styles.avatarEmoji}>{getAvatarEmoji(avatarState.level)}</Text>
-                    </LinearGradient>
+                    <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
+                        <LinearGradient
+                            colors={Gradients.primary}
+                            style={styles.avatarCircle}
+                        >
+                            {user?.photoURL ? (
+                                <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
+                            ) : (
+                                <View style={styles.defaultAvatarContainer}>
+                                    <MaterialCommunityIcons
+                                        name="account-circle"
+                                        size={140}
+                                        color="rgba(255, 255, 255, 0.9)"
+                                    />
+                                </View>
+                            )}
+                            {authLoading && (
+                                <View style={styles.uploadingOverlay}>
+                                    <ActivityIndicator color="#FFF" />
+                                </View>
+                            )}
+                            <View style={styles.editIconBadge}>
+                                <MaterialCommunityIcons name="camera" size={20} color="white" />
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    <Text style={styles.userName}>{user?.displayName || 'Champion'}</Text>
                     <Text style={styles.levelName}>{avatarState.levelName}</Text>
                     <Text style={styles.levelBadge}>Level {avatarState.level}</Text>
 
@@ -339,6 +418,11 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     })}
                 </BlurView>
 
+                {/* Sign Out Button */}
+                <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+                    <MaterialCommunityIcons name="logout" size={20} color={Colors.textPrimary} />
+                    <Text style={styles.signOutButtonText}>Sign Out</Text>
+                </TouchableOpacity>
                 <View style={{ height: 40 }} />
             </ScrollView>
 
@@ -431,23 +515,26 @@ const styles = StyleSheet.create({
         marginRight: Spacing.m,
     },
     backButton: {
-        color: Colors.textSecondary,
+        color: Colors.accentCyan,
         fontSize: 16,
+        fontWeight: '600',
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 28,
+        fontWeight: '900',
         color: Colors.textPrimary,
+        letterSpacing: 0.5,
     },
     content: {
         flex: 1,
         paddingHorizontal: Spacing.l,
     },
     sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 19,
+        fontWeight: '800',
         color: Colors.textPrimary,
         marginBottom: Spacing.m,
+        letterSpacing: 0.3,
     },
 
     // Avatar Card
@@ -459,59 +546,119 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: Colors.glassBorder,
+        backgroundColor: 'rgba(79, 70, 229, 0.05)',
     },
     avatarCircle: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+        width: 160,
+        height: 160,
+        borderRadius: 80,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: Spacing.m,
         ...Shadows.glow,
+        borderWidth: 4,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     avatarEmoji: {
-        fontSize: 64,
+        fontSize: 80,
+    },
+    defaultAvatarContainer: {
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarImage: {
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        borderWidth: 4,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    uploadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 80,
+    },
+    editIconBadge: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        backgroundColor: Colors.accentCyan,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: Colors.backgroundDark,
+        ...Shadows.small,
+    },
+    editIconText: {
+        fontSize: 18,
+    },
+    userName: {
+        fontSize: 24, // Main name size
+        fontWeight: '800',
+        color: Colors.textPrimary,
+        marginTop: Spacing.m,
+        marginBottom: 4,
+        textAlign: 'center',
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
     },
     levelName: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
+        fontSize: 16, // Reduced slightly to be secondary to name
+        fontWeight: '600',
+        color: Colors.accentCyan,
+        marginBottom: Spacing.xs,
+        textAlign: 'center',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     levelBadge: {
-        fontSize: 14,
-        color: Colors.primaryStart,
-        marginTop: 4,
-        fontWeight: '600',
+        fontSize: 15,
+        color: Colors.accentCyan,
+        marginTop: 6,
+        fontWeight: '700',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
     streakContainer: {
         marginTop: Spacing.m,
         overflow: 'hidden',
         borderRadius: Layout.borderRadius.round,
+        ...Shadows.small,
     },
     streakGradient: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
     },
     streakIcon: {
-        fontSize: 16,
-        marginRight: 6,
+        fontSize: 18,
+        marginRight: 8,
     },
     streakText: {
         color: Colors.textPrimary,
-        fontSize: 14,
-        fontWeight: 'bold',
+        fontSize: 15,
+        fontWeight: '800',
     },
 
     // Progress Card
     progressCard: {
-        borderRadius: Layout.borderRadius.m,
+        borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
         marginBottom: Spacing.l,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: Colors.glassBorder,
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
     },
     progressItem: {
         marginBottom: Spacing.m,
@@ -519,26 +666,30 @@ const styles = StyleSheet.create({
     progressHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        marginBottom: 10,
+        alignItems: 'center',
     },
     progressLabel: {
-        color: Colors.textSecondary,
-        fontSize: 14,
+        color: Colors.textPrimary,
+        fontSize: 15,
+        fontWeight: '700',
     },
     progressValue: {
-        color: Colors.textPrimary,
-        fontSize: 14,
-        fontWeight: '600',
+        color: Colors.accentCyan,
+        fontSize: 15,
+        fontWeight: '800',
     },
     progressBarBg: {
-        height: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 5,
+        height: 14,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 7,
         overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     progressFill: {
         height: '100%',
-        borderRadius: 5,
+        borderRadius: 7,
     },
 
     // Stats Card
@@ -722,6 +873,27 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
 
+    // Sign Out Button
+    signOutButton: {
+        marginTop: 20,
+        padding: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 12,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    signOutButtonText: {
+        color: Colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+
+
+
     // Unlocked Exercises Styles
     unlockedExercisesContainer: {
         marginTop: 8,
@@ -766,6 +938,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.glassBorder,
         ...Shadows.card,
     },
+
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
@@ -798,23 +971,24 @@ const styles = StyleSheet.create({
     cancelButton: {
         flex: 1,
         padding: 16,
-        borderRadius: 12,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: 12,
         alignItems: 'center',
     },
     cancelButtonText: {
         color: Colors.textPrimary,
+        fontWeight: '600',
         fontSize: 16,
     },
     saveButton: {
         padding: 16,
         borderRadius: 12,
         alignItems: 'center',
-        ...Shadows.glow,
     },
     saveButtonText: {
-        color: Colors.textPrimary,
+        color: 'white',
         fontSize: 16,
+        ...Shadows.glow,
         fontWeight: 'bold',
     },
 });

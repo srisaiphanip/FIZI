@@ -19,7 +19,8 @@ import { UserProfile } from '../types';
 import { workoutPlanService } from '../services/WorkoutPlanService';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
-import { Colors, Layout, Spacing } from '../theme/Theme';
+import { Colors, Layout, Spacing, Gradients } from '../theme/Theme';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface ProfileSetupScreenProps {
     navigation: any;
@@ -513,6 +514,10 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 <Text style={styles.summaryValue}>{age} years</Text>
                             </View>
                             <View style={styles.summaryRow}>
+                                <Text style={styles.summaryLabel}>Weight / Height:</Text>
+                                <Text style={styles.summaryValue}>{weight}kg / {height}cm</Text>
+                            </View>
+                            <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Goal:</Text>
                                 <Text style={styles.summaryValue}>
                                     {fitnessGoal.replace('_', ' ').toUpperCase()}
@@ -530,8 +535,8 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 </Text>
                             </View>
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Push-ups:</Text>
-                                <Text style={styles.summaryValue}>{Math.round(pushups)}</Text>
+                                <Text style={styles.summaryLabel}>Strength Test:</Text>
+                                <Text style={styles.summaryValue}>{Math.round(pushups)} Pushups, {Math.round(squats)} Squats</Text>
                             </View>
                         </View>
 
@@ -550,10 +555,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
     };
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
-        >
+        <View style={styles.container}>
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled"
@@ -581,31 +583,28 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             </TouchableOpacity>
                         )}
 
-                        {currentStep < totalSteps ? (
-                            <TouchableOpacity
-                                style={[styles.nextButton, (loading || generatingPlan) && styles.buttonDisabled]}
-                                onPress={handleNext}
-                                disabled={loading || generatingPlan}
-                            >
-                                <Text style={styles.nextButtonText}>Next</Text>
-                            </TouchableOpacity>
-                        ) : (
-                            <TouchableOpacity
-                                style={[styles.nextButton, (loading || generatingPlan) && styles.buttonDisabled]}
-                                onPress={handleComplete}
-                                disabled={loading || generatingPlan}
+                        <TouchableOpacity
+                            style={[styles.nextButtonContainer, (loading || generatingPlan) && styles.buttonDisabled]}
+                            onPress={currentStep < totalSteps ? handleNext : handleComplete}
+                            disabled={loading || generatingPlan}
+                        >
+                            <LinearGradient
+                                colors={Gradients.primary}
+                                style={styles.nextButton}
                             >
                                 {generatingPlan ? (
                                     <ActivityIndicator color="#FFFFFF" />
                                 ) : (
-                                    <Text style={styles.nextButtonText}>Complete Setup</Text>
+                                    <Text style={styles.nextButtonText}>
+                                        {currentStep < totalSteps ? 'Next' : 'Complete Setup'}
+                                    </Text>
                                 )}
-                            </TouchableOpacity>
-                        )}
+                            </LinearGradient>
+                        </TouchableOpacity>
                     </View>
                 </View>
             </ScrollView>
-        </KeyboardAvoidingView>
+        </View>
     );
 }
 
@@ -813,9 +812,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
-    nextButton: {
+    nextButtonContainer: {
         flex: 2,
-        backgroundColor: Colors.primaryStart,
+    },
+    nextButton: {
         borderRadius: Layout.borderRadius.m,
         padding: Spacing.m,
         alignItems: 'center',

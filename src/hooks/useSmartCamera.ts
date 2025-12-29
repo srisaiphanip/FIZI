@@ -49,9 +49,10 @@ export const useSmartCamera = (
             // 1. Capture Frame (Single source of truth)
             // Use low quality for speed, just like Gesture-Sense
             const photo = await cameraRef.current.takePictureAsync({
-                quality: 0.3,
+                quality: 0.5, // Increase quality for better detection
                 base64: true,
                 shutterSound: false,
+                skipProcessing: true, // skip orienting/cropping for speed (server handles rotation if needed)
             });
 
             if (photo && photo.base64) {

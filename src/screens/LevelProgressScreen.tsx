@@ -5,6 +5,7 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    Dimensions,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,10 +13,14 @@ import { BlurView } from 'expo-blur';
 import { RootState } from '../store';
 import { ProgressionService } from '../services/ProgressionService';
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface LevelProgressScreenProps {
     navigation: any;
 }
+
+const { width } = Dimensions.get('window');
+const CIRCLE_SIZE = 180;
 
 export default function LevelProgressScreen({ navigation }: LevelProgressScreenProps) {
     const { user } = useSelector((state: RootState) => state.auth);
@@ -44,49 +49,129 @@ export default function LevelProgressScreen({ navigation }: LevelProgressScreenP
         <LinearGradient colors={Gradients.background} style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.accentCyan} />
+                    <Text style={styles.backButtonText}>Back</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Level Up Progress</Text>
+                <Text style={styles.title}>Level Progress</Text>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-                {/* Level Card */}
-                <BlurView intensity={20} tint="light" style={styles.levelCard}>
-                    <LinearGradient
-                        colors={Gradients.primary}
-                        style={styles.levelCircle}
-                    >
-                        <Text style={styles.levelNumber}>{currentLevel}</Text>
-                        <Text style={styles.levelLabel}>LEVEL</Text>
-                    </LinearGradient>
+                {/* Premium Level Card */}
+                <View style={styles.levelCardContainer}>
+                    <BlurView intensity={30} tint="dark" style={styles.levelCard}>
+                        {/* Decorative gradient background */}
+                        <LinearGradient
+                            colors={['rgba(139, 92, 246, 0.15)', 'rgba(59, 130, 246, 0.15)']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.levelCardGradient}
+                        />
 
-                    <View style={styles.xpInfo}>
-                        <View style={styles.xpHeader}>
-                            <Text style={styles.xpText}>{xpInCurrentLevel} / {xpRequiredForLevel} XP</Text>
-                            <Text style={styles.percentText}>{progressPercent}%</Text>
-                        </View>
-                        <View style={styles.progressBarBg}>
+                        {/* Progress Circle */}
+                        <View style={styles.circleContainer}>
+                            {/* Outer glow ring */}
+                            <View style={[styles.glowRing, { opacity: 0.3 }]}>
+                                <LinearGradient
+                                    colors={Gradients.primary}
+                                    style={styles.glowRingGradient}
+                                />
+                            </View>
+
+                            {/* Progress track */}
+                            <LinearGradient
+                                colors={['rgba(139, 92, 246, 0.2)', 'rgba(59, 130, 246, 0.2)']}
+                                style={styles.progressCircle}
+                            />
+
+                            {/* Center content */}
                             <LinearGradient
                                 colors={Gradients.primary}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={[styles.progressFill, { width: `${progressPercent}%` }]}
-                            />
+                                style={styles.levelCircleInner}
+                            >
+                                <Text style={styles.levelNumber}>{currentLevel}</Text>
+                                <Text style={styles.levelLabel}>LEVEL</Text>
+                                <View style={styles.levelBadge}>
+                                    <Text style={styles.levelBadgeText}>Warrior</Text>
+                                </View>
+                            </LinearGradient>
                         </View>
-                        <Text style={styles.totalXP}>Total XP: {currentXP.toLocaleString()}</Text>
-                    </View>
-                </BlurView>
+
+                        {/* XP Progress Info */}
+                        <View style={styles.xpContainer}>
+                            <View style={styles.xpRow}>
+                                <View style={styles.xpBadge}>
+                                    <MaterialCommunityIcons name="star" size={16} color={Colors.accentYellow} />
+                                    <Text style={styles.xpBadgeText}>{xpInCurrentLevel.toLocaleString()}</Text>
+                                </View>
+                                <Text style={styles.xpDivider}>/</Text>
+                                <Text style={styles.xpTarget}>{xpRequiredForLevel.toLocaleString()} XP</Text>
+                            </View>
+
+                            {/* Premium Progress Bar */}
+                            <View style={styles.progressBarContainer}>
+                                <View style={styles.progressBarBg}>
+                                    <LinearGradient
+                                        colors={Gradients.primary}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={[styles.progressBarFill, { width: `${progressPercent}%` }]}
+                                    >
+                                        <BlurView intensity={20} tint="light" style={styles.progressShine} />
+                                    </LinearGradient>
+                                </View>
+                                <Text style={styles.progressPercentBadge}>{progressPercent}%</Text>
+                            </View>
+
+                            <View style={styles.totalXPContainer}>
+                                <MaterialCommunityIcons name="trophy" size={14} color={Colors.accentYellow} />
+                                <Text style={styles.totalXPText}>Total: {currentXP.toLocaleString()} XP</Text>
+                            </View>
+                        </View>
+                    </BlurView>
+                </View>
+
+                {/* Stats Row */}
+                <View style={styles.statsRow}>
+                    <BlurView intensity={20} tint="dark" style={styles.statCard}>
+                        <View style={styles.statIcon}>
+                            <MaterialCommunityIcons name="dumbbell" size={24} color={Colors.primaryStart} />
+                        </View>
+                        <Text style={styles.statValue}>{progress.totalWorkoutsCompleted}</Text>
+                        <Text style={styles.statLabel}>Workouts</Text>
+                    </BlurView>
+
+                    <BlurView intensity={20} tint="dark" style={styles.statCard}>
+                        <View style={styles.statIcon}>
+                            <MaterialCommunityIcons name="fire" size={24} color={Colors.accentPink} />
+                        </View>
+                        <Text style={styles.statValue}>{currentLevel * 5}%</Text>
+                        <Text style={styles.statLabel}>Strength</Text>
+                    </BlurView>
+
+                    <BlurView intensity={20} tint="dark" style={styles.statCard}>
+                        <View style={styles.statIcon}>
+                            <MaterialCommunityIcons name="flash" size={24} color={Colors.accentYellow} />
+                        </View>
+                        <Text style={styles.statValue}>{unlockedExercises.length}</Text>
+                        <Text style={styles.statLabel}>Unlocked</Text>
+                    </BlurView>
+                </View>
 
                 {/* Unlocked This Level */}
                 {unlockedExercises.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>🏆 Unlocked at Level {currentLevel}</Text>
-                        <View style={styles.unlockGrid}>
+                        <View style={styles.sectionHeader}>
+                            <MaterialCommunityIcons name="trophy-award" size={20} color={Colors.accentYellow} />
+                            <Text style={styles.sectionTitle}>Unlocked at Level {currentLevel}</Text>
+                        </View>
+                        <View style={styles.exerciseGrid}>
                             {unlockedExercises.map(ex => (
-                                <View key={ex.id} style={styles.unlockItem}>
-                                    <Text style={styles.unlockIcon}>✨</Text>
-                                    <Text style={styles.unlockName}>{ex.name}</Text>
-                                </View>
+                                <BlurView key={ex.id} intensity={15} tint="dark" style={styles.exerciseBadge}>
+                                    <View style={styles.exerciseBadgeIcon}>
+                                        <MaterialCommunityIcons name="check-circle" size={16} color={Colors.accentSuccess} />
+                                    </View>
+                                    <Text style={styles.exerciseBadgeName}>{ex.name}</Text>
+                                </BlurView>
                             ))}
                         </View>
                     </View>
@@ -94,47 +179,44 @@ export default function LevelProgressScreen({ navigation }: LevelProgressScreenP
 
                 {/* Coming Soon */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>🔜 Coming at Level {currentLevel + 1}</Text>
+                    <View style={styles.sectionHeader}>
+                        <MaterialCommunityIcons name="lock-clock" size={20} color={Colors.accentCyan} />
+                        <Text style={styles.sectionTitle}>Next at Level {currentLevel + 1}</Text>
+                    </View>
                     {upNext.length > 0 ? (
-                        <View style={styles.unlockGrid}>
+                        <View style={styles.exerciseGrid}>
                             {upNext.map(ex => (
-                                <View key={ex.id} style={styles.lockedItem}>
-                                    <Text style={styles.lockedIcon}>🔒</Text>
-                                    <Text style={styles.lockedName}>{ex.name}</Text>
-                                </View>
+                                <BlurView key={ex.id} intensity={10} tint="dark" style={styles.lockedBadge}>
+                                    <View style={styles.lockedBadgeIcon}>
+                                        <MaterialCommunityIcons name="lock" size={16} color={Colors.textSecondary} />
+                                    </View>
+                                    <Text style={styles.lockedBadgeName}>{ex.name}</Text>
+                                </BlurView>
                             ))}
                         </View>
                     ) : (
-                        <BlurView intensity={10} style={styles.emptyCard}>
-                            <Text style={styles.emptyText}>Keep training to unlock advanced exercises!</Text>
+                        <BlurView intensity={15} tint="dark" style={styles.emptyCard}>
+                            <MaterialCommunityIcons name="rocket" size={32} color={Colors.primaryStart} />
+                            <Text style={styles.emptyText}>All exercises unlocked!</Text>
+                            <Text style={styles.emptySubtext}>Keep training to master them all!</Text>
                         </BlurView>
                     )}
                 </View>
 
-                {/* Stats */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>📊 Progression Stats</Text>
-                    <View style={styles.statsGrid}>
-                        <View style={styles.statBox}>
-                            <Text style={styles.statValue}>{progress.totalWorkoutsCompleted}</Text>
-                            <Text style={styles.statLabel}>Workouts</Text>
-                        </View>
-                        <View style={styles.statBox}>
-                            <Text style={styles.statValue}>{currentLevel * 5}%</Text>
-                            <Text style={styles.statLabel}>Strength Bonus</Text>
-                        </View>
-                    </View>
-                </View>
-
                 <TouchableOpacity
                     style={styles.actionButton}
+                    activeOpacity={0.9}
                     onPress={() => navigation.navigate('ExerciseLibrary')}
                 >
                     <LinearGradient
                         colors={Gradients.primary}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
                         style={styles.actionGradient}
                     >
-                        <Text style={styles.actionText}>View Exercise Library</Text>
+                        <MaterialCommunityIcons name="library" size={20} color={Colors.textPrimary} />
+                        <Text style={styles.actionText}>Browse Exercise Library</Text>
+                        <MaterialCommunityIcons name="arrow-right" size={20} color={Colors.textPrimary} />
                     </LinearGradient>
                 </TouchableOpacity>
 
@@ -154,171 +236,333 @@ const styles = StyleSheet.create({
         paddingBottom: Spacing.m,
         flexDirection: 'row',
         alignItems: 'center',
+        gap: Spacing.m,
     },
     backButton: {
-        marginRight: Spacing.m,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     backButtonText: {
-        color: Colors.primaryStart,
+        color: Colors.accentCyan,
         fontSize: 16,
+        fontWeight: '600',
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 28,
+        fontWeight: '800',
         color: Colors.textPrimary,
+        letterSpacing: 0.5,
     },
     content: {
         flex: 1,
         paddingHorizontal: Spacing.l,
     },
+
+    // Premium Level Card
+    levelCardContainer: {
+        marginBottom: Spacing.l,
+        ...Shadows.glow,
+    },
     levelCard: {
         borderRadius: Layout.borderRadius.xl,
         padding: Spacing.xl,
         alignItems: 'center',
-        marginBottom: Spacing.xl,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: Colors.glassBorder,
-        ...Shadows.glow,
     },
-    levelCircle: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+    levelCardGradient: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    circleContainer: {
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: Spacing.m,
+        marginBottom: Spacing.l,
+    },
+    glowRing: {
+        position: 'absolute',
+        width: CIRCLE_SIZE + 20,
+        height: CIRCLE_SIZE + 20,
+        borderRadius: (CIRCLE_SIZE + 20) / 2,
+        overflow: 'hidden',
+    },
+    glowRingGradient: {
+        flex: 1,
+    },
+    progressCircle: {
+        position: 'absolute',
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: CIRCLE_SIZE / 2,
+        borderWidth: 8,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    levelCircleInner: {
+        width: CIRCLE_SIZE - 20,
+        height: CIRCLE_SIZE - 20,
+        borderRadius: (CIRCLE_SIZE - 20) / 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...Shadows.card,
     },
     levelNumber: {
-        fontSize: 40,
-        fontWeight: 'bold',
+        fontSize: 64,
+        fontWeight: '900',
         color: Colors.textPrimary,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     levelLabel: {
-        fontSize: 10,
+        fontSize: 12,
+        fontWeight: '700',
         color: Colors.textPrimary,
-        opacity: 0.8,
+        opacity: 0.9,
+        letterSpacing: 2,
+        marginTop: -8,
     },
-    xpInfo: {
+    levelBadge: {
+        marginTop: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 12,
+    },
+    levelBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    // XP Section
+    xpContainer: {
         width: '100%',
     },
-    xpHeader: {
+    xpRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
-    },
-    xpText: {
-        color: Colors.textPrimary,
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    percentText: {
-        color: Colors.primaryStart,
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    progressBarBg: {
-        height: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 6,
-        overflow: 'hidden',
-        marginBottom: 8,
-    },
-    progressFill: {
-        height: '100%',
-        borderRadius: 6,
-    },
-    totalXP: {
-        color: Colors.textSecondary,
-        fontSize: 12,
-        textAlign: 'center',
-    },
-    section: {
-        marginBottom: Spacing.xl,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: Spacing.m,
     },
-    unlockGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-    },
-    unlockItem: {
-        backgroundColor: 'rgba(0, 200, 83, 0.1)',
-        padding: 12,
-        borderRadius: 12,
+    xpBadge: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: 'rgba(255, 215, 0, 0.15)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        gap: 6,
         borderWidth: 1,
-        borderColor: 'rgba(0, 200, 83, 0.3)',
+        borderColor: 'rgba(255, 215, 0, 0.3)',
     },
-    unlockIcon: {
-        marginRight: 8,
+    xpBadgeText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: Colors.accentYellow,
     },
-    unlockName: {
-        color: Colors.textPrimary,
+    xpDivider: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        marginHorizontal: 8,
+    },
+    xpTarget: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: Colors.textSecondary,
+    },
+    progressBarContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.s,
+        marginBottom: Spacing.s,
+    },
+    progressBarBg: {
+        flex: 1,
+        height: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 8,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    progressBarFill: {
+        height: '100%',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    progressShine: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.3,
+    },
+    progressPercentBadge: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: Colors.primaryStart,
+        minWidth: 40,
+        textAlign: 'right',
+    },
+    totalXPContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+    },
+    totalXPText: {
+        color: Colors.textSecondary,
+        fontSize: 13,
         fontWeight: '600',
     },
-    lockedItem: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        padding: 12,
-        borderRadius: 12,
+
+    // Stats Row
+    statsRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        opacity: 0.6,
+        gap: Spacing.m,
+        marginBottom: Spacing.xl,
     },
-    lockedIcon: {
-        marginRight: 8,
-    },
-    lockedName: {
-        color: Colors.textSecondary,
-    },
-    emptyCard: {
-        padding: 20,
-        borderRadius: 12,
-        alignItems: 'center',
-    },
-    emptyText: {
-        color: Colors.textSecondary,
-        textAlign: 'center',
-    },
-    statsGrid: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    statBox: {
+    statCard: {
         flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        padding: 16,
-        borderRadius: 16,
+        borderRadius: Layout.borderRadius.l,
+        padding: Spacing.m,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        overflow: 'hidden',
+    },
+    statIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: Spacing.s,
     },
     statValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 22,
+        fontWeight: '900',
         color: Colors.textPrimary,
     },
     statLabel: {
-        fontSize: 12,
+        fontSize: 11,
         color: Colors.textSecondary,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+
+    // Sections
+    section: {
+        marginBottom: Spacing.xl,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.s,
+        marginBottom: Spacing.m,
+    },
+    sectionTitle: {
+        fontSize: 17,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+    },
+    exerciseGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.s,
+    },
+    exerciseBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 200, 83, 0.3)',
+        overflow: 'hidden',
+    },
+    exerciseBadgeIcon: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: 'rgba(0, 200, 83, 0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    exerciseBadgeName: {
+        color: Colors.textPrimary,
+        fontWeight: '600',
+        fontSize: 13,
+    },
+    lockedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        opacity: 0.6,
+        overflow: 'hidden',
+    },
+    lockedBadgeIcon: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    lockedBadgeName: {
+        color: Colors.textSecondary,
+        fontWeight: '600',
+        fontSize: 13,
+    },
+    emptyCard: {
+        padding: Spacing.xl,
+        borderRadius: Layout.borderRadius.l,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        overflow: 'hidden',
+    },
+    emptyText: {
+        color: Colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '700',
+        marginTop: Spacing.s,
+    },
+    emptySubtext: {
+        color: Colors.textSecondary,
+        fontSize: 13,
         marginTop: 4,
     },
+
+    // Action Button
     actionButton: {
         marginTop: Spacing.m,
+        marginBottom: Spacing.m,
+        borderRadius: Layout.borderRadius.l,
+        overflow: 'hidden',
+        ...Shadows.card,
     },
     actionGradient: {
-        padding: 16,
-        borderRadius: Layout.borderRadius.m,
+        paddingVertical: 16,
+        paddingHorizontal: Spacing.l,
+        flexDirection: 'row',
         alignItems: 'center',
-        ...Shadows.glow,
+        justifyContent: 'center',
+        gap: Spacing.s,
     },
     actionText: {
         color: Colors.textPrimary,
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '700',
     },
 });

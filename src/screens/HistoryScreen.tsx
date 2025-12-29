@@ -14,12 +14,16 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import {
     fetchWorkoutHistory,
     fetchWorkoutStats,
     fetchPersonalBests
 } from '../store/slices/workoutSlice';
+import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
 
 interface HistoryScreenProps {
     navigation: any;
@@ -55,36 +59,37 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
         return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
     };
 
-    const formatDate = (date: Date): string => {
+    const formatDate = (date: any): string => {
+        const d = date?.toDate ? date.toDate() : new Date(date);
         const now = new Date();
-        const diff = now.getTime() - date.getTime();
+        const diff = now.getTime() - d.getTime();
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
         if (days === 0) return 'Today';
         if (days === 1) return 'Yesterday';
         if (days < 7) return `${days} days ago`;
-        return date.toLocaleDateString();
+        return d.toLocaleDateString();
     };
 
     return (
-        <View style={styles.container}>
+        <LinearGradient colors={Gradients.background} style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-                    <Text style={styles.backButton}>← Back</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
+                    <MaterialCommunityIcons name="chevron-left" size={32} color={Colors.primaryStart} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Workout History</Text>
+                <Text style={styles.title}>History & Stats</Text>
             </View>
 
             <ScrollView
                 style={styles.content}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primaryStart} />
                 }
             >
                 {/* Stats Overview */}
-                <View style={styles.statsCard}>
-                    <Text style={styles.sectionTitle}>Your Stats</Text>
+                <BlurView intensity={20} tint="dark" style={styles.statsCard}>
+                    <Text style={styles.sectionTitle}>Performance Overview</Text>
 
                     {/* Period Selector */}
                     <View style={styles.periodSelector}>
@@ -112,7 +117,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     <View style={styles.statsGrid}>
                         <View style={styles.statItem}>
                             <Text style={styles.statValue}>{stats.totalWorkouts}</Text>
-                            <Text style={styles.statLabel}>Workouts</Text>
+                            <Text style={styles.statLabel}>Sessions</Text>
                         </View>
                         <View style={styles.statItem}>
                             <Text style={styles.statValue}>{stats.totalReps}</Text>
@@ -120,7 +125,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         </View>
                         <View style={styles.statItem}>
                             <Text style={styles.statValue}>{formatDuration(stats.totalDuration)}</Text>
-                            <Text style={styles.statLabel}>Time</Text>
+                            <Text style={styles.statLabel}>Training Time</Text>
                         </View>
                         <View style={styles.statItem}>
                             <Text style={styles.statValue}>{stats.totalCalories}</Text>
@@ -129,7 +134,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     </View>
 
                     <View style={styles.avgScoreContainer}>
-                        <Text style={styles.avgScoreLabel}>Average Form Score</Text>
+                        <Text style={styles.avgScoreLabel}>Average Form Accuracy</Text>
                         <Text style={[
                             styles.avgScoreValue,
                             stats.averageFormScore >= 80 ? styles.scoreGood :
@@ -138,16 +143,18 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                             {stats.averageFormScore}%
                         </Text>
                     </View>
-                </View>
+                </BlurView>
 
                 {/* Personal Bests */}
                 {(personalBests.maxReps || personalBests.longestWorkout || personalBests.bestFormScore) && (
-                    <View style={styles.bestsCard}>
+                    <BlurView intensity={20} tint="dark" style={styles.bestsCard}>
                         <Text style={styles.sectionTitle}>🏆 Personal Bests</Text>
 
                         {personalBests.maxReps && (
                             <View style={styles.bestItem}>
-                                <Text style={styles.bestIcon}>💪</Text>
+                                <View style={styles.bestIconContainer}>
+                                    <Text style={styles.bestIcon}>💪</Text>
+                                </View>
                                 <View style={styles.bestInfo}>
                                     <Text style={styles.bestValue}>{personalBests.maxReps.value} reps</Text>
                                     <Text style={styles.bestLabel}>{personalBests.maxReps.exercise}</Text>
@@ -157,7 +164,9 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
                         {personalBests.longestWorkout && (
                             <View style={styles.bestItem}>
-                                <Text style={styles.bestIcon}>⏱️</Text>
+                                <View style={styles.bestIconContainer}>
+                                    <Text style={styles.bestIcon}>⏱️</Text>
+                                </View>
                                 <View style={styles.bestInfo}>
                                     <Text style={styles.bestValue}>
                                         {formatDuration(personalBests.longestWorkout.value)}
@@ -169,94 +178,110 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
                         {personalBests.bestFormScore && (
                             <View style={styles.bestItem}>
-                                <Text style={styles.bestIcon}>⭐</Text>
+                                <View style={styles.bestIconContainer}>
+                                    <Text style={styles.bestIcon}>⭐</Text>
+                                </View>
                                 <View style={styles.bestInfo}>
                                     <Text style={styles.bestValue}>{personalBests.bestFormScore.value}%</Text>
-                                    <Text style={styles.bestLabel}>Best Form Score</Text>
+                                    <Text style={styles.bestLabel}>Highest Form Score</Text>
                                 </View>
                             </View>
                         )}
-                    </View>
+                    </BlurView>
                 )}
 
                 {/* Workout History */}
-                <View style={styles.historyCard}>
-                    <Text style={styles.sectionTitle}>Recent Workouts</Text>
+                <View style={styles.historySection}>
+                    <Text style={styles.sectionTitle}>Recent Activities</Text>
 
                     {loading && history.length === 0 ? (
-                        <ActivityIndicator color="#6C63FF" size="large" />
+                        <ActivityIndicator color={Colors.primaryStart} size="large" style={{ marginTop: 20 }} />
                     ) : history.length === 0 ? (
-                        <View style={styles.emptyState}>
+                        <BlurView intensity={10} tint="dark" style={styles.emptyState}>
                             <Text style={styles.emptyIcon}>🏋️</Text>
                             <Text style={styles.emptyText}>No workouts yet</Text>
                             <Text style={styles.emptySubtext}>Complete a workout to see it here</Text>
-                        </View>
+                        </BlurView>
                     ) : (
                         history.map((workout) => (
-                            <View key={workout.id} style={styles.workoutItem}>
-                                <View style={styles.workoutHeader}>
-                                    <Text style={styles.workoutExercise}>{workout.exerciseName}</Text>
-                                    <Text style={styles.workoutDate}>{formatDate(workout.createdAt)}</Text>
+                            <BlurView key={workout.id} intensity={15} tint="dark" style={styles.workoutItem}>
+                                <View style={styles.workoutHeaderRow}>
+                                    <View>
+                                        <Text style={styles.workoutExercise}>{workout.exerciseName}</Text>
+                                        <Text style={styles.workoutDate}>{formatDate(workout.createdAt)}</Text>
+                                    </View>
+                                    <View style={[
+                                        styles.scoreBadge,
+                                        workout.averageFormScore >= 80 ? styles.scoreBadgeGood :
+                                            workout.averageFormScore >= 60 ? styles.scoreBadgeWarning : styles.scoreBadgeBad
+                                    ]}>
+                                        <Text style={styles.scoreBadgeText}>{workout.averageFormScore}%</Text>
+                                    </View>
                                 </View>
                                 <View style={styles.workoutDetails}>
-                                    <Text style={styles.workoutStat}>{workout.reps} reps</Text>
-                                    <Text style={styles.workoutStat}>{formatDuration(workout.duration)}</Text>
-                                    <Text style={[
-                                        styles.workoutScore,
-                                        workout.averageFormScore >= 80 ? styles.scoreGood :
-                                            workout.averageFormScore >= 60 ? styles.scoreWarning : styles.scoreBad
-                                    ]}>
-                                        {workout.averageFormScore}%
-                                    </Text>
+                                    <View style={styles.detailPill}>
+                                        <MaterialCommunityIcons name="repeat" size={14} color={Colors.textSecondary} />
+                                        <Text style={styles.workoutStat}>{workout.reps} reps</Text>
+                                    </View>
+                                    <View style={styles.detailPill}>
+                                        <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                                        <Text style={styles.workoutStat}>{formatDuration(workout.duration)}</Text>
+                                    </View>
+                                    <View style={styles.detailPill}>
+                                        <MaterialCommunityIcons name="fire" size={14} color={Colors.textSecondary} />
+                                        <Text style={styles.workoutStat}>{workout.caloriesBurned || 0} kcal</Text>
+                                    </View>
                                 </View>
-                            </View>
+                            </BlurView>
                         ))
                     )}
                 </View>
+                <View style={{ height: 40 }} />
             </ScrollView>
-        </View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0A0E27',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 50,
-        paddingHorizontal: 20,
+        paddingTop: 60,
+        paddingHorizontal: Spacing.l,
         paddingBottom: 20,
     },
     backButton: {
-        color: '#6C63FF',
-        fontSize: 16,
-        marginRight: 20,
+        marginRight: 12,
+        marginLeft: -10,
     },
     title: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
     },
     content: {
         flex: 1,
-        paddingHorizontal: 20,
+        paddingHorizontal: Spacing.l,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
         marginBottom: 16,
     },
 
     // Stats Card
     statsCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
+        backgroundColor: Colors.glassSurface,
+        borderRadius: Layout.borderRadius.m,
         padding: 20,
         marginBottom: 20,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        overflow: 'hidden',
     },
     periodSelector: {
         flexDirection: 'row',
@@ -265,20 +290,20 @@ const styles = StyleSheet.create({
     },
     periodButton: {
         flex: 1,
-        paddingVertical: 8,
-        borderRadius: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingVertical: 10,
+        borderRadius: Layout.borderRadius.s,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         alignItems: 'center',
     },
     periodButtonActive: {
-        backgroundColor: '#6C63FF',
+        backgroundColor: Colors.primaryStart,
     },
     periodButtonText: {
-        color: '#B0B3C1',
+        color: Colors.textSecondary,
         fontSize: 14,
     },
     periodButtonTextActive: {
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
         fontWeight: 'bold',
     },
     statsGrid: {
@@ -289,59 +314,75 @@ const styles = StyleSheet.create({
     statItem: {
         width: '47%',
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
+        borderRadius: Layout.borderRadius.s,
         padding: 16,
         alignItems: 'center',
     },
     statValue: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
     },
     statLabel: {
         fontSize: 12,
-        color: '#B0B3C1',
+        color: Colors.textTertiary,
         marginTop: 4,
     },
     avgScoreContainer: {
-        marginTop: 16,
+        marginTop: 20,
         alignItems: 'center',
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: Colors.glassBorder,
     },
     avgScoreLabel: {
-        color: '#B0B3C1',
+        color: Colors.textSecondary,
         fontSize: 14,
+        marginBottom: 4,
     },
     avgScoreValue: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: 'bold',
     },
     scoreGood: {
-        color: '#00C853',
+        color: Colors.accentSuccess,
     },
     scoreWarning: {
-        color: '#FFB800',
+        color: Colors.accentYellow,
     },
     scoreBad: {
-        color: '#FF4444',
+        color: Colors.accentError,
     },
 
     // Personal Bests Card
     bestsCard: {
-        backgroundColor: 'rgba(255, 215, 0, 0.1)',
-        borderRadius: 16,
+        backgroundColor: 'rgba(250, 204, 21, 0.05)',
+        borderRadius: Layout.borderRadius.m,
         padding: 20,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255, 215, 0, 0.3)',
+        borderColor: 'rgba(250, 204, 21, 0.2)',
+        overflow: 'hidden',
     },
     bestItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        padding: 12,
+        borderRadius: Layout.borderRadius.s,
+    },
+    bestIconContainer: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(250, 204, 21, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
     },
     bestIcon: {
-        fontSize: 24,
-        marginRight: 12,
+        fontSize: 22,
     },
     bestInfo: {
         flex: 1,
@@ -349,70 +390,97 @@ const styles = StyleSheet.create({
     bestValue: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
     },
     bestLabel: {
         fontSize: 12,
-        color: '#B0B3C1',
+        color: Colors.textSecondary,
     },
 
     // History Card
-    historyCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 40,
+    historySection: {
+        marginBottom: 20,
     },
     workoutItem: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
+        borderRadius: Layout.borderRadius.m,
         padding: 16,
         marginBottom: 12,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        overflow: 'hidden',
     },
-    workoutHeader: {
+    workoutHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        alignItems: 'flex-start',
+        marginBottom: 12,
     },
     workoutExercise: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
     },
     workoutDate: {
-        fontSize: 12,
-        color: '#B0B3C1',
+        fontSize: 13,
+        color: Colors.textTertiary,
+        marginTop: 2,
+    },
+    scoreBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8,
+    },
+    scoreBadgeGood: { backgroundColor: 'rgba(74, 222, 128, 0.2)' },
+    scoreBadgeWarning: { backgroundColor: 'rgba(250, 204, 21, 0.2)' },
+    scoreBadgeBad: { backgroundColor: 'rgba(248, 113, 113, 0.2)' },
+    scoreBadgeText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
     },
     workoutDetails: {
         flexDirection: 'row',
-        gap: 16,
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    detailPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        gap: 4,
     },
     workoutStat: {
-        fontSize: 14,
-        color: '#B0B3C1',
-    },
-    workoutScore: {
-        fontSize: 14,
-        fontWeight: 'bold',
+        fontSize: 13,
+        color: Colors.textSecondary,
     },
 
     // Empty State
     emptyState: {
         alignItems: 'center',
-        paddingVertical: 40,
+        paddingVertical: 60,
+        borderRadius: Layout.borderRadius.m,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        borderStyle: 'dashed',
     },
     emptyIcon: {
-        fontSize: 48,
+        fontSize: 64,
         marginBottom: 16,
+        opacity: 0.5,
     },
     emptyText: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#FFFFFF',
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.textPrimary,
     },
     emptySubtext: {
         fontSize: 14,
-        color: '#B0B3C1',
+        color: Colors.textSecondary,
         marginTop: 8,
+        textAlign: 'center',
+        paddingHorizontal: 40,
     },
 });

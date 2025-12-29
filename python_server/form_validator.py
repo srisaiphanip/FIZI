@@ -20,8 +20,13 @@ def validate_form(exercise_id, landmarks, angles):
         if left_elbow.visibility > 0.5 and left_shoulder.visibility > 0.5:
             # Elbow should be relatively aligned vertically with shoulder
             elbow_drift = abs(left_elbow.x - left_shoulder.x)
-            if elbow_drift > 0.22:  
-                feedback.append("Keep your elbows fixed at your sides")
+            if elbow_drift > 0.28:  # More lenient  
+                feedback.append("Keep elbows at your sides - don't swing")
+        
+        # Check 2: Range of motion
+        left_elbow_angle = angles.get('left_elbow', 180)
+        if left_elbow_angle > 100 and left_elbow_angle < 130:
+            feedback.append("Curl higher - bring weight to shoulder")
     
     # === PUSH-UPS ===
     elif exercise_id == 'push-ups':
@@ -38,34 +43,48 @@ def validate_form(exercise_id, landmarks, angles):
             expected_hip_y = (shoulder.y + ankle.y) / 2
             hip_deviation = abs(hip.y - expected_hip_y)
             
-            if hip_deviation > 0.14:  
+            if hip_deviation > 0.18:  # More forgiving for long distance
                 if hip.y > expected_hip_y:
-                    feedback.append("Engage your core - hips are sagging")
+                    feedback.append("Tighten your core - hips are too low")
                 else:
-                    feedback.append("Lower your hips - don't pike up")
+                    feedback.append("Lower your hips - maintain straight line")
+        
+        # Check 2: Depth - make sure going low enough
+        left_elbow_angle = angles.get('left_elbow', 180)
+        if left_elbow_angle > 115 and left_elbow_angle < 135:
+            feedback.append("Go lower - bend elbows to 90 degrees")
     
     # === SQUATS ===
     elif exercise_id == 'squats':
         # Check 1: Depth (knees should reach at least 90 degrees)
         left_knee_angle = angles.get('left_knee', 180)
-        if left_knee_angle > 100 and left_knee_angle < 160:
-            feedback.append("Go deeper - thighs should be parallel to ground")
+        right_knee_angle = angles.get('right_knee', 180)
+        avg_knee = (left_knee_angle + right_knee_angle) / 2
+        
+        # Only warn if clearly in down position but not deep enough
+        if 100 < avg_knee < 135:
+            feedback.append("Squat deeper - thighs parallel to ground")
         
         # Check 2: Knee alignment (knees shouldn't cave inward)
         if (landmarks[25].visibility > 0.6 and
-            landmarks[26].visibility > 0.6):
+            landmarks[26].visibility > 0.6 and
+            landmarks[23].visibility > 0.6 and
+            landmarks[24].visibility > 0.6):
             left_knee_x = landmarks[25].x
             right_knee_x = landmarks[26].x
             knee_width = abs(left_knee_x - right_knee_x)
             
-            # Also check hips
-            if landmarks[23].visibility > 0.6 and landmarks[24].visibility > 0.6:
-                left_hip_x = landmarks[23].x
-                right_hip_x = landmarks[24].x
-                hip_width = abs(left_hip_x - right_hip_x)
-                
-                if knee_width < (hip_width * 0.7):  # Knees caving in
-                    feedback.append("Push knees out - don't let them cave inward")
+            left_hip_x = landmarks[23].x
+            right_hip_x = landmarks[24].x
+            hip_width = abs(left_hip_x - right_hip_x)
+            
+            if knee_width < (hip_width * 0.65):  # More lenient - knees caving in
+                feedback.append("Push knees out - track over toes")
+        
+        # Check 3: Torso angle - don't lean too far forward
+        torso = angles.get('torso_inclination', 0)
+        if torso > 50:
+            feedback.append("Keep chest up - don't lean forward")
     
     # === PLANK ===
     elif exercise_id == 'plank':
@@ -81,7 +100,7 @@ def validate_form(exercise_id, landmarks, angles):
             expected_hip_y = (shoulder_y + ankle_y) / 2
             deviation = abs(hip_y - expected_hip_y)
             
-            if deviation > 0.08:
+            if deviation > 0.12:  # More lenient
                 if hip_y > expected_hip_y:
                     feedback.append("Lift your hips - engage your core")
                 else:

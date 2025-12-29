@@ -16,8 +16,8 @@ pose = mp_pose.Pose(
     static_image_mode=False,
     model_complexity=1, 
     enable_segmentation=False,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
+    min_detection_confidence=0.3,  # Lower for long-distance detection
+    min_tracking_confidence=0.3    # More lenient tracking
 )
 
 # Exercise Modules
@@ -57,7 +57,7 @@ def detect():
             print("❌ No image in request")
             return jsonify({"error": "No image data"}), 400
 
-        exercise_id = data.get('exerciseId', 'push-ups')
+        exercise_id = data.get('exerciseId')
         
         img = decode_image(data['image'])
         if img is None:
@@ -67,8 +67,17 @@ def detect():
         h, w = img.shape[:2]
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
+        # # DEBUG: Save image to verify what we are receiving
+        # debug_filename = f"debug_frame_{int(time.time())}.jpg"
+        # cv2.imwrite(debug_filename, img)
+        # print(f"📸 Saved debug frame to {debug_filename} ({w}x{h})")
+
         results = pose.process(img_rgb)
         
+        if not results.pose_landmarks:
+             print("⚠️ MediaPipe found NO landmarks in this image.")
+        else:
+             print(f"✅ MediaPipe found {len(results.pose_landmarks.landmark)} landmarks.")
         detection_result = {
             "landmarks": [],
             "angles": {},
@@ -121,9 +130,18 @@ def detect():
             if rep_stats.get('rejection_reason'):
                 detection_result["feedback"].append(rep_stats['rejection_reason'])
             
-            # High-visibility logging
-            status_char = "✨" if form_is_valid else "⚠️"
-            print(f"{status_char} Reps: {rep_stats['count']} | Stage: {rep_stats['current_stage']} | Score: {detection_result['form_score']}%")
+            # High-visibility logging with feedback
+            status_char = "✅" if form_is_valid else "⚠️"
+            stage_info = f"Stage: {rep_stats['current_stage'] or 'detecting'}"
+            score_info = f"Score: {detection_result['form_score']}%"
+            
+            # Log feedback if present
+            if feedback:
+                feedback_str = " | 🗣️ " + ", ".join(feedback[:2])  # Show first 2 feedback items
+            else:
+                feedback_str = ""
+            
+            print(f"{status_char} Reps: {rep_stats['count']} | {stage_info} | {score_info}{feedback_str}")
         else:
             print("⚠️ No pose detected")
 
@@ -143,6 +161,9 @@ def reset_exercise():
     return jsonify({"status": "reset", "exerciseId": exercise_id})
 
 if __name__ == '__main__':
+    print("\n\n" + "="*50)
+    print("🚀 PYTHON SERVER STARTED/RESTARTED")
+    print("="*50 + "\n")
     print("Starting OpenCV Enhanced Vision Backend on port 5001...")
     # Using 0.0.0.0 to be accessible from mobile device
     # debug=False is important for threading/camera stability

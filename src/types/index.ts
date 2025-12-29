@@ -163,6 +163,11 @@ export interface PlannedExercise {
     completed?: boolean;
     targetMuscle?: string;
     difficulty?: 'beginner' | 'intermediate' | 'advanced';
+
+    // Extended fields for plan generation
+    category?: 'strength' | 'cardio' | 'flexibility' | 'plyometric';
+    muscleGroups?: MuscleGroup[] | string[];
+    caloriesPerRep?: number;
 }
 
 export type EquipmentItem =
@@ -388,4 +393,52 @@ export interface ExerciseInstructions {
     steps: string[];
     tips: string[];
     lastUpdated?: any;
+}
+
+// =================================================================
+// RECOVERY & REST SYSTEM TYPES
+// =================================================================
+
+export interface RecoveryMetrics {
+    userId: string;
+    date: Date;
+    recoveryScore: number; // 0-100
+    sleepHours?: number;
+    sleepQuality?: 1 | 2 | 3 | 4 | 5; // 1=poor, 5=excellent
+    muscleSoreness?: {
+        level: 1 | 2 | 3 | 4 | 5; // 1=none, 5=severe
+        affectedAreas: MuscleGroup[];
+    };
+    stressLevel?: 1 | 2 | 3 | 4 | 5; // 1=low, 5=high
+    energyLevel?: 1 | 2 | 3 | 4 | 5; // 1=exhausted, 5=energized
+    hydrationLevel?: 1 | 2 | 3 | 4 | 5; // 1=poor, 5=excellent
+    nutritionQuality?: 1 | 2 | 3 | 4 | 5; // 1=poor, 5=excellent
+    notes?: string;
+}
+
+export interface RecoveryRecommendation {
+    type: 'complete_rest' | 'active_recovery' | 'light_workout' | 'normal_workout' | 'high_intensity';
+    confidence: number; // 0-1
+    reasoning: string;
+    suggestions: string[];
+    nutritionTips?: string[];
+    sleepRecommendations?: string[];
+}
+
+export interface RestDayGuidance {
+    nutritionFocus: string[];
+    sleepRecommendations: string[];
+    recoveryActivities: string[];
+    mentalRecovery: string[];
+    hydrationGoal: string;
+}
+
+export interface ActiveRecoverySession {
+    id: string;
+    type: 'active_recovery';
+    exercises: PlannedExercise[];
+    duration: number; // minutes
+    intensity: 'very_low' | 'low';
+    focus: string;
+    benefits: string[];
 }

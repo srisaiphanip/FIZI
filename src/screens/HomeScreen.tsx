@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
-import { signOut } from '../store/slices/authSlice';
 import { fetchWorkoutStats } from '../store/slices/workoutSlice';
 import { fetchWorkoutPlan } from '../store/slices/workoutPlanSlice';
 import MotivationalTip from '../components/MotivationalTip';
@@ -25,6 +24,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const { stats } = useAppSelector((state) => state.workout);
     const { currentPlan, todaysWorkout, recoveryStatus, loading: planLoading } = useAppSelector((state) => state.workoutPlan);
     const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+    const scrollViewRef = React.useRef<ScrollView>(null);
+    const scheduleLayoutY = React.useRef<number>(0);
 
     useEffect(() => {
         dispatch(fetchWorkoutStats('week'));
@@ -47,9 +48,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }, [dispatch, user?.uid, todaysWorkout?.id]);
 
 
-    const handleSignOut = async () => {
-        await dispatch(signOut());
-    };
+
 
     const handleStartExercise = (exercise: any) => {
         // Handle multiple possible ID property names
@@ -240,7 +239,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             colors={Gradients.background}
             style={styles.container}
         >
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                ref={scrollViewRef}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+            >
                 {/* Header Section */}
                 <View style={styles.header}>
                     <View>
@@ -248,7 +251,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         <Text style={styles.title}>{user?.displayName || 'Champion'}! 👋</Text>
                     </View>
                     <TouchableOpacity style={styles.avatarCircle} onPress={() => navigation.navigate('Avatar')}>
-                        <Text style={styles.avatarText}>{user?.displayName?.[0] || 'U'}</Text>
+                        {user?.photoURL ? (
+                            <Image
+                                source={{ uri: user.photoURL }}
+                                style={{ width: 56, height: 56, borderRadius: 28 }}
+                            />
+                        ) : (
+                            <Text style={styles.avatarText}>{user?.displayName?.[0] || 'U'}</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -325,12 +335,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                 <Text style={styles.workoutTitle}>Today's Workout 🎯</Text>
                                 <Text style={styles.workoutFocus}>{todaysWorkout.focus}</Text>
                             </View>
-                            <TouchableOpacity
-                                onPress={() => navigation.navigate('ExerciseLibrary')}
-                                style={styles.viewLibraryLink}
-                            >
-                                <Text style={styles.viewLibraryText}>Library →</Text>
-                            </TouchableOpacity>
                         </View>
 
                         <Text style={styles.workoutDuration}>
@@ -386,7 +390,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 )}
 
                 {/* Rest Day Card */}
-                {todaysWorkout && todaysWorkout.isRestDay && (
+                {todaysWorkout && (todaysWorkout.isRestDay || todaysWorkout.type === 'rest') && (
                     <View>
                         <BlurView intensity={20} tint="dark" style={styles.todayWorkoutCard}>
                             <View style={styles.workoutHeader}>
@@ -397,6 +401,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                 {todaysWorkout.notes || 'Take today to recover and prepare for your next workout.'}
                             </Text>
                         </BlurView>
+
 
                         {nextWorkout && (
                             <View style={styles.nextWorkoutContainer}>
@@ -421,7 +426,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                     </View>
                                     <TouchableOpacity
                                         style={styles.viewPlanButton}
-                                        onPress={() => setSelectedDayIndex(nextWorkout.dayOfWeek || 0)}
+                                        onPress={() => {
+                                            const targetDayIndex = nextWorkout.dayOfWeek === 0 ? 6 : (nextWorkout.dayOfWeek || 0) - 1;
+                                            setSelectedDayIndex(targetDayIndex);
+                                            // Scroll to schedule section
+                                            scrollViewRef.current?.scrollTo({ x: 0, y: scheduleLayoutY.current, animated: true });
+                                        }}
                                     >
                                         <Text style={styles.viewPlanButtonText}>View Full Plan</Text>
                                     </TouchableOpacity>
@@ -493,7 +503,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
                 {/* Weekly Schedule Grid */}
                 {currentPlan && (
-                    <View style={styles.section}>
+                    <View
+                        style={styles.section}
+                        onLayout={(event) => {
+                            const layout = event.nativeEvent.layout;
+                            scheduleLayoutY.current = layout.y;
+                        }}
+                    >
                         <Text style={styles.sectionTitle}>📅 Weekly Schedule</Text>
                         <View style={styles.weeklyGrid}>
                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => {
@@ -541,13 +557,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {selectedDayIndex !== null && currentPlan && (
                     <View style={styles.section}>
                         <BlurView intensity={30} tint="dark" style={styles.detailsCard}>
-                            {selectedDayIndex === 6 ? (
-                                // Sunday / Rest Day View
+                            {(() => {
+                                const session = currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7);
+                                const isRest = session?.isRestDay || session?.type === 'rest';
+                                return isRest;
+                            })() ? (
+                                // Rest Day View
                                 <View style={styles.restDayDetailContainer}>
                                     <View style={styles.detailsHeader}>
                                         <View style={styles.detailsTitleContainer}>
                                             <MaterialCommunityIcons name="tea" size={24} color={Colors.accentSuccess} />
-                                            <Text style={styles.detailsTitle}>Sunday - Rest & Recovery</Text>
+                                            <Text style={styles.detailsTitle}>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - Rest & Recovery</Text>
                                         </View>
                                     </View>
                                     <View style={styles.detailsNotes}>
@@ -572,7 +592,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                         <View style={styles.detailsTitleContainer}>
                                             <MaterialCommunityIcons name="flash" size={24} color={Colors.accentCyan} />
                                             <Text style={styles.detailsTitle}>
-                                                {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.day} - {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.focus}
+                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.focus || 'Workout'}
                                             </Text>
                                         </View>
                                         <View style={styles.detailsDurationBadge}>
@@ -631,10 +651,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     </TouchableOpacity>
                 </View>
 
-                {/* Logout */}
-                <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
-                    <Text style={styles.logoutText}>Sign Out</Text>
-                </TouchableOpacity>
+
 
                 {/* DB Sync Button
                 {__DEV__ && (
@@ -1248,7 +1265,7 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     restDayDetailContainer: {
-        alignItems: 'center',
+        width: '100%',
     },
     exercisesTitle: {
         fontSize: 14,
@@ -1259,6 +1276,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     detailsExercises: {
+        width: '100%',
         gap: 8,
     },
     detailExerciseItem: {
@@ -1274,7 +1292,7 @@ const styles = StyleSheet.create({
         width: 24,
     },
     detailExerciseText: {
-        color: Colors.textSecondary,
+        color: Colors.textPrimary,
         fontSize: 14,
         flex: 1,
     },

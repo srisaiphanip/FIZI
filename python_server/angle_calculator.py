@@ -18,7 +18,7 @@ def calculate_angle(a, b, c):
         
     return angle
 
-def get_exercise_angles(landmarks, exercise_id, min_confidence=0.3):
+def get_exercise_angles(landmarks, exercise_id, min_confidence=0.2):
     """
     Calculate and return only the relevant angles for a specific exercise.
     Uses lower confidence threshold for better mobile compatibility.

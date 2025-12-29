@@ -14,12 +14,11 @@ import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { fetchExerciseInstructions } from '../store/slices/exerciseSlice';
 import { useEffect, useState } from 'react';
 
-// Static assets for Expo Go compatibility usually work best with require, 
-// but we keep the imports for type safety/bundler awareness if needed.
-import PushUpsImg from '../assets/exercises/push-ups.png';
-import SquatsImg from '../assets/exercises/squats.png';
-import PlankImg from '../assets/exercises/plank.png';
-import BicepCurlsImg from '../assets/exercises/bicep-curls.png';
+// Static assets removed in favor of imageMap
+// import PushUpsImg from '../assets/exercises/push-ups.png';
+// import SquatsImg from '../assets/exercises/squats.png';
+// import PlankImg from '../assets/exercises/plank.png';
+// import BicepCurlsImg from '../assets/exercises/bicep-curls.png';
 
 interface ExerciseInstructionsModalProps {
     visible: boolean;
@@ -31,13 +30,10 @@ interface ExerciseInstructionsModalProps {
     onClose: () => void;
 }
 
-// Map database URIs to local assets
-const ASSET_MAP: Record<string, any> = {
-    'asset://push-ups.png': require('../assets/exercises/push-ups.png'),
-    'asset://squats.png': require('../assets/exercises/squats.png'),
-    'asset://plank.png': require('../assets/exercises/plank.png'),
-    'asset://bicep-curls.png': require('../assets/exercises/bicep-curls.png'),
-};
+import { getExerciseImage } from '../config/imageMap';
+
+// Map database URIs to local assets (Deprecated, using imageMap now)
+// const ASSET_MAP: Record<string, any> = { ... };
 
 /**
  * Optimized Image Component to handle Local/Remote assets with diagnostics
@@ -47,14 +43,8 @@ function InstructionImage({ uri, exerciseId }: { uri: string, exerciseId: string
     const [imageError, setImageError] = useState<string | null>(null);
     const cleanUri = uri.trim().toLowerCase();
 
-    // Find asset in map (case-insensitive lookup)
-    let foundAssetKey = null;
-    if (cleanUri.includes('push-ups')) foundAssetKey = 'asset://push-ups.png';
-    else if (cleanUri.includes('squats')) foundAssetKey = 'asset://squats.png';
-    else if (cleanUri.includes('plank')) foundAssetKey = 'asset://plank.png';
-    else if (cleanUri.includes('bicep-curls')) foundAssetKey = 'asset://bicep-curls.png';
-
-    const foundAsset = foundAssetKey ? ASSET_MAP[foundAssetKey] : null;
+    // Use centralized image map
+    const foundAsset = getExerciseImage(exerciseId);
 
     return (
         <View style={styles.imageContainer}>
@@ -105,7 +95,7 @@ function InstructionImage({ uri, exerciseId }: { uri: string, exerciseId: string
                     <Text style={styles.debugText}>Match: {foundAsset ? 'YES ✅' : 'NO ❌'}</Text>
                     <Text style={styles.debugText}>State: {imageLoaded ? 'LOADED' : (imageError ? 'ERROR' : 'WAITING')}</Text>
                     <Text style={styles.debugText} numberOfLines={1}>URI: {uri}</Text>
-                    <Text style={styles.debugText} numberOfLines={1}>Key: {foundAssetKey || 'None'}</Text>
+                    <Text style={styles.debugText} numberOfLines={1}>ExerciseId: {exerciseId}</Text>
                 </View>
             )}
         </View>

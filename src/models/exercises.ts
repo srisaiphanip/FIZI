@@ -1,4 +1,8 @@
 import { Exercise, EquipmentItem, MuscleGroup } from '../types';
+import CARDIO_EXERCISES from './cardio_exercises';
+import FLEXIBILITY_EXERCISES from './flexibility_exercises';
+import PLYOMETRIC_EXERCISES from './plyometric_exercises';
+import RECOVERY_EXERCISES from './recovery_exercises';
 
 // =================================================================
 // BODYWEIGHT ONLY EXERCISES (No Equipment Required)
@@ -148,6 +152,332 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_knee', min: 80, max: 100, optimal: 90 }, { joint: 'right_knee', min: 80, max: 100, optimal: 90 }] },
             { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 170 }, { joint: 'right_knee', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'glute-bridges',
+        name: 'glute_bridge',
+        displayName: 'Glute Bridge',
+        category: 'strength',
+        muscleGroups: ['legs', 'core'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        optionalEquipment: ['yoga_mat'],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 15,
+        baseSets: 3,
+        repIncrement: 3,
+        setIncrement: 1,
+        keypoints: [11, 12, 23, 24, 25, 26],
+        formThresholds: {},
+        description: 'Hip extension exercise targeting glutes and hamstrings.',
+        instructions: [
+            'Lie on back with knees bent, feet flat on floor',
+            'Push through heels to lift hips up',
+            'Squeeze glutes at top',
+            'Lower hips back down with control'
+        ],
+        tips: ['Keep core engaged', 'Don\'t arch lower back excessively', 'Squeeze glutes hard at top'],
+        commonMistakes: ['Pushing through toes instead of heels', 'Overarching lower back', 'Not fully extending hips'],
+        caloriesPerRep: 0.3,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/glute-bridge-thumb.jpg',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_hip', min: 40, max: 70, optimal: 55 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_hip', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'side-plank',
+        name: 'side_plank',
+        displayName: 'Side Plank',
+        category: 'strength',
+        muscleGroups: ['core'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        optionalEquipment: ['yoga_mat'],
+        unlockLevel: 2,
+        difficulty: 'intermediate',
+        baseReps: 30,
+        baseSets: 2,
+        repIncrement: 10,
+        setIncrement: 1,
+        keypoints: [5, 6, 11, 12, 23, 24],
+        formThresholds: {},
+        description: 'Lateral core stability exercise.',
+        instructions: [
+            'Lie on side, prop up on forearm',
+            'Lift hips off ground, forming straight line',
+            'Hold position',
+            'Keep hips stacked and body straight'
+        ],
+        tips: ['Don\'t let hips sag', 'Engage obliques', 'Keep neck neutral'],
+        commonMistakes: ['Hips sagging', 'Rotating torso', 'Not keeping body straight'],
+        caloriesPerRep: 0.12,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/side-plank-thumb.jpg',
+        stages: [{ name: 'hold', angleRanges: [{ joint: 'left_hip', min: 160, max: 200, optimal: 180 }], duration: 30 }],
+        formChecks: []
+    },
+    {
+        id: 'wall-sit',
+        name: 'wall_sit',
+        displayName: 'Wall Sit',
+        category: 'strength',
+        muscleGroups: ['legs'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 30,
+        baseSets: 3,
+        repIncrement: 15,
+        setIncrement: 1,
+        keypoints: [11, 12, 23, 24, 25, 26],
+        formThresholds: { targetAngle: 90 },
+        description: 'Isometric leg strength exercise.',
+        instructions: [
+            'Stand with back against wall',
+            'Slide down until knees at 90 degrees',
+            'Hold position, back flat against wall',
+            'Keep knees over ankles'
+        ],
+        tips: ['Keep back flat on wall', 'Distribute weight evenly', 'Breathe steadily'],
+        commonMistakes: ['Knees too far forward', 'Not going deep enough', 'Arching back'],
+        caloriesPerRep: 0.08,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/wall-sit-thumb.jpg',
+        stages: [{ name: 'hold', angleRanges: [{ joint: 'left_knee', min: 80, max: 100, optimal: 90 }], duration: 30 }],
+        formChecks: []
+    },
+    {
+        id: 'tricep-dips',
+        name: 'tricep_dips',
+        displayName: 'Tricep Dips (Bench/Chair)',
+        category: 'strength',
+        muscleGroups: ['arms', 'shoulders'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        unlockLevel: 2,
+        difficulty: 'intermediate',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [11, 12, 13, 14, 15, 16],
+        formThresholds: { minAngle: 80, maxAngle: 100 },
+        description: 'Bodyweight tricep exercise using bench or chair.',
+        instructions: [
+            'Hands on bench behind you, fingers forward',
+            'Extend legs forward, heels on ground',
+            'Lower body by bending elbows to 90 degrees',
+            'Push back up to starting position'
+        ],
+        tips: ['Keep elbows pointing back', 'Don\'t flare elbows out', 'Control the descent'],
+        commonMistakes: ['Elbows flaring out', 'Going too deep', 'Using shoulders instead of triceps'],
+        caloriesPerRep: 0.4,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/tricep-dips-thumb.jpg',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 80, max: 100, optimal: 90 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'bird-dog',
+        name: 'bird_dog',
+        displayName: 'Bird Dog',
+        category: 'strength',
+        muscleGroups: ['core', 'back'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        optionalEquipment: ['yoga_mat'],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [11, 12, 13, 14, 23, 24, 25, 26],
+        formThresholds: {},
+        description: 'Core stability and balance exercise.',
+        instructions: [
+            'Start on hands and knees',
+            'Extend right arm forward and left leg back',
+            'Keep back flat and core engaged',
+            'Hold briefly, then switch sides'
+        ],
+        tips: ['Keep hips level', 'Don\'t arch back', 'Move slowly with control'],
+        commonMistakes: ['Rotating hips', 'Arching back', 'Moving too fast'],
+        caloriesPerRep: 0.25,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/bird-dog-thumb.jpg',
+        stages: [
+            { name: 'hold', angleRanges: [{ joint: 'left_shoulder', min: 140, max: 180, optimal: 160 }], duration: 5 }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'calf-raises',
+        name: 'calf_raise',
+        displayName: 'Standing Calf Raises',
+        category: 'strength',
+        muscleGroups: ['legs'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 20,
+        baseSets: 3,
+        repIncrement: 5,
+        setIncrement: 1,
+        keypoints: [23, 24, 25, 26],
+        formThresholds: {},
+        description: 'Calf muscle isolation exercise.',
+        instructions: [
+            'Stand with feet hip-width apart',
+            'Rise up onto balls of feet',
+            'Squeeze calves at top',
+            'Lower heels back down'
+        ],
+        tips: ['Full range of motion', 'Pause at top', 'Control the descent'],
+        commonMistakes: ['Not going high enough', 'Bouncing', 'Rushing reps'],
+        caloriesPerRep: 0.15,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/calf-raises-thumb.jpg',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_knee', min: 170, max: 200, optimal: 180 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_knee', min: 170, max: 200, optimal: 180 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'superman',
+        name: 'superman',
+        displayName: 'Superman Hold',
+        category: 'strength',
+        muscleGroups: ['back', 'core'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        optionalEquipment: ['yoga_mat'],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 30,
+        baseSets: 3,
+        repIncrement: 10,
+        setIncrement: 1,
+        keypoints: [5, 6, 11, 12, 23, 24, 25, 26],
+        formThresholds: {},
+        description: 'Lower back and posterior chain strengthening.',
+        instructions: [
+            'Lie face down on floor',
+            'Extend arms overhead',
+            'Simultaneously lift arms, chest, and legs off ground',
+            'Hold for specified duration'
+        ],
+        tips: ['Keep neck neutral', 'Squeeze glutes', 'Don\'t strain neck'],
+        commonMistakes: ['Lifting head too high', 'Not engaging glutes', 'Holding breath'],
+        caloriesPerRep: 0.1,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/superman-thumb.jpg',
+        stages: [{ name: 'hold', angleRanges: [{ joint: 'left_hip', min: 160, max: 200, optimal: 180 }], duration: 10 }],
+        formChecks: []
+    },
+    {
+        id: 'bicycle-crunches',
+        name: 'bicycle_crunch',
+        displayName: 'Bicycle Crunches',
+        category: 'strength',
+        muscleGroups: ['core'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        optionalEquipment: ['yoga_mat'],
+        unlockLevel: 2,
+        difficulty: 'intermediate',
+        baseReps: 20,
+        baseSets: 3,
+        repIncrement: 5,
+        setIncrement: 1,
+        keypoints: [5, 6, 11, 12, 23, 24, 25, 26],
+        formThresholds: {},
+        description: 'Dynamic ab exercise targeting obliques.',
+        instructions: [
+            'Lie on back, hands behind head',
+            'Lift shoulders and legs off ground',
+            'Bring right elbow to left knee while extending right leg',
+            'Alternate sides in cycling motion'
+        ],
+        tips: ['Keep lower back pressed to floor', 'Twist from torso, not neck', 'Controlled movement'],
+        commonMistakes: ['Pulling on neck', 'Rushing through reps', 'Not twisting fully'],
+        caloriesPerRep: 0.2,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/bicycle-crunches-thumb.jpg',
+        stages: [
+            { name: 'right', angleRanges: [{ joint: 'right_knee', min: 60, max: 90, optimal: 75 }] },
+            { name: 'left', angleRanges: [{ joint: 'left_knee', min: 60, max: 90, optimal: 75 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'reverse-lunges',
+        name: 'reverse_lunge',
+        displayName: 'Reverse Lunge',
+        category: 'strength',
+        muscleGroups: ['legs'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 12,
+        baseSets: 3,
+        repIncrement: 3,
+        setIncrement: 1,
+        keypoints: [11, 12, 23, 24, 25, 26],
+        formThresholds: { targetAngle: 90 },
+        description: 'Lunge variation stepping backward for more control.',
+        instructions: [
+            'Stand with feet hip-width apart',
+            'Step backward with one leg',
+            'Lower until both knees at 90 degrees',
+            'Push through front heel to return'
+        ],
+        tips: ['Keep torso upright', 'Front knee stays over ankle', 'Control the descent'],
+        commonMistakes: ['Leaning forward', 'Front knee collapsing inward', 'Not stepping back far enough'],
+        caloriesPerRep: 0.45,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/reverse-lunge-thumb.jpg',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_knee', min: 80, max: 100, optimal: 90 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'pike-pushups',
+        name: 'pike_pushup',
+        displayName: 'Pike Push-ups',
+        category: 'strength',
+        muscleGroups: ['shoulders', 'arms'],
+        equipmentRequired: 'bodyweight',
+        requiredEquipment: [],
+        optionalEquipment: ['yoga_mat'],
+        unlockLevel: 3,
+        difficulty: 'intermediate',
+        baseReps: 8,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [5, 6, 11, 12, 13, 14, 15, 16],
+        formThresholds: { minAngle: 70, maxAngle: 90 },
+        description: 'Shoulder-focused push-up variation.',
+        instructions: [
+            'Start in downward dog position (hips high)',
+            'Bend elbows to lower head toward floor',
+            'Keep hips high throughout',
+            'Push back up to starting position'
+        ],
+        tips: ['Keep body in inverted V shape', 'Lower head between hands', 'Don\'t let hips drop'],
+        commonMistakes: ['Hips dropping', 'Not going deep enough', 'Moving forward instead of down'],
+        caloriesPerRep: 0.6,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/pike-pushups-thumb.jpg',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 70, max: 90, optimal: 80 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }] }
         ],
         formChecks: []
     }
@@ -614,7 +944,11 @@ export const exercises: Exercise[] = [
     ...CABLE_EXERCISES,
     ...LEG_MACHINE_EXERCISES,
     ...SMITH_MACHINE_EXERCISES,
-    ...BENCH_EXERCISES
+    ...BENCH_EXERCISES,
+    ...CARDIO_EXERCISES,
+    ...FLEXIBILITY_EXERCISES,
+    ...PLYOMETRIC_EXERCISES,
+    ...RECOVERY_EXERCISES
 ];
 
 export function getExerciseById(id: string): Exercise | undefined {

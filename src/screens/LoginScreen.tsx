@@ -10,8 +10,10 @@ import {
     ActivityIndicator,
     Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { signIn, clearError } from '../store/slices/authSlice';
+import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
 
 interface LoginScreenProps {
     navigation: any;
@@ -44,7 +46,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     };
 
     return (
-        <View style={styles.container}>
+        <LinearGradient colors={Gradients.background} style={styles.container}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.content}
@@ -60,7 +62,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                         <TextInput
                             style={styles.input}
                             placeholder="Enter your email"
-                            placeholderTextColor="#6B6E82"
+                            placeholderTextColor={Colors.textTertiary}
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
@@ -74,7 +76,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                         <TextInput
                             style={styles.input}
                             placeholder="Enter your password"
-                            placeholderTextColor="#6B6E82"
+                            placeholderTextColor={Colors.textTertiary}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry={true}
@@ -83,15 +85,20 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                     </View>
 
                     <TouchableOpacity
-                        style={[styles.button, loading && styles.buttonDisabled]}
+                        activeOpacity={0.8}
                         onPress={handleLogin}
                         disabled={loading}
                     >
-                        {loading ? (
-                            <ActivityIndicator color="#FFFFFF" />
-                        ) : (
-                            <Text style={styles.buttonText}>Sign In</Text>
-                        )}
+                        <LinearGradient
+                            colors={Gradients.primary}
+                            style={[styles.button, loading && styles.buttonDisabled]}
+                        >
+                            {loading ? (
+                                <ActivityIndicator color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.buttonText}>Sign In</Text>
+                            )}
+                        </LinearGradient>
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
@@ -102,32 +109,31 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                     </View>
                 </View>
             </KeyboardAvoidingView>
-        </View>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0A0E27',
     },
     content: {
         flex: 1,
-        paddingHorizontal: 24,
+        paddingHorizontal: Spacing.l,
         justifyContent: 'center',
     },
     header: {
-        marginBottom: 48,
+        marginBottom: Spacing.xl,
     },
     title: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        color: '#B0B3C1',
+        color: Colors.textSecondary,
     },
     form: {
         gap: 20,
@@ -138,43 +144,43 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
     },
     input: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: Colors.glassSurface,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-        padding: 16,
+        borderColor: Colors.glassBorder,
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
         fontSize: 16,
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
     },
     button: {
-        backgroundColor: '#6C63FF',
-        borderRadius: 12,
-        padding: 16,
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
         alignItems: 'center',
         marginTop: 12,
+        ...Shadows.glow,
     },
     buttonDisabled: {
         opacity: 0.6,
     },
     buttonText: {
-        color: '#FFFFFF',
+        color: Colors.textPrimary,
         fontSize: 16,
         fontWeight: 'bold',
     },
     footer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginTop: 24,
+        marginTop: Spacing.l,
     },
     footerText: {
-        color: '#B0B3C1',
+        color: Colors.textSecondary,
         fontSize: 14,
     },
     linkText: {
-        color: '#6C63FF',
+        color: Colors.primaryStart,
         fontSize: 14,
         fontWeight: '600',
     },

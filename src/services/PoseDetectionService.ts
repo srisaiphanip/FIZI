@@ -5,6 +5,7 @@
  * This replaces the on-device TensorFlow.js implementation.
  */
 
+import { Alert } from 'react-native';
 import { Pose, Keypoint } from '../types';
 
 // Use explicit IP for testing on physical devices or localhost for emulator
@@ -53,10 +54,12 @@ class PoseDetectionService {
                 return true;
             } else {
                 console.warn('[PoseDetection] ❌ Backend returned error:', response.status);
+                Alert.alert('Connection Error', `Cannot connect to AI Server at ${POSE_API_URL}\nStatus: ${response.status}`);
                 throw new Error('Backend responded with error');
             }
         } catch (error: any) {
             console.warn(`[PoseDetection] ❌ Connection failed to ${POSE_API_URL}:`, error.message);
+            Alert.alert('Connection Failed', `Cannot reach ${POSE_API_URL}\n\nCheck:\n1. Same WiFi?\n2. Server running?\n3. Firewall off?`);
             this.isInitialized = true; // Still allow detection attempts in case it's a transient ping failure
             return true;
         }
@@ -83,6 +86,7 @@ class PoseDetectionService {
         if (!this.isInitialized) return emptyResult;
 
         try {
+            const t0 = performance.now();
             const response = await fetch(`${POSE_API_URL}/detect`, {
                 method: 'POST',
                 headers: {
@@ -93,6 +97,8 @@ class PoseDetectionService {
                     exerciseId: exerciseId
                 }),
             });
+            const t1 = performance.now();
+            console.log(`[PoseDetection] Request took ${Math.round(t1 - t0)}ms | Payload: ~${Math.round(base64Image.length / 1024)}KB`);
 
             if (!response.ok) return emptyResult;
 

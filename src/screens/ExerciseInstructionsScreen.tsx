@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
+
+import { getExerciseImage } from '../config/imageMap';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -63,10 +65,36 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 </View>
 
                 {/* Description */}
-                <BlurView intensity={10} tint="light" style={styles.card}>
-                    <Text style={styles.cardTitle}>About Exercise</Text>
+                <BlurView intensity={20} tint="dark" style={styles.card}>
+                    <View style={styles.cardHeader}>
+                        <MaterialCommunityIcons name="information-outline" size={24} color={Colors.accentCyan} />
+                        <Text style={styles.cardTitle}>About Exercise</Text>
+                    </View>
                     <Text style={styles.descriptionText}>{exercise.description || "Perfect your form with AI-powered correction."}</Text>
                 </BlurView>
+
+                {/* Form Reference Image */}
+                {getExerciseImage(exerciseId) && (
+                    <BlurView intensity={20} tint="dark" style={styles.referenceImageCard}>
+                        <View style={styles.cardHeader}>
+                            <MaterialCommunityIcons name="image-outline" size={24} color={Colors.accentCyan} />
+                            <Text style={styles.cardTitle}>Form Reference</Text>
+                        </View>
+                        <View style={styles.imageContainer}>
+                            <Image
+                                source={getExerciseImage(exerciseId)}
+                                style={styles.referenceImage}
+                                resizeMode="contain"
+                            />
+                            {/* Logo Watermark */}
+                            <Image
+                                source={require('../../assets/fizi-logo.png')}
+                                style={styles.logoWatermark}
+                                resizeMode="contain"
+                            />
+                        </View>
+                    </BlurView>
+                )}
 
                 {/* Steps */}
                 <View style={styles.section}>
@@ -84,14 +112,19 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 {/* Tips */}
                 {exercise.tips && exercise.tips.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Pro Tips 💡</Text>
-                        <BlurView intensity={15} tint="light" style={styles.tipsCard}>
-                            {exercise.tips.map((tip, index) => (
-                                <View key={index} style={styles.tipRow}>
-                                    <MaterialCommunityIcons name="check-circle-outline" size={20} color={Colors.accentCyan} />
-                                    <Text style={styles.tipText}>{tip}</Text>
-                                </View>
-                            ))}
+                        <BlurView intensity={20} tint="dark" style={styles.tipsCard}>
+                            <View style={styles.cardHeader}>
+                                <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={Colors.accentYellow} />
+                                <Text style={styles.cardTitle}>Pro Tips</Text>
+                            </View>
+                            <View style={styles.tipsList}>
+                                {exercise.tips.map((tip, index) => (
+                                    <View key={index} style={styles.tipRow}>
+                                        <MaterialCommunityIcons name="check-circle-outline" size={18} color={Colors.accentSuccess} style={{ marginTop: 2 }} />
+                                        <Text style={styles.tipText}>{tip}</Text>
+                                    </View>
+                                ))}
+                            </View>
                         </BlurView>
                     </View>
                 )}
@@ -186,12 +219,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.glassBorder,
         marginBottom: Spacing.xl,
+        overflow: 'hidden',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.m,
+        gap: Spacing.s,
     },
     cardTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: Colors.textPrimary,
-        marginBottom: Spacing.s,
     },
     descriptionText: {
         fontSize: 16,
@@ -259,21 +298,58 @@ const styles = StyleSheet.create({
     },
     tipsCard: {
         borderRadius: Layout.borderRadius.l,
-        padding: Spacing.m,
+        padding: Spacing.l,
         borderWidth: 1,
         borderColor: Colors.glassBorder,
+        overflow: 'hidden',
+    },
+    tipsList: {
+        gap: Spacing.m,
     },
     tipRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: Spacing.s,
+        alignItems: 'flex-start',
         gap: Spacing.s,
     },
     tipText: {
-        fontSize: 14,
+        fontSize: 15,
         color: Colors.textSecondary,
         flex: 1,
+        lineHeight: 22,
     },
+
+    // Reference Image Card
+    referenceImageCard: {
+        borderRadius: Layout.borderRadius.l,
+        padding: Spacing.l,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        marginBottom: Spacing.xl,
+        overflow: 'hidden',
+        alignItems: 'center',
+    },
+    referenceImage: {
+        width: '100%',
+        height: 300,
+        borderRadius: Layout.borderRadius.m,
+        marginTop: Spacing.m,
+    },
+    imageContainer: {
+        position: 'relative',
+        width: '100%',
+        marginTop: Spacing.m,
+    },
+    logoWatermark: {
+        position: 'absolute',
+        bottom: 34,
+        right: 1,
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        opacity: 0.9,
+        ...Shadows.small,
+    },
+
     footer: {
         position: 'absolute',
         bottom: 0,

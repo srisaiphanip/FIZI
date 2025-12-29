@@ -5,8 +5,9 @@ import {
     updateProfile as firebaseUpdateProfile,
     User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from './firebaseConfig';
+import { doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { auth, db, storage } from './firebaseConfig';
 import { UserProfile } from '../types';
 
 class AuthService {
@@ -197,6 +198,39 @@ class AuthService {
             throw new Error('Failed to update profile');
         }
     }
+
+    /**
+     * Upload profile photo to Firebase Storage
+     */
+    async uploadProfilePhoto(uri: string): Promise<string> {
+        try {
+            const user = auth.currentUser;
+            if (!user) throw new Error('No user logged in');
+
+            // blob conversion
+            const response = await fetch(uri);
+            const blob = await response.blob();
+
+            // Create reference: profile_photos/UID
+            const storageRef = ref(storage, `profile_photos/${user.uid}`);
+
+            // Upload
+            await uploadBytes(storageRef, blob);
+
+            // Get URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Update profile
+            await this.updateUserProfile({ photoURL: downloadURL });
+            await firebaseUpdateProfile(user, { photoURL: downloadURL });
+
+            return downloadURL;
+        } catch (error: any) {
+            console.error('Upload Error:', error);
+            throw new Error('Failed to upload photo: ' + error.message);
+        }
+    }
+
 
     /**
      * Get current Firebase user
