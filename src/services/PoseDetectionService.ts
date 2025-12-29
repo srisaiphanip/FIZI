@@ -8,9 +8,9 @@
 import { Alert } from 'react-native';
 import { Pose, Keypoint } from '../types';
 
-// Use explicit IP for testing on physical devices or localhost for emulator
-// The Flask server reported running on 10.73.24.21
-const POSE_API_URL = "http://10.73.24.21:5001";
+// PRODUCTION: Using deployed backend on Render
+// For local development, change to: "http://YOUR_LOCAL_IP:5001"
+const POSE_API_URL = "https://fizi-backend.onrender.com";
 
 export interface BackendAnalysisResult {
     poses: Pose[];
