@@ -1,1 +1,0 @@
-﻿verify_plan_generation.ts(14,5): error TS2353: Object literal may only specify known properties, and 'equipmentAccess' does not exist in type 'UserProfile'.

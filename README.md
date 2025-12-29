@@ -1,4 +1,3 @@
-
 # FIZI (Fitness Genie)
 
 [![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
@@ -8,167 +7,160 @@
 [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-007AFF?style=for-the-badge&logo=google&logoColor=white)](https://mediapipe.dev/)
 
-An advanced, AI-powered mobile fitness companion that uses real-time computer vision to analyze your workout form, count reps, and provide instant coaching. Featuring an evolving avatar system that transforms alongside your fitness journey.
+**FIZI** is an advanced, AI-powered mobile fitness companion that brings personal training to your living room. By leveraging real-time computer vision and machine learning, FIZI analyzes your workout form, counts your reps, and provides instant audio/visual feedback—just like a real trainer.
+
+What makes FIZI unique is its **Gamification Engine**: your physical effort fuels a custom digital avatar that grows, evolves, and transforms alongside you.
 
 ---
 
 ## ✨ Core Features
 
-### 📡 Real-Time AI Vision Bridge
-*   **Intelligent Pose Analysis**: Uses a specialized Python Flask backend powered by **MediaPipe** and **OpenCV** to track 33 body keypoints with sub-millimeter precision.
-*   **Automatic Rep Counting**: Sophisticated state-machine logic detects exercise phases (e.g., "up" vs "down") to count reps accurately across various exercises like push-ups, squats, and bicep curls.
-*   **Real-Time Form Correction**: Analyzes joint angles and body alignment to provide instant audio and visual feedback if your form deviates from safety standards.
+### 📡 AI-Powered Vision Engine
+*   **Real-Time Pose Tracking**: Utilizes a robust Python Flask backend integrated with **MediaPipe** and **OpenCV** to track 33 body keypoints with high precision.
+*   **Smart Rep Counting**: Features a state-machine based counter that analyzes exercise phases (eccentric/concentric) to ensure you complete full reps.
+*   **Instant Form Correction**: dynamic geometry analysis calculates joint angles in real-time to detect bad form (e.g., flaring elbows, shallow squats) and provides immediate audio feedback.
 
-### 📅 Smart Personalized Scheduling
-*   **Dynamic Plan Generation**: Tailors weekly workout schedules based on your experience level (Beginner, Intermediate, Advanced), fitness goals, and available equipment.
-*   **Adaptive Recovery**: Features a "Recovery Status" system (Good, Moderate, Poor) that adjusts your daily volume or suggests rest based on how you feel.
-*   **Exercise Library**: A comprehensive catalog of exercises with detailed instructions, steps, and AI-powered visual guides.
+### 🎮 Gamified Fitness Journey
+*   **Evolving Avatar System**: Your hard work is visualized through a dynamic 3D-style avatar that physically transforms (builds muscle, changes posture) as you level up.
+*   **XP & Leveling**: Earn Experience Points (XP) for every valid rep and completed workout to unlock new ranks and badges.
+*   **Streaks & Achievements**: Daily streak tracking and milestone awards keep you motivated.
 
-### 👤 Evolving Avatar & Gamification
-*   **Transformation System**: Your custom digital avatar physically transforms—growing stronger and more defined—as you earn XP and level up.
-*   **RPG progression**: Earn XP for every rep and workout completed. Unlock new levels, achievements, and badges as you progress.
-*   **Personal Bests & Streaks**: Track your records and maintain daily streaks to stay consistent.
+### 📅 Intelligent Coaching
+*   **Adaptive Workouts**: Generates personalized weekly schedules based on your fitness level (Beginner/Intermediate/Advanced) and available equipment.
+*   **Recovery Monitoring**: A user-centric recovery system suggests rest days or lighter loads based on your reported fatigue levels.
+*   **Comprehensive Library**: detailed instructions and animations for supported exercises (Push-ups, Squats, Lunges, etc.).
 
 ### 📊 Deep Analytics
-*   **Workout History**: Detailed logs of every session, including duration, reps, calories burned, and average form score.
-*   **Performance Metrics**: Visualize your growth over weeks and months with intuitive charts and statistics.
-
----
-
-## 🏗️ System Architecture
-
-FIZI leverages a high-performance bridge between mobile portability and server-side AI processing:
-
-```mermaid
-graph TD
-    subgraph "Mobile Client (React Native / Expo)"
-        A["UI/UX Layer"] --> B["Redux State Management"]
-        B --> C["Pose Detection Service"]
-        C -- "Base64 Frames" --> D["Vision API Client"]
-    end
-
-    subgraph "AI Vision Server (Python Flask)"
-        D -- "HTTP POST /pose" --> E["Image Processor"]
-        E --> F["MediaPipe Pose Engine"]
-        F --> G["Angle Calculator"]
-        G --> H["Rep Counter & Form Validator"]
-        H -- "JSON Response (Stats/Feedback)" --> D
-    end
-
-    subgraph "Backend Infrastructure"
-        A <--> I["Firebase Auth"]
-        B <--> J["Firestore (User Profiles/Workouts)"]
-        A <--> K["Firebase Storage (Images/Assets)"]
-    end
-```
+*   **Workout History**: Complete logs of past sessions including duration, total reps, accuracy scores, and caloric burn.
+*   **Progress Visualization**: Interactive charts showing your improvement trends over time.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
-- **Framework**: React Native + Expo (Managed Workflow)
+### Frontend (Mobile App)
+- **Framework**: [React Native](https://reactnative.dev/) with [Expo SDK 54](https://expo.dev/)
 - **Language**: TypeScript
-- **State Management**: Redux Toolkit
+- **State Management**: Redux Toolkit (Slices for Auth, Workouts, Stats)
+- **UI/UX**: Expo Linear Gradient, BlurView, Animated (React Native), Custom SVG Charts
 - **Navigation**: React Navigation (Stack & Bottom Tabs)
-- **Visuals**: Expo Linear Gradient, BlurView, Material Community Icons
+- **Backend Integration**: REST API (Fetch)
 
-### Backend & AI
-- **Vision Server**: Python Flask
-- **Computer Vision**: MediaPipe, OpenCV, PIL (Pillow)
-- **Database / Auth**: Firebase (Firestore, Authentication, Storage)
+### Backend (AI Server)
+- **Runtime**: Python 3.10+
+- **Framework**: Flask (Web Server), Flask-CORS
+- **Computer Vision**: MediaPipe (Pose Solution), OpenCV (Image Processing), NumPy
+- **Logic**: Custom geometry engines for angle calculation and form validation
 
 ### Infrastructure
-- **Deployment**: Docker, Docker Compose
-- **Communication**: REST API (Pose Analysis), Firebase SDK
+- **Database**: Firebase Firestore (User Profiles, Workouts, Plans)
+- **Authentication**: Firebase Auth (Email/Password, Google OAuth)
+- **Storage**: Firebase Storage (Assets)
 
 ---
 
 ## 🚀 Getting Started
 
+Follow these steps to run FIZI locally on your machine and mobile device.
+
 ### 1. Prerequisites
-- **Node.js** (v18+)
-- **Python** (v3.9+)
-- **Expo Go** app installed on your physical device.
+- **Node.js** (v18 or higher)
+- **Python** (v3.9 or higher)
+- **Expo Go** app installed on your Android/iOS device.
 
-### 2. Frontend Setup
+### 2. Clone the Repository
 ```bash
-# Clone the repository
 git clone https://github.com/MaheshChalla2701/FIZI.git
-cd FIZI-main
+cd FIZI
+```
 
-# Install dependencies
+### 3. Frontend Setup
+```bash
+# Install Node dependencies
 npm install --legacy-peer-deps
 
-# Setup Firebase
-# Open src/services/firebaseConfig.ts and replace the 'firebaseConfig' object 
-# with your own credentials from the Firebase Console.
+# Configure Firebase
+# 1. Create a project at console.firebase.google.com
+# 2. Add a Web App to your project
+# 3. Copy the config object
+# 4. Open src/services/firebaseConfig.ts and paste your credentials
 ```
 
-### 3. AI Server Setup
+### 4. AI Server Setup
 ```bash
-# Navigate to server directory
 cd python_server
 
-# Install requirements
+# Install Python dependencies
 pip install -r requirements.txt
 
-# Start the server (Runs on Port 5001)
+# Start the Flask Server
 python main.py
 ```
-> [!IMPORTANT]
-> Ensure your mobile device and computer are on the **same Wi-Fi network**. 
-> 1. Find your computer's local IP address (e.g., `192.168.1.XX`).
-> 2. Open `src/services/PoseDetectionService.ts`.
-> 3. Update `POSE_API_URL` to match your IP: `http://192.168.1.XX:5001`.
+*The server will start on port `5001`. Keep this terminal open.*
 
-### 4. Running the App
+### 5. ⚠️ CRITICAL: Connect Mobile to Localhost
+Since the app runs on your phone and the server runs on your PC, they must be on the **same Wi-Fi network**.
+
+1.  Find your computer's Local IP Address:
+    *   **Windows**: run `ipconfig` (Look for IPv4 Address, e.g., `192.168.1.5`)
+    *   **Mac/Linux**: run `ifconfig` or `ip a`
+2.  Open `src/services/PoseDetectionService.ts` in your code editor.
+3.  Locate the line:
+    ```typescript
+    const POSE_API_URL = "http://<YOUR_IP>:5001";
+    ```
+4.  Replace the IP address with your computer's actual Local IP.
+
+### 6. Run the App
 ```bash
-# From the root project directory
+# Return to the root directory
+cd .. 
+
+# Start Expo
 npx expo start
 ```
-- Open **Expo Go** on your device.
-- Scan the QR code.
-- Ensure your phone and computer are on the **same Wi-Fi network**.
-
----
-
-## 📈 Development Roadmap
-
-### ✅ Completed Sprints
-- [x] **Sprint 0: Infrastructure** - Setup Expo, Redux, and Firebase.
-- [x] **Sprint 1: Authentication** - Google OAuth and Profile Setup.
-- [x] **Sprint 2: Vision Bridge** - Integration with Python AI Server.
-- [x] **Sprint 3: Analysis Engine** - Rep counting and form validation logic.
-- [x] **Sprint 4: Smart Scheduler** - Dynamic plan generation based on user data.
-- [x] **Sprint 5: Feedback System** - Audio instructions and haptic cues.
-- [x] **Sprint 6: Avatar Evolution** - Gamified transformation system.
-- [x] **Sprint 7: Data Analytics** - Comprehensive history and personal bests.
-
-### ⏳ Current Focus
-- [x] **Sprint 8: Optimization** - Codebase cleanup, bug fixes, and refining app logic.
-- [ ] **Sprint 9: Deployment** - Native build generation and Store submission.
+*   Scan the QR code with **Expo Go**.
+*   Accept camera permissions.
+*   Start a workout!
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-├── src/
-│   ├── components/      # Reusable UI components & overlays
-│   ├── services/        # Business logic (Vision bridge, Workout management)
-│   ├── store/           # Redux slices (Auth, Workout, Plan, Stats)
-│   ├── screens/         # Main application views (Home, Camera, Avatar, etc.)
-│   ├── hooks/           # Custom React hooks (useSmartCamera, etc.)
-│   ├── theme/           # Design system (Colors, Gradients, Spacing)
-│   └── types/           # TypeScript interfaces & models
-├── python_server/       # Flask-based AI processing engine
-├── assets/              # Static media files & icons
-└── App.tsx              # Application entry point
+root/
+├── python_server/           # AI Backend
+│   ├── main.py              # Flask entry point & endpoints
+│   ├── exercise_configs.py  # Rules for form validation (angles, thresholds)
+│   ├── angle_calculator.py  # Geometry logic
+│   ├── rep_counter.py       # State machine for counting reps
+│   └── form_validator.py    # Feedback generation logic
+├── src/                     # React Native Frontend
+│   ├── components/          # Reusable UI (Cards, Modals, Overlays)
+│   ├── services/            # API & Business Logic (PoseService, Firebase)
+│   ├── screens/             # App Screens (Home, Camera, Avatar, Stats)
+│   ├── store/               # Redux State definitions
+│   ├── hooks/               # Custom Hooks (useSmartCamera, useAuth)
+│   ├── theme/               # Global styles & colors
+│   └── navigation/          # React Navigation setup
+├── App.tsx                  # Main Entry
+└── app.json                 # Expo Configuration
 ```
 
 ---
-=======
-# Summary 
-Personalized Planning: It creates custom workout schedules based on your fitness goals, experience, and available equipment. 
-Live AI Coaching: It uses your camera to "see" your body during workouts, provides real-time voice feedback to correct your form, and automatically counts your reps.
+
+## ❓ Troubleshooting
+
+**"Cannot connect to AI Server"**
+*   Ensure your phone and PC are on the **same Wi-Fi**.
+*   Verify the IP in `PoseDetectionService.ts` matches your PC's IP.
+*   Check if your firewall is blocking port `5001`.
+*   Ensure `python main.py` is running and says "Running on http://0.0.0.0:5001".
+
+**"Camera access denied"**
+*   Go to your phone settings -> Expo Go -> Allow Camera access.
+
+**"No pose detected"**
+*   Ensure good lighting.
+*   Stand back so your full body (head to toe) is visible.
+*   Wear contrasting clothes if possible.
