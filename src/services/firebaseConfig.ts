@@ -1,9 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { GoogleAuthProvider, initializeAuth, getReactNativePersistence } from 'firebase/auth/react-native';
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAnalytics } from 'firebase/analytics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // TODO: Replace with your Firebase config
 // Get this from Firebase Console > Project Settings > General > Your apps
@@ -20,9 +19,12 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with React Native persistence
-export const auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage)
+// Initialize Firebase Auth
+export const auth = getAuth(app);
+
+// Enable persistence (works with AsyncStorage polyfill in React Native)
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.warn('Firebase persistence error:', error);
 });
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
