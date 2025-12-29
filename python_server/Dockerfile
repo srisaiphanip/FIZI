@@ -26,5 +26,5 @@ COPY . .
 # Expose port
 EXPOSE 5001
 
-# Start the application with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--timeout", "120", "main:app"]
+# Start the application with gunicorn (single worker for state consistency)
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "1", "--timeout", "120", "main:app"]
