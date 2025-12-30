@@ -17,6 +17,7 @@ import {
     TextInput,
     Image,
     Platform,
+    Linking
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -423,6 +424,16 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     <MaterialCommunityIcons name="logout" size={20} color={Colors.textPrimary} />
                     <Text style={styles.signOutButtonText}>Sign Out</Text>
                 </TouchableOpacity>
+                {/* Privacy Policy Link */}
+                <TouchableOpacity
+                    style={{ alignItems: 'center', marginTop: 10, padding: 10 }}
+                    onPress={() => Linking.openURL('https://github.com/MaheshChalla2701/FIZI/blob/main/PRIVACY_POLICY.md')}
+                >
+                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
+                        Privacy Policy
+                    </Text>
+                </TouchableOpacity>
+
                 <View style={{ height: 40 }} />
             </ScrollView>
 

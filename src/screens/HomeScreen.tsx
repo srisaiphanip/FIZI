@@ -250,7 +250,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         <Text style={styles.greeting}>Hello,</Text>
                         <Text style={styles.title}>{user?.displayName || 'Champion'}! 👋</Text>
                     </View>
-                    <TouchableOpacity style={styles.avatarCircle} onPress={() => navigation.navigate('Profile')}>
+                    <TouchableOpacity style={styles.avatarCircle} onPress={() => navigation.navigate('Avatar')}>
                         {user?.photoURL ? (
                             <Image
                                 source={{ uri: user.photoURL }}
