@@ -94,6 +94,19 @@ export const AppConfig = {
          */
         announceEveryNReps: 5,
     },
+
+    /**
+     * API Settings
+     */
+    api: {
+        /**
+         * Backend URL
+         * 
+         * Production: "https://fizi-backend.onrender.com"
+         * Local: "http://<YOUR_IP>:5001"
+         */
+        baseURL: "https://fizi-backend.onrender.com",
+    },
 };
 
 export default AppConfig;

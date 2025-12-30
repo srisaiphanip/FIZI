@@ -34,9 +34,14 @@ export class PlanGeneratorService {
                 experienceLevel: 'beginner',
                 fitnessGoals: ['Weight Loss'],
                 healthIssues: [],
-                availableDays: 3
+                availableDays: 6
             }
         };
+
+        // Enforce 6 days for beginners to ensure the new split is applied
+        if (safeProfile.fitnessProfile.experienceLevel === 'beginner') {
+            safeProfile.fitnessProfile.availableDays = 6;
+        }
 
         const availableExercises = this.filterExercises(safeProfile);
         const sessions = this.createSessions(safeProfile, availableExercises);
@@ -109,7 +114,7 @@ export class PlanGeneratorService {
         const { availableDays } = profile.fitnessProfile;
 
         // Determine session split pattern based on frequency
-        const splitPattern = this.determineSplitPattern(availableDays);
+        const splitPattern = this.determineSplitPattern(availableDays, profile.fitnessProfile.experienceLevel);
         let patternIndex = 0;
 
         // Simple 28-day schedule based on frequency
@@ -199,8 +204,12 @@ export class PlanGeneratorService {
     /**
      * Determine optimal split pattern based on weekly frequency
      */
-    private static determineSplitPattern(frequency: number): SessionFocus[] {
+    private static determineSplitPattern(frequency: number, experienceLevel: string = 'intermediate'): SessionFocus[] {
         if (frequency >= 6) {
+            if (experienceLevel === 'beginner') {
+                // Beginner 6-day split: Full Body + Cardio/Recovery focus to prevent burnout
+                return ['fullbody', 'cardio', 'fullbody', 'cardio', 'fullbody', 'recovery'];
+            }
             // Push/Pull/Legs/Upper/Lower/Cardio
             return ['upper', 'lower', 'upper', 'lower', 'fullbody', 'cardio'];
         } else if (frequency === 5) {

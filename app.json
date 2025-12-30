@@ -27,7 +27,8 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.aifitnesstrainer"
+      "package": "com.maheshchalla.fizi",
+      "versionCode": 1
     },
     "web": {}
   }

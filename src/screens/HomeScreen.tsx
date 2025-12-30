@@ -442,26 +442,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 )}
 
                 {/* Main Action - Start Workout */}
-                <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => navigation.navigate('ExerciseInstructions', { exerciseId: 'push-ups' })}
-                    style={styles.startButtonContainer}
-                >
-                    <LinearGradient
-                        colors={Gradients.primary}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.startButton}
-                    >
-                        <View style={styles.startButtonContent}>
-                            <Text style={styles.startButtonIcon}>🏋️</Text>
-                            <View>
-                                <Text style={styles.startButtonText}>Start Workout</Text>
-                                <Text style={styles.startButtonSubtext}>AI-Powered Form Correction</Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+
 
                 {/* Recovery Status Selection */}
                 <View style={styles.section}>

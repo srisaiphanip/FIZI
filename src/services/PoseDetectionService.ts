@@ -7,10 +7,11 @@
 
 import { Alert } from 'react-native';
 import { Pose, Keypoint } from '../types';
+import AppConfig from '../config/appConfig';
 
 // PRODUCTION: Using deployed backend on Render
 // For local development, change to: "http://YOUR_LOCAL_IP:5001"
-const POSE_API_URL = "https://fizi-backend.onrender.com";
+const POSE_API_URL = AppConfig.api.baseURL;
 
 export interface BackendAnalysisResult {
     poses: Pose[];
