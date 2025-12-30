@@ -25,9 +25,9 @@ import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 
 import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
-import AboutUsScreen from './src/screens/AboutUsScreen';
+import DataUsageScreen from './src/screens/DataUsageScreen';
 
-export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'PrivacyPolicy' | 'TermsOfService' | 'AboutUs';
+export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'PrivacyPolicy' | 'TermsOfService' | 'AboutUs' | 'DataUsage';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -103,7 +103,7 @@ function AppContent() {
 
     // Don't override these screens - user navigated there manually
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'PrivacyPolicy' || currentScreen === 'TermsOfService' || currentScreen === 'AboutUs') {
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'PrivacyPolicy' || currentScreen === 'TermsOfService' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage') {
       return;
     }
 
@@ -194,6 +194,8 @@ function AppContent() {
         return <TermsOfServiceScreen navigation={navigation} />;
       case 'AboutUs':
         return <AboutUsScreen navigation={navigation} />;
+      case 'DataUsage':
+        return <DataUsageScreen navigation={navigation} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }

@@ -469,63 +469,92 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </Text>
                 </TouchableOpacity>
 
+                {/* Camera & Data Usage Link */}
+                <TouchableOpacity
+                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
+                    onPress={() => navigation.navigate('DataUsage')}
+                >
+                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
+                        Camera & Data Usage
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Contact Support Link */}
+                <TouchableOpacity
+                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
+                    onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com')}
+                >
+                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
+                        Contact Support
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Health Disclaimer */}
+                <View style={styles.disclaimerContainer}>
+                    <Text style={styles.disclaimerText}>
+                        Disclaimer: This app provides general fitness guidance only. It is not a medical application. Consult a qualified professional before starting any workout program.
+                    </Text>
+                </View>
+
                 <View style={{ height: 40 }} />
             </ScrollView>
 
             {/* Metrics Modal */}
-            {showMetricsModal && (
-                <BlurView intensity={50} tint="dark" style={styles.modalOverlay}>
-                    <View style={styles.modal}>
-                        <Text style={styles.modalTitle}>Update Body Metrics</Text>
+            {
+                showMetricsModal && (
+                    <BlurView intensity={50} tint="dark" style={styles.modalOverlay}>
+                        <View style={styles.modal}>
+                            <Text style={styles.modalTitle}>Update Body Metrics</Text>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Current Weight (kg)</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={currentWeight}
-                                onChangeText={setCurrentWeight}
-                                keyboardType="numeric"
-                                placeholder="e.g., 75"
-                                placeholderTextColor="#666"
-                            />
-                        </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Current Weight (kg)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={currentWeight}
+                                    onChangeText={setCurrentWeight}
+                                    keyboardType="numeric"
+                                    placeholder="e.g., 75"
+                                    placeholderTextColor="#666"
+                                />
+                            </View>
 
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.inputLabel}>Goal Weight (kg) - Optional</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={goalWeight}
-                                onChangeText={setGoalWeight}
-                                keyboardType="numeric"
-                                placeholder="e.g., 70"
-                                placeholderTextColor="#666"
-                            />
-                        </View>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Goal Weight (kg) - Optional</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={goalWeight}
+                                    onChangeText={setGoalWeight}
+                                    keyboardType="numeric"
+                                    placeholder="e.g., 70"
+                                    placeholderTextColor="#666"
+                                />
+                            </View>
 
-                        <View style={styles.modalButtons}>
-                            <TouchableOpacity
-                                style={styles.cancelButton}
-                                onPress={() => setShowMetricsModal(false)}
-                            >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                activeOpacity={0.8}
-                                onPress={handleUpdateMetrics}
-                                style={{ flex: 1 }}
-                            >
-                                <LinearGradient
-                                    colors={Gradients.primary}
-                                    style={styles.saveButton}
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    style={styles.cancelButton}
+                                    onPress={() => setShowMetricsModal(false)}
                                 >
-                                    <Text style={styles.saveButtonText}>Save</Text>
-                                </LinearGradient>
-                            </TouchableOpacity>
+                                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    onPress={handleUpdateMetrics}
+                                    style={{ flex: 1 }}
+                                >
+                                    <LinearGradient
+                                        colors={Gradients.primary}
+                                        style={styles.saveButton}
+                                    >
+                                        <Text style={styles.saveButtonText}>Save</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </View>
-                </BlurView>
-            )}
-        </LinearGradient>
+                    </BlurView>
+                )
+            }
+        </LinearGradient >
     );
 }
 
@@ -1040,6 +1069,21 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: 16,
     },
+
+    // Disclaimer
+    disclaimerContainer: {
+        marginTop: 20,
+        paddingHorizontal: 16,
+        marginBottom: 10,
+    },
+    disclaimerText: {
+        color: Colors.textTertiary,
+        fontSize: 11,
+        textAlign: 'center',
+        fontStyle: 'italic',
+        lineHeight: 16,
+    },
+
     saveButton: {
         padding: 16,
         borderRadius: 12,
