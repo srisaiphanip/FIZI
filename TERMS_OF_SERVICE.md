@@ -24,4 +24,4 @@ We reserve the right to terminate or suspend your access to the App at our sole 
 We may modify these Terms at any time. Your continued use of the App constitutes agreement to the revised Terms.
 
 ## 7. Contact
-For questions regarding these Terms, contact: support@example.com
+For questions regarding these Terms, contact: fizi.fitnessgenie@gmail.com

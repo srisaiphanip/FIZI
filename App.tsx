@@ -22,7 +22,12 @@ import ExerciseInstructionsScreen from './src/screens/ExerciseInstructionsScreen
 import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 
-export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
+
+import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
+import AboutUsScreen from './src/screens/AboutUsScreen';
+
+export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'PrivacyPolicy' | 'TermsOfService' | 'AboutUs';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -98,7 +103,7 @@ function AppContent() {
 
     // Don't override these screens - user navigated there manually
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary') {
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'PrivacyPolicy' || currentScreen === 'TermsOfService' || currentScreen === 'AboutUs') {
       return;
     }
 
@@ -123,13 +128,26 @@ function AppContent() {
     }
   }, [isAuthenticated, user, checkingOnboarding, checkingAuth]);
 
+  const [history, setHistory] = useState<ScreenType[]>([]);
+
   // Navigation functions to pass to screens
   const navigation = {
     navigate: (screen: ScreenType, params?: any) => {
       if (params) {
         navigationParamsRef.current = { ...navigationParamsRef.current, [screen]: params };
       }
+      setHistory(prev => [...prev, currentScreen]);
       setCurrentScreen(screen);
+    },
+    goBack: () => {
+      if (history.length > 0) {
+        const previousScreen = history[history.length - 1];
+        setHistory(prev => prev.slice(0, -1));
+        setCurrentScreen(previousScreen);
+      } else {
+        // Fallback if no history (e.g. direct deep link or reset)
+        setCurrentScreen('Home');
+      }
     },
     get params() {
       return navigationParamsRef.current[currentScreen as keyof NavigationParams];
@@ -170,6 +188,12 @@ function AppContent() {
         return <LevelProgressScreen navigation={navigation} />;
       case 'ExerciseLibrary':
         return <ExerciseLibraryScreen navigation={navigation} />;
+      case 'PrivacyPolicy':
+        return <PrivacyPolicyScreen navigation={navigation} />;
+      case 'TermsOfService':
+        return <TermsOfServiceScreen navigation={navigation} />;
+      case 'AboutUs':
+        return <AboutUsScreen navigation={navigation} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }

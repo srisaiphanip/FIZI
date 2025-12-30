@@ -46,6 +46,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const [showMetricsModal, setShowMetricsModal] = useState(false);
     const [currentWeight, setCurrentWeight] = useState('');
     const [goalWeight, setGoalWeight] = useState('');
+    const [showAllLevels, setShowAllLevels] = useState(false);
 
     useEffect(() => {
         loadAvatarState();
@@ -374,7 +375,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 {/* Level Roadmap */}
                 <BlurView intensity={10} tint="light" style={styles.roadmapCard}>
                     <Text style={styles.sectionTitle}>Level Map & Unlocks</Text>
-                    {AVATAR_LEVELS.map((level) => {
+                    {AVATAR_LEVELS.slice(0, showAllLevels ? undefined : 1).map((level) => {
                         // Find exercises that unlock at this level
                         const levelExercises = exercises.filter(ex => ex.unlockLevel === level.level);
 
@@ -417,6 +418,20 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             </View>
                         );
                     })}
+
+                    <TouchableOpacity
+                        style={styles.showMoreButton}
+                        onPress={() => setShowAllLevels(!showAllLevels)}
+                    >
+                        <Text style={styles.showMoreText}>
+                            {showAllLevels ? 'Show Less' : `Show More (${AVATAR_LEVELS.length - 1})`}
+                        </Text>
+                        <MaterialCommunityIcons
+                            name={showAllLevels ? 'chevron-up' : 'chevron-down'}
+                            size={16}
+                            color={Colors.primaryStart}
+                        />
+                    </TouchableOpacity>
                 </BlurView>
 
                 {/* Sign Out Button */}
@@ -427,10 +442,30 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 {/* Privacy Policy Link */}
                 <TouchableOpacity
                     style={{ alignItems: 'center', marginTop: 10, padding: 10 }}
-                    onPress={() => Linking.openURL('https://github.com/MaheshChalla2701/FIZI/blob/main/PRIVACY_POLICY.md')}
+                    onPress={() => navigation.navigate('PrivacyPolicy')}
                 >
                     <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
                         Privacy Policy
+                    </Text>
+                </TouchableOpacity>
+
+                {/* Terms of Service Link */}
+                <TouchableOpacity
+                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
+                    onPress={() => navigation.navigate('TermsOfService')}
+                >
+                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
+                        Terms of Service
+                    </Text>
+                </TouchableOpacity>
+
+                {/* About Us Link */}
+                <TouchableOpacity
+                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
+                    onPress={() => navigation.navigate('AboutUs')}
+                >
+                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
+                        About Us
                     </Text>
                 </TouchableOpacity>
 
@@ -799,32 +834,32 @@ const styles = StyleSheet.create({
     // Achievements Card
     achievementsCard: {
         borderRadius: Layout.borderRadius.m,
-        padding: Spacing.l,
+        padding: Spacing.s, // Reduced padding
         marginBottom: Spacing.l,
         overflow: 'hidden',
     },
     achievementsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 8, // Reduced gap
     },
     achievementItem: {
-        width: '30%',
+        width: '22%', // Fit 4 per row
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 12,
-        padding: 12,
+        borderRadius: 8,
+        padding: 8, // Reduced padding
         alignItems: 'center',
     },
     achievementLocked: {
         opacity: 0.5,
     },
     achievementIcon: {
-        fontSize: 28,
-        marginBottom: 4,
+        fontSize: 24, // Reduced icon size
+        marginBottom: 2,
     },
     achievementName: {
         color: Colors.textPrimary,
-        fontSize: 10,
+        fontSize: 9, // Reduced font size
         textAlign: 'center',
     },
     achievementNameLocked: {
@@ -834,14 +869,14 @@ const styles = StyleSheet.create({
     // Roadmap Card
     roadmapCard: {
         borderRadius: Layout.borderRadius.m,
-        padding: Spacing.l,
+        padding: Spacing.s, // Reduced padding
         marginBottom: Spacing.l,
         overflow: 'hidden',
     },
     roadmapItem: {
         flexDirection: 'row',
-        alignItems: 'flex-start', // Align start for multi-line content
-        paddingVertical: 12,
+        alignItems: 'flex-start',
+        paddingVertical: 8, // Reduced vertical padding
         borderBottomWidth: 1,
         borderBottomColor: Colors.glassBorder,
         opacity: 0.5,
@@ -857,8 +892,8 @@ const styles = StyleSheet.create({
         marginHorizontal: -8,
     },
     roadmapIcon: {
-        fontSize: 28,
-        marginRight: 12,
+        fontSize: 24, // Increased back for readability
+        marginRight: 10,
         marginTop: 2,
     },
     roadmapInfo: {
@@ -866,7 +901,7 @@ const styles = StyleSheet.create({
     },
     roadmapName: {
         color: Colors.textSecondary,
-        fontSize: 16,
+        fontSize: 16, // Increased back
         fontWeight: '600',
     },
     roadmapNameActive: {
@@ -874,20 +909,20 @@ const styles = StyleSheet.create({
     },
     roadmapReq: {
         color: Colors.textTertiary,
-        fontSize: 12,
+        fontSize: 12, // Increased back
         marginTop: 2,
     },
     roadmapCheck: {
         color: Colors.accentSuccess,
-        fontSize: 18,
+        fontSize: 18, // Increased back
         fontWeight: 'bold',
         marginLeft: 8,
     },
 
     // Sign Out Button
     signOutButton: {
-        marginTop: 20,
-        padding: 16,
+        marginTop: 16,
+        padding: 12,
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         borderRadius: 12,
         alignItems: 'center',
@@ -899,7 +934,7 @@ const styles = StyleSheet.create({
     },
     signOutButtonText: {
         color: Colors.textPrimary,
-        fontSize: 16,
+        fontSize: 16, // Increased back
         fontWeight: '600',
     },
 
@@ -907,16 +942,16 @@ const styles = StyleSheet.create({
 
     // Unlocked Exercises Styles
     unlockedExercisesContainer: {
-        marginTop: 8,
+        marginTop: 4, // Reduced margin
         backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 8,
-        padding: 8,
+        borderRadius: 6,
+        padding: 6, // Reduced padding
     },
     unlockedLabel: {
         color: Colors.accentCyan,
-        fontSize: 11,
+        fontSize: 12, // Increased back
         fontWeight: 'bold',
-        marginBottom: 4,
+        marginBottom: 2,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
@@ -925,8 +960,22 @@ const styles = StyleSheet.create({
     },
     unlockedItem: {
         color: Colors.textSecondary,
+        fontSize: 12, // Increased back
+        marginBottom: 1,
+    },
+
+    showMoreButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 12,
+        paddingBottom: 4,
+        gap: 4,
+    },
+    showMoreText: {
+        color: Colors.primaryStart,
         fontSize: 12,
-        marginBottom: 2,
+        fontWeight: '600',
     },
 
     // Modal
