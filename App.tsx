@@ -13,6 +13,7 @@ import { View, Text } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import CameraScreen from './src/screens/CameraScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
@@ -22,7 +23,7 @@ import ExerciseInstructionsScreen from './src/screens/ExerciseInstructionsScreen
 import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 
-export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary';
+export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'Profile';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -97,7 +98,8 @@ function AppContent() {
     if (currentScreen === 'Onboarding') return;
 
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary') {
+    // Don't override these screens - user navigated there manually
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'Profile') {
       return;
     }
 
@@ -169,6 +171,8 @@ function AppContent() {
         return <LevelProgressScreen navigation={navigation} />;
       case 'ExerciseLibrary':
         return <ExerciseLibraryScreen navigation={navigation} />;
+      case 'Profile':
+        return <ProfileScreen navigation={navigation} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }
