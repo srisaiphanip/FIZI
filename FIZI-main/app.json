@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "FIZI - Fitness and Workouts",
+    "slug": "ai-fitness-trainer",
+    "scheme": "ai-fitness-trainer",
+    "version": "1.0.0",
+    "description": "Your personal AI-powered gym companion with real-time form correction, intelligent rep counting, and personalized workout plans.",
+    "privacy": "public",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "backgroundColor": "#0A0E27",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0E27"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maheshchalla.fizi",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to analyze your workout form in real-time.",
+        "NSMicrophoneUsageDescription": "This app needs microphone access for voice commands."
+      }
+    },
+    "icon": "./assets/app-icon.png",
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon.png",
+        "backgroundColor": "#0A0E27"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.maheshchalla.fizi",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {},
+    "extra": {
+      "eas": {
+        "projectId": "4362db1a-f495-48f5-8129-1dfa113c7b85"
+      }
+    }
+  }
+}
