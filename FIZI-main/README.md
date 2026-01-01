@@ -121,6 +121,6 @@ eas build --platform android --profile production
 ## 📜 License
 Distributed under the MIT License. See `LICENSE` for more information.
 
----
+--
 
 > **Built with ❤️ by Mahesh Challa**
