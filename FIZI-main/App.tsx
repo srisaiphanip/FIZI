@@ -23,7 +23,7 @@ import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
-
+import AboutUsScreen from './src/screens/AboutUsScreen';
 import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
 import DataUsageScreen from './src/screens/DataUsageScreen';
 
