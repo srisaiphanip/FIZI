@@ -88,7 +88,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                             />
                             {/* Logo Watermark */}
                             <Image
-                                source={require('../../assets/fizi-logo.png')}
+                                source={getExerciseImage('app-logo')}
                                 style={styles.logoWatermark}
                                 resizeMode="contain"
                             />
@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 34,
         right: 1,
-        width: 40,
-        height: 40,
+        width: 20,
+        height: 20,
         borderRadius: 8,
         opacity: 0.9,
         ...Shadows.small,

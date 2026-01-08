@@ -34,8 +34,39 @@ export const EXERCISE_IMAGES: Record<string, any> = {
     'smith_squat': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767028786/smith-squat_rsevv4.jpg",
     'bench_bulgarian_split_squat': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767028784/bulgarian-split-squat_txpmia.jpg",
 
-    // Logos and Misc (Keeping local for now as no URI provided)
-    'fizi-logo': require('../../assets/fizi-logo.png'),
+    // Cardio & HIIT
+    'jumping-jacks': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884269/jumping-jacks_yjynlh.png",
+    'burpees': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884278/burpees_wyckiw.png",
+    'mountain-climbers': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884266/mountain-climbers_d9teyy.png",
+    'high-knees': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884263/high-knees_gmktb9.png",
+    'jump-rope': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884258/jump-rope_esu78w.png",
+    'running-in-place': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884257/running-in-place_mbtwpp.png",
+
+    // Flexibility & Stretching
+    'forward-fold': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884288/forward-fold_eaoo6x.png",
+    'cat-cow': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884259/cat-cow_wgl848.jpg",
+    'childs-pose': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884247/childs-pose_cortxu.png",
+    'downward-dog': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884277/downward-dog_f5nml6.png",
+    'quad-stretch': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884261/quad-stretch_mvebz9.jpg",
+    'shoulder-stretch': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884247/shoulder-stretch_gqyppr.png",
+
+    // Plyometric
+    'jump-squats': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884259/jump-squats_qhcg1t.jpg",
+    'box-jumps': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884252/box-jumps_ym9d0p.jpg",
+    'plyo-pushups': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884252/plyo-pushups_stmqzv.jpg",
+    'tuck-jumps': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884250/tuck-jumps_mwh9vo.jpg",
+    'lateral-bounds': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884236/lateral-bounds_iskalu.jpg",
+
+    // Recovery
+    'gentle-yoga-flow': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884252/yoga-flow_qo2zzc.jpg",
+    'foam-rolling': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884248/foam-rolling_zyu7ij.jpg",
+    'deep-breathing': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884245/deep-breathing_dxif0r.jpg",
+    'light-stretching-circuit': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884241/stretching-circuit_ne67z0.jpg",
+    'easy-cycling': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767884241/easy-cycling_ejta7k.jpg",
+
+    // Logos and Misc
+    'app-logo': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767885071/ChatGPT_Image_Jan_1_2026_02_00_59_PM_gqwae7.png",
+
 };
 
 // Helper function to get image source (safe for both require and URI)
