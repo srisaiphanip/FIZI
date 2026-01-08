@@ -169,6 +169,72 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
     const nextLevel = getProgressToNextLevel();
 
+    // Calculate missing body composition metrics on-the-fly if not present
+    const getBodyComposition = () => {
+        if (!user) return undefined;
+
+        // If bodyComposition exists and has all data, return it
+        if (user.bodyComposition?.bmi && user.bodyComposition?.bodyFat && user.bodyComposition?.bmr) {
+            return user.bodyComposition;
+        }
+
+        // Calculate missing metrics
+        const w = user.weight;
+        const h = user.height;
+        const a = user.age;
+        const gender = user.gender || 'male';
+
+        if (!w || !h || !a) return user?.bodyComposition;
+
+        // BMI
+        const bmi = w / Math.pow(h / 100, 2);
+
+        // BMR (Mifflin-St Jeor)
+        const bmr = gender === 'male'
+            ? (10 * w) + (6.25 * h) - (5 * a) + 5
+            : (10 * w) + (6.25 * h) - (5 * a) - 161;
+
+        // Body Fat % (Deurenberg)
+        const bfPercent = (1.20 * bmi) + (0.23 * a) - (gender === 'male' ? 16.2 : 5.4);
+        const bodyFatKg = w * (Math.max(5, Math.min(50, bfPercent)) / 100);
+
+        // Skeletal Muscle
+        const lbm = w * (1 - bfPercent / 100);
+        const skeletalMuscleKg = lbm * 0.45;
+
+        // Visceral Fat
+        const visceralFatRatio = 0.10 + Math.max(0, (bmi - 22) * 0.01);
+        const visceralFatKg = bodyFatKg * Math.min(0.30, visceralFatRatio);
+        const visceralFatPercent = (visceralFatKg / w) * 100;
+
+        // Trunk Subcutaneous Fat
+        const trunkFatKg = bodyFatKg * 0.5;
+        const trunkSubcutaneousFatKg = trunkFatKg * 0.85;
+
+        // Body Age
+        const baseBMR20 = gender === 'male'
+            ? (10 * w) + (6.25 * h) - (5 * 20) + 5
+            : (10 * w) + (6.25 * h) - (5 * 20) - 161;
+        const decadesAfter20 = Math.max(0, (a - 20) / 10);
+        const expectedBMR = baseBMR20 * Math.pow(0.98, decadesAfter20);
+        const bmrDeviation = bmr - expectedBMR;
+        const bmrDeclinePerYear = baseBMR20 * 0.002;
+        const ageAdjustment = bmrDeviation / bmrDeclinePerYear;
+        const metabolicAge = Math.round(a - ageAdjustment);
+
+        return {
+            bmi: parseFloat(bmi.toFixed(1)),
+            bmr: Math.round(bmr),
+            bodyFat: parseFloat(bodyFatKg.toFixed(1)),
+            visceralFat: parseFloat(Math.max(1, Math.min(15, visceralFatPercent)).toFixed(1)),
+            trunkSubcutaneousFat: parseFloat(Math.max(1, Math.min(30, trunkSubcutaneousFatKg)).toFixed(1)),
+            bodyAge: Math.max(15, Math.min(100, metabolicAge)),
+            skeletalMuscle: parseFloat(Math.max(10, Math.min(50, skeletalMuscleKg)).toFixed(1)),
+        };
+    };
+
+    const bodyComp = getBodyComposition();
+
     return (
         <LinearGradient colors={Gradients.background} style={styles.container}>
             {/* Header */}
@@ -578,12 +644,94 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 <Text style={styles.infoValue}>{user?.age || '--'} years</Text>
                             </View>
                             <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Gender</Text>
+                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>{user?.gender || '--'}</Text>
+                            </View>
+                            <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Weight</Text>
                                 <Text style={styles.infoValue}>{user?.weight || '--'} kg</Text>
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Height</Text>
                                 <Text style={styles.infoValue}>{user?.height || '--'} cm</Text>
+                            </View>
+
+                            {/* Body Composition */}
+                            <Text style={styles.modalSectionTitle}>Body Composition</Text>
+                            <Text style={[styles.summaryInfo, { fontSize: 11, marginBottom: 8, fontStyle: 'italic' }]}>
+                                Your Current vs. Healthy Range
+                            </Text>
+
+                            <View style={styles.infoRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.infoLabel}>Current BMI</Text>
+                                    <Text style={styles.infoValue}>{bodyComp?.bmi?.toFixed(1) || '--'}</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>18.5 - 24.9</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.infoLabel}>Body Fat</Text>
+                                    <Text style={styles.infoValue}>{bodyComp?.bodyFat || '--'} kg</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        {user?.gender === 'male' ? '10-20%' : '18-28%'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.infoLabel}>BMR</Text>
+                                    <Text style={styles.infoValue}>{bodyComp?.bmr || '--'} kcal</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Daily Calories</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.textSecondary }]}>Base metabolism</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.infoLabel}>Visceral Fat</Text>
+                                    <Text style={styles.infoValue}>{bodyComp?.visceralFat || '--'}%</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>{'<10%'}</Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.infoLabel}>Skeletal Muscle</Text>
+                                    <Text style={styles.infoValue}>{bodyComp?.skeletalMuscle || '--'} kg</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        {user?.gender === 'male' ? '>40% body wt' : '>30% body wt'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.infoRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.infoLabel}>Body Age</Text>
+                                    <Text style={styles.infoValue}>{bodyComp?.bodyAge || '--'} years</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Target</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        Equal to age ({user?.age || '--'})
+                                    </Text>
+                                </View>
                             </View>
 
                             {/* Fitness Profile */}
@@ -1382,5 +1530,11 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
         fontSize: 11,
         fontWeight: '600',
+    },
+    summaryInfo: {
+        color: Colors.textTertiary,
+        fontSize: 12,
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
 });

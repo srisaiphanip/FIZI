@@ -21,6 +21,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import { Colors, Layout, Spacing, Gradients } from '../theme/Theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface ProfileSetupScreenProps {
     navigation: any;
@@ -49,9 +50,17 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
     const totalSteps = 7;
 
     // Step 1: Basic Info
+    const [gender, setGender] = useState<'male' | 'female'>('male');
     const [age, setAge] = useState('');
     const [weight, setWeight] = useState('');
     const [height, setHeight] = useState('');
+
+    // Step 2: Advanced Body Metrics
+    const [bodyFat, setBodyFat] = useState('');
+    const [visceralFat, setVisceralFat] = useState('');
+    const [trunkFat, setTrunkFat] = useState('');
+    const [bodyAge, setBodyAge] = useState('');
+    const [skeletalMuscle, setSkeletalMuscle] = useState('');
 
     // Step 2: Goals
     const [fitnessGoal, setFitnessGoal] = useState<UserProfile['fitnessGoal']>('muscle_gain');
@@ -101,11 +110,102 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 Alert.alert('Error', 'Please enter valid numbers');
                 return;
             }
+
+            // Auto-calculate advanced metrics when going from Step 1 to Step 2
+            estimateMetrics();
         }
 
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
         }
+    };
+
+    const calculateBMI = () => {
+        const w = parseFloat(weight);
+        const h = parseFloat(height) / 100;
+        if (!w || !h) return 0;
+        return w / (h * h);
+    };
+
+    const calculateBMR = () => {
+        const w = parseFloat(weight);
+        const h = parseFloat(height);
+        const a = parseInt(age);
+        if (!w || !h || !a) return 0;
+
+        // Mifflin-St Jeor Equation
+        if (gender === 'male') {
+            return (10 * w) + (6.25 * h) - (5 * a) + 5;
+        } else {
+            return (10 * w) + (6.25 * h) - (5 * a) - 161;
+        }
+    };
+
+    const getBMIStatus = (bmi: number) => {
+        if (bmi < 18.5) return { label: 'Underweight', color: '#3498db' };
+        if (bmi < 25) return { label: 'Healthy', color: Colors.accentSuccess };
+        if (bmi < 30) return { label: 'Overweight', color: '#f1c40f' };
+        return { label: 'Obese', color: Colors.accentError };
+    };
+
+    const estimateMetrics = () => {
+        const bmi = calculateBMI();
+        const bmr = calculateBMR();
+        const a = parseInt(age);
+        const w = parseFloat(weight);
+        const h = parseFloat(height);
+
+        if (!bmi || !a || !w || !h) return;
+
+        // 1. Body Fat Mass (kg) - Simplified estimation (Deurenberg Formula)
+        // Men: Body Fat % = (1.20 × BMI) + (0.23 × age) - 16.2
+        // Women: Body Fat % = (1.20 × BMI) + (0.23 × age) - 5.4
+        const bfPercent = (1.20 * bmi) + (0.23 * a) - (gender === 'male' ? 16.2 : 5.4);
+        const bodyFatKg = w * (Math.max(5, Math.min(50, bfPercent)) / 100);
+        setBodyFat(bodyFatKg.toFixed(1)); // Store as kg
+
+        // 2. Skeletal Muscle Mass (kg)
+        // Lean Body Mass (LBM) = weight × (1 - body_fat_percentage/100)
+        // Skeletal Muscle Mass ≈ LBM × 0.45 (45% of lean mass)
+        const lbm = w * (1 - bfPercent / 100);
+        const skeletalMuscleKg = lbm * 0.45;
+        setSkeletalMuscle(Math.max(10, Math.min(50, skeletalMuscleKg)).toFixed(1)); // Store as kg, clamp 10-50kg
+
+        // 3. Visceral Fat Percentage
+        // Visceral fat is typically 10-20% of total body fat
+        // Higher BMI correlates with higher visceral fat ratio
+        const visceralFatRatio = 0.10 + Math.max(0, (bmi - 22) * 0.01); // 10% base, increases with BMI
+        const visceralFatKg = bodyFatKg * Math.min(0.30, visceralFatRatio); // Cap at 30% of total fat
+        const visceralFatPercent = (visceralFatKg / w) * 100;
+        setVisceralFat(Math.max(1, Math.min(15, visceralFatPercent)).toFixed(1)); // Store as %, clamp 1-15%
+
+        // 4. Trunk Subcutaneous Fat Mass (kg)
+        // Trunk Fat Mass = Total Body Fat Mass × 0.5 (50% of total fat is in trunk)
+        // Subcutaneous component ≈ Trunk Fat × 0.85 (85% of trunk fat is subcutaneous)
+        const trunkFatKg = bodyFatKg * 0.5;
+        const trunkSubcutaneousFatKg = trunkFatKg * 0.85;
+        setTrunkFat(Math.max(1, Math.min(30, trunkSubcutaneousFatKg)).toFixed(1)); // Store as kg, clamp 1-30kg
+
+        // 5. Body Age (Metabolic Age)
+        // Expected BMR decline ≈ 2% per decade after age 20
+        // Base BMR at age 20 for comparison
+        const baseBMRMale20 = (10 * w) + (6.25 * h) - (5 * 20) + 5;
+        const baseBMRFemale20 = (10 * w) + (6.25 * h) - (5 * 20) - 161;
+        const baseBMR20 = gender === 'male' ? baseBMRMale20 : baseBMRFemale20;
+
+        // Calculate expected BMR for current age (2% decline per decade after 20)
+        const decadesAfter20 = Math.max(0, (a - 20) / 10);
+        const expectedBMR = baseBMR20 * Math.pow(0.98, decadesAfter20);
+
+        // Calculate body age based on BMR deviation
+        // If BMR is higher than expected → younger body age
+        // If BMR is lower than expected → older body age
+        const bmrDeviation = bmr - expectedBMR;
+        const bmrDeclinePerYear = baseBMR20 * 0.002; // 0.2% per year
+        const ageAdjustment = bmrDeviation / bmrDeclinePerYear;
+        const metabolicAge = Math.round(a - ageAdjustment);
+
+        setBodyAge(Math.max(15, Math.min(100, metabolicAge)).toString()); // Clamp 15-100
     };
 
     const handleBack = () => {
@@ -128,11 +228,21 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
             // Create updated profile data
             const profileUpdate: Partial<UserProfile> = {
+                gender,
                 age: parseInt(age),
                 weight: parseFloat(weight),
                 height: parseFloat(height),
                 fitnessGoal,
                 workoutExperience,
+                bodyComposition: {
+                    bmi: calculateBMI(),
+                    bmr: calculateBMR(),
+                    bodyFat: bodyFat ? parseFloat(bodyFat) : undefined,
+                    visceralFat: visceralFat ? parseFloat(visceralFat) : undefined,
+                    trunkSubcutaneousFat: trunkFat ? parseFloat(trunkFat) : undefined,
+                    bodyAge: bodyAge ? parseInt(bodyAge) : undefined,
+                    skeletalMuscle: skeletalMuscle ? parseFloat(skeletalMuscle) : undefined,
+                },
                 fitnessProfile: {
                     equipmentAccess,
                     availableEquipment: selectedEquipment as any[],
@@ -212,6 +322,27 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                     <View style={styles.stepContainer}>
                         <Text style={styles.stepTitle}>Basic Information</Text>
                         <Text style={styles.stepSubtitle}>Let's start with your basics</Text>
+
+                        {/* Gender Selection */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>Gender</Text>
+                            <View style={styles.genderContainer}>
+                                <TouchableOpacity
+                                    style={[styles.genderButton, gender === 'male' && styles.genderButtonActive]}
+                                    onPress={() => setGender('male')}
+                                >
+                                    <MaterialCommunityIcons name="gender-male" size={24} color={gender === 'male' ? '#FFF' : Colors.textSecondary} />
+                                    <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>Male</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.genderButton, gender === 'female' && styles.genderButtonActive]}
+                                    onPress={() => setGender('female')}
+                                >
+                                    <MaterialCommunityIcons name="gender-female" size={24} color={gender === 'female' ? '#FFF' : Colors.textSecondary} />
+                                    <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>Female</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
 
                         <View style={styles.inputContainer}>
                             <Text style={styles.label}>Age</Text>
@@ -501,17 +632,113 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 );
 
             case 7:
+                const bmi = calculateBMI();
+                const bmr = calculateBMR();
+                const bmiStatus = getBMIStatus(bmi);
+
                 return (
                     <View style={styles.stepContainer}>
                         <Text style={styles.stepTitle}>Ready to Start! 🎉</Text>
                         <Text style={styles.stepSubtitle}>Your personalized plan is being generated...</Text>
 
+                        {/* BMI Section */}
+                        <View style={[styles.summaryCard, { borderColor: bmiStatus.color }]}>
+                            <Text style={styles.summaryTitle}>Body Composition Analysis</Text>
+                            <View style={styles.bmiDisplay}>
+                                <View>
+                                    <Text style={styles.bmiLabel}>Current BMI</Text>
+                                    <Text style={[styles.bmiValue, { color: bmiStatus.color }]}>{bmi.toFixed(1)}</Text>
+                                    <Text style={[styles.bmiStatus, { color: bmiStatus.color }]}>{bmiStatus.label}</Text>
+                                </View>
+                                <View style={styles.divider} />
+                                <View>
+                                    <Text style={styles.bmiLabel}>Estimated BMR</Text>
+                                    <Text style={styles.bmiValue}>{Math.round(bmr)}</Text>
+                                    <Text style={styles.bmiStatus}>kcal / day</Text>
+                                </View>
+                            </View>
+                            <Text style={styles.summaryInfo}>
+                                Healthy BMI range: <Text style={{ fontWeight: 'bold' }}>18.5 - 24.9</Text>
+                            </Text>
+                        </View>
+
+                        {/* Advanced Metrics with Healthy Ranges */}
+                        <View style={styles.summaryCard}>
+                            <Text style={styles.summaryTitle}>Advanced Body Metrics</Text>
+                            <Text style={styles.summaryInfo}>Your Current vs. Healthy Range</Text>
+
+                            <View style={[styles.summaryRow, { marginTop: 12 }]}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.summaryLabel}>Body Fat</Text>
+                                    <Text style={styles.summaryValue}>{bodyFat || '--'} kg</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        {gender === 'male' ? '10-20%' : '18-28%'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.summaryLabel}>Visceral Fat</Text>
+                                    <Text style={styles.summaryValue}>{visceralFat || '--'}%</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        {'<10%'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.summaryLabel}>Trunk Subcutaneous Fat</Text>
+                                    <Text style={styles.summaryValue}>{trunkFat || '--'} kg</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        Varies by weight
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.summaryLabel}>Skeletal Muscle</Text>
+                                    <Text style={styles.summaryValue}>{skeletalMuscle || '--'} kg</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        {gender === 'male' ? '>40% body wt' : '>30% body wt'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <View style={styles.summaryRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.summaryLabel}>Body Age</Text>
+                                    <Text style={styles.summaryValue}>{bodyAge || '--'} years</Text>
+                                </View>
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Target</Text>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                        Equal to age ({age})
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
                         <View style={styles.summaryCard}>
                             <Text style={styles.summaryTitle}>Your Profile Summary</Text>
 
                             <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Age:</Text>
-                                <Text style={styles.summaryValue}>{age} years</Text>
+                                <Text style={styles.summaryLabel}>Gender / Age:</Text>
+                                <Text style={styles.summaryValue}>{gender.toUpperCase()} / {age}y</Text>
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Weight / Height:</Text>
@@ -527,25 +754,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 <Text style={styles.summaryLabel}>Experience:</Text>
                                 <Text style={styles.summaryValue}>{workoutExperience.toUpperCase()}</Text>
                             </View>
-                            <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Location:</Text>
-                                <Text style={styles.summaryValue}>
-                                    {equipmentAccess === 'bodyweight' ? 'Home (Bodyweight)' :
-                                        equipmentAccess === 'home' ? 'Home (Equipment)' : 'Gym'}
-                                </Text>
-                            </View>
-                            <View style={styles.summaryRow}>
-                                <Text style={styles.summaryLabel}>Strength Test:</Text>
-                                <Text style={styles.summaryValue}>{Math.round(pushups)} Pushups, {Math.round(squats)} Squats</Text>
-                            </View>
                         </View>
-
-                        <Text style={styles.planInfo}>
-                            Based on your profile, we'll create a{' '}
-                            {workoutExperience === 'beginner' ? '3-day' :
-                                workoutExperience === 'intermediate' ? '4-day' : '5-6 day'}{' '}
-                            per week workout plan tailored to your goals!
-                        </Text>
                     </View>
                 );
 
@@ -788,6 +997,74 @@ const styles = StyleSheet.create({
         color: Colors.textPrimary,
         fontSize: 14,
         fontWeight: '600',
+    },
+    genderContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    genderButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    genderButtonActive: {
+        backgroundColor: Colors.primaryStart,
+        borderColor: Colors.primaryStart,
+    },
+    genderText: {
+        color: Colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    genderTextActive: {
+        color: '#FFF',
+    },
+    metricsGrid: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    bmiDisplay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        marginBottom: 16,
+        paddingVertical: 8,
+    },
+    bmiLabel: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    bmiValue: {
+        color: Colors.textPrimary,
+        fontSize: 32,
+        fontWeight: '800',
+        textAlign: 'center',
+    },
+    bmiStatus: {
+        fontSize: 12,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginTop: 4,
+    },
+    divider: {
+        width: 1,
+        height: '80%',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    summaryInfo: {
+        color: Colors.textTertiary,
+        fontSize: 12,
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
     planInfo: {
         color: Colors.textSecondary,

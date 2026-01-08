@@ -221,9 +221,21 @@ export interface UserProfile {
     email: string;
     displayName: string;
     photoURL?: string;
+    gender: 'male' | 'female' | 'other';
     age: number;
     weight: number; // kg
     height: number; // cm
+
+    // Advanced Body Metrics
+    bodyComposition?: {
+        visceralFat?: number;
+        trunkSubcutaneousFat?: number;
+        bodyFat?: number;
+        bodyAge?: number;
+        skeletalMuscle?: number;
+        bmr?: number; // Basal Metabolic Rate
+        bmi?: number;
+    };
 
     // Enhanced fields
     fitnessProfile: FitnessProfile;

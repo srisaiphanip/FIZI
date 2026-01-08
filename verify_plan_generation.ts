@@ -7,6 +7,7 @@ const mockProfileBase: UserProfile = {
     email: 'test@example.com',
     displayName: 'Test User',
     age: 25,
+    gender: 'male',
     weight: 70,
     height: 175,
     fitnessGoal: 'muscle_gain',
