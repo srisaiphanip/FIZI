@@ -26,6 +26,7 @@ import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 
 import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
 import DataUsageScreen from './src/screens/DataUsageScreen';
+import AboutUsScreen from './src/screens/AboutUsScreen';
 
 export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'PrivacyPolicy' | 'TermsOfService' | 'AboutUs' | 'DataUsage';
 
@@ -101,29 +102,31 @@ function AppContent() {
     if (checkingOnboarding || checkingAuth) return;
     if (currentScreen === 'Onboarding') return;
 
-    // Don't override these screens - user navigated there manually
+    // 1. Unauthenticated State - Force Login
+    if (!isAuthenticated || !user) {
+      if (currentScreen !== 'Login' && currentScreen !== 'Signup') {
+        setCurrentScreen('Login');
+      }
+      return;
+    }
+
+    // 2. Authenticated State - Manual Navigation Check
     // Don't override these screens - user navigated there manually
     if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'PrivacyPolicy' || currentScreen === 'TermsOfService' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage') {
       return;
     }
 
-    if (isAuthenticated && user) {
-      // Check if profile is complete
-      if (user.age > 0 && user.weight > 0 && user.height > 0 && user.workoutPlanId) {
-        // Profile is complete - only auto-navigate from auth screens
-        if (currentScreen === 'Login' || currentScreen === 'Signup' || currentScreen === 'ProfileSetup') {
-          setCurrentScreen('Home');
-        }
-      } else {
-        // Profile not complete
-        if (currentScreen !== 'ProfileSetup') {
-          setCurrentScreen('ProfileSetup');
-        }
+    // 3. Authenticated State - Profile Completion Check
+    // Check if profile is complete
+    if (user.age > 0 && user.weight > 0 && user.height > 0 && user.workoutPlanId) {
+      // Profile is complete - only auto-navigate from auth screens
+      if (currentScreen === 'Login' || currentScreen === 'Signup' || currentScreen === 'ProfileSetup') {
+        setCurrentScreen('Home');
       }
     } else {
-      // Not authenticated
-      if (currentScreen !== 'Login' && currentScreen !== 'Signup') {
-        setCurrentScreen('Login');
+      // Profile not complete
+      if (currentScreen !== 'ProfileSetup') {
+        setCurrentScreen('ProfileSetup');
       }
     }
   }, [isAuthenticated, user, checkingOnboarding, checkingAuth]);

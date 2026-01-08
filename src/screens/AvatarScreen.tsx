@@ -44,6 +44,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMetricsModal, setShowMetricsModal] = useState(false);
+    const [showUserInfoModal, setShowUserInfoModal] = useState(false);
     const [currentWeight, setCurrentWeight] = useState('');
     const [goalWeight, setGoalWeight] = useState('');
     const [showAllLevels, setShowAllLevels] = useState(false);
@@ -273,7 +274,24 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </BlurView>
                 )}
 
-                {/* Stats Grid */}
+                {/* User Info Section */}
+                <BlurView intensity={20} tint="light" style={styles.userInfoCard}>
+                    <TouchableOpacity
+                        style={styles.userInfoButton}
+                        onPress={() => setShowUserInfoModal(true)}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="account-details-outline" size={24} color={Colors.accentCyan} />
+                        </View>
+                        <View style={styles.userInfoTextContainer}>
+                            <Text style={styles.userInfoTitle}>User Profile Information</Text>
+                            <Text style={styles.userInfoSubtitle}>View your registration details</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+                </BlurView>
+
+                {/* Lifetime Stats */}
                 <BlurView intensity={10} tint="light" style={styles.statsCard}>
                     <Text style={styles.sectionTitle}>Lifetime Stats</Text>
                     <View style={styles.statsGrid}>
@@ -434,60 +452,99 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </TouchableOpacity>
                 </BlurView>
 
-                {/* Sign Out Button */}
-                <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-                    <MaterialCommunityIcons name="logout" size={20} color={Colors.textPrimary} />
-                    <Text style={styles.signOutButtonText}>Sign Out</Text>
-                </TouchableOpacity>
-                {/* Privacy Policy Link */}
-                <TouchableOpacity
-                    style={{ alignItems: 'center', marginTop: 10, padding: 10 }}
-                    onPress={() => navigation.navigate('PrivacyPolicy')}
-                >
-                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
-                        Privacy Policy
-                    </Text>
-                </TouchableOpacity>
+                {/* Support & Legal Section */}
+                <BlurView intensity={20} tint="light" style={styles.menuCard}>
+                    <Text style={styles.sectionTitle}>Support & Legal</Text>
 
-                {/* Terms of Service Link */}
-                <TouchableOpacity
-                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
-                    onPress={() => navigation.navigate('TermsOfService')}
-                >
-                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
-                        Terms of Service
-                    </Text>
-                </TouchableOpacity>
+                    {/* Privacy Policy */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('PrivacyPolicy')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="shield-account-outline" size={22} color={Colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Privacy Policy</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                    </TouchableOpacity>
 
-                {/* About Us Link */}
-                <TouchableOpacity
-                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
-                    onPress={() => navigation.navigate('AboutUs')}
-                >
-                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
-                        About Us
-                    </Text>
-                </TouchableOpacity>
+                    {/* Terms of Service */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('TermsOfService')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="file-document-outline" size={22} color={Colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Terms of Service</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                    </TouchableOpacity>
 
-                {/* Camera & Data Usage Link */}
-                <TouchableOpacity
-                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
-                    onPress={() => navigation.navigate('DataUsage')}
-                >
-                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
-                        Camera & Data Usage
-                    </Text>
-                </TouchableOpacity>
+                    {/* About Us */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('AboutUs')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="information-outline" size={22} color={Colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>About Us</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                    </TouchableOpacity>
 
-                {/* Contact Support Link */}
-                <TouchableOpacity
-                    style={{ alignItems: 'center', marginTop: -5, padding: 10 }}
-                    onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com')}
-                >
-                    <Text style={{ color: Colors.textTertiary, fontSize: 12, textDecorationLine: 'underline' }}>
-                        Contact Support
-                    </Text>
-                </TouchableOpacity>
+                    {/* Camera & Data Usage */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('DataUsage')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="camera-outline" size={22} color={Colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Camera & Data Usage</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    {/* Contact Support */}
+                    <TouchableOpacity
+                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="email-outline" size={22} color={Colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Contact Support</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+                </BlurView>
+
+                {/* Account Actions Section */}
+                <BlurView intensity={20} tint="light" style={styles.menuCard}>
+                    <Text style={styles.sectionTitle}>Account</Text>
+
+                    {/* Sign Out */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={handleSignOut}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="logout" size={22} color={Colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Sign Out</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    {/* Delete Account */}
+                    <TouchableOpacity
+                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com?subject=Delete Account Request&body=Please delete my account data associated with this email.')}
+                    >
+                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(255, 59, 48, 0.1)' }]}>
+                            <MaterialCommunityIcons name="delete-outline" size={22} color={Colors.accentError} />
+                        </View>
+                        <Text style={[styles.menuItemText, { color: Colors.accentError }]}>Delete Account</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+                </BlurView>
 
                 {/* Health Disclaimer */}
                 <View style={styles.disclaimerContainer}>
@@ -498,6 +555,105 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* User Info Modal */}
+            {showUserInfoModal && (
+                <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
+                    <View style={[styles.modal, { maxHeight: '80%' }]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Registration Details</Text>
+                            <TouchableOpacity
+                                style={styles.closeModalButton}
+                                onPress={() => setShowUserInfoModal(false)}
+                            >
+                                <MaterialCommunityIcons name="close" size={24} color={Colors.textPrimary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {/* Personal Details */}
+                            <Text style={styles.modalSectionTitle}>Personal Details</Text>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Age</Text>
+                                <Text style={styles.infoValue}>{user?.age || '--'} years</Text>
+                            </View>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Weight</Text>
+                                <Text style={styles.infoValue}>{user?.weight || '--'} kg</Text>
+                            </View>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Height</Text>
+                                <Text style={styles.infoValue}>{user?.height || '--'} cm</Text>
+                            </View>
+
+                            {/* Fitness Profile */}
+                            <Text style={styles.modalSectionTitle}>Fitness Profile</Text>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Primary Goal</Text>
+                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                    {user?.fitnessGoal?.replace('_', ' ') || '--'}
+                                </Text>
+                            </View>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Experience</Text>
+                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                    {user?.workoutExperience || '--'}
+                                </Text>
+                            </View>
+
+                            {/* Equipment & Health */}
+                            <Text style={styles.modalSectionTitle}>Environment & Health</Text>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Location</Text>
+                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                    {user?.fitnessProfile?.equipmentAccess || '--'}
+                                </Text>
+                            </View>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Health Issues</Text>
+                                <View style={styles.tagContainer}>
+                                    {user?.fitnessProfile?.healthIssues && user.fitnessProfile.healthIssues.length > 0 ? (
+                                        user.fitnessProfile.healthIssues.map((issue, idx) => (
+                                            <View key={idx} style={styles.infoTag}>
+                                                <Text style={styles.tagText}>{issue.replace('_', ' ')}</Text>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text style={styles.infoValue}>None declared</Text>
+                                    )}
+                                </View>
+                            </View>
+                            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                                <Text style={styles.infoLabel}>Equipment</Text>
+                                <View style={styles.tagContainer}>
+                                    {user?.fitnessProfile?.availableEquipment && user.fitnessProfile.availableEquipment.length > 0 ? (
+                                        user.fitnessProfile.availableEquipment.map((eq, idx) => (
+                                            <View key={idx} style={[styles.infoTag, { backgroundColor: 'rgba(7, 185, 231, 0.1)' }]}>
+                                                <Text style={[styles.tagText, { color: Colors.accentCyan }]}>{eq.replace('_', ' ')}</Text>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text style={styles.infoValue}>Bodyweight only</Text>
+                                    )}
+                                </View>
+                            </View>
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setShowUserInfoModal(false)}
+                            style={{ marginTop: 20 }}
+                        >
+                            <LinearGradient
+                                colors={Gradients.primary}
+                                style={styles.saveButton}
+                            >
+                                <Text style={styles.saveButtonText}>Back to Profile</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+                </BlurView>
+            )}
 
             {/* Metrics Modal */}
             {
@@ -604,13 +760,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: Spacing.l,
     },
-    sectionTitle: {
-        fontSize: 19,
-        fontWeight: '800',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.m,
-        letterSpacing: 0.3,
-    },
+    // deleted sectionTitle
 
     // Avatar Card
     avatarCard: {
@@ -1094,5 +1244,143 @@ const styles = StyleSheet.create({
         fontSize: 16,
         ...Shadows.glow,
         fontWeight: 'bold',
+    },
+
+    // Menu Styles
+    menuCard: {
+        borderRadius: Layout.borderRadius.l,
+        marginBottom: Spacing.l,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    menuIcon: {
+        marginRight: 16,
+    },
+    menuItemText: {
+        flex: 1,
+        fontSize: 16,
+        color: Colors.textPrimary,
+        fontWeight: '600',
+        letterSpacing: 0.3,
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.textSecondary,
+        marginBottom: 8,
+        marginTop: 16,
+        marginLeft: 16,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    // User Info Styles
+    userInfoCard: {
+        borderRadius: Layout.borderRadius.l,
+        marginBottom: Spacing.l,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    userInfoButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+    },
+    userInfoTextContainer: {
+        flex: 1,
+    },
+    userInfoTitle: {
+        color: Colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    userInfoSubtitle: {
+        color: Colors.textTertiary,
+        fontSize: 12,
+        marginTop: 2,
+    },
+    menuIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+    },
+
+    // Modal Specific Styles
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    closeModalButton: {
+        padding: 4,
+    },
+    modalSectionTitle: {
+        color: Colors.accentCyan,
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginTop: 16,
+        marginBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+        paddingBottom: 4,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    infoLabel: {
+        color: Colors.textSecondary,
+        fontSize: 14,
+        flex: 1,
+    },
+    infoValue: {
+        color: Colors.textPrimary,
+        fontSize: 14,
+        fontWeight: '600',
+        textAlign: 'right',
+        flex: 1.5,
+    },
+    tagContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+        flex: 2,
+        gap: 6,
+    },
+    infoTag: {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    tagText: {
+        color: Colors.textSecondary,
+        fontSize: 11,
+        fontWeight: '600',
     },
 });

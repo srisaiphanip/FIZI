@@ -22,7 +22,6 @@ export default function TermsOfServiceScreen({ navigation }: TermsOfServiceScree
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <BlurView intensity={20} tint="dark" style={styles.card}>
-                    <Text style={styles.lastUpdated}>Last Updated: December 30, 2025</Text>
 
                     <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
                     <Text style={styles.text}>

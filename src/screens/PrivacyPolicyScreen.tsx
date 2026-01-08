@@ -22,7 +22,6 @@ export default function PrivacyPolicyScreen({ navigation }: PrivacyPolicyScreenP
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <BlurView intensity={20} tint="dark" style={styles.card}>
-                    <Text style={styles.lastUpdated}>Last Updated: December 30, 2025</Text>
 
                     <Text style={styles.sectionTitle}>1. Introduction</Text>
                     <Text style={styles.text}>
