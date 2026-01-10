@@ -10,6 +10,7 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
+    BackHandler,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 const TypedSlider = Slider as any;
@@ -126,6 +127,24 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
         if (!w || !h) return 0;
         return w / (h * h);
     };
+
+    // Handle Android hardware back button
+    React.useEffect(() => {
+        const onBackPress = () => {
+            if (currentStep > 1) {
+                setCurrentStep(currentStep - 1);
+                return true; // Stop event propagation (don't exit app/screen)
+            }
+            return false; // Let default behavior happen (go back to previous screen)
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            'hardwareBackPress',
+            onBackPress
+        );
+
+        return () => backHandler.remove();
+    }, [currentStep]);
 
     const calculateBMR = () => {
         const w = parseFloat(weight);
@@ -315,6 +334,62 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
         </View>
     );
 
+    const renderSliderSection = (
+        label: string,
+        value: number,
+        setValue: (val: number) => void,
+        min: number,
+        max: number,
+        step: number,
+        formatValue: (val: number) => string
+    ) => {
+        const handleIncrement = () => {
+            const newValue = Math.min(max, value + step);
+            setValue(newValue);
+        };
+
+        const handleDecrement = () => {
+            const newValue = Math.max(min, value - step);
+            setValue(newValue);
+        };
+
+        return (
+            <View style={styles.sliderSection}>
+                <View style={styles.sliderHeader}>
+                    <Text style={styles.label}>{label}</Text>
+                    <Text style={styles.sliderValue}>{formatValue(value)}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity
+                        style={styles.sliderButton}
+                        onPress={handleDecrement}
+                    >
+                        <MaterialCommunityIcons name="minus" size={24} color={Colors.primaryStart} />
+                    </TouchableOpacity>
+
+                    <TypedSlider
+                        style={{ flex: 1, marginHorizontal: 10 }}
+                        minimumValue={min}
+                        maximumValue={max}
+                        step={step}
+                        value={value}
+                        onValueChange={setValue}
+                        minimumTrackTintColor={Colors.primaryStart}
+                        maximumTrackTintColor={Colors.glassBorder}
+                        thumbTintColor={Colors.primaryStart}
+                    />
+
+                    <TouchableOpacity
+                        style={styles.sliderButton}
+                        onPress={handleIncrement}
+                    >
+                        <MaterialCommunityIcons name="plus" size={24} color={Colors.primaryStart} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    };
+
     const renderStep = () => {
         switch (currentStep) {
             case 1:
@@ -465,57 +540,43 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                         <Text style={styles.stepSubtitle}>Use the sliders to indicate your current strength</Text>
 
                         <View style={styles.sliderSection}>
-                            <View style={styles.sliderHeader}>
-                                <Text style={styles.label}>Max Push-ups</Text>
-                                <Text style={styles.sliderValue}>{Math.round(pushups)}</Text>
-                            </View>
-                            <TypedSlider
-                                style={styles.slider}
-                                minimumValue={0}
-                                maximumValue={100}
-                                step={1}
-                                value={pushups}
-                                onValueChange={setPushups}
-                                minimumTrackTintColor={Colors.primaryStart}
-                                maximumTrackTintColor={Colors.glassBorder}
-                                thumbTintColor={Colors.primaryStart}
-                            />
+                            {renderSliderSection(
+                                'Max Push-ups',
+                                pushups,
+                                setPushups,
+                                0,
+                                100,
+                                1,
+                                (val) => Math.round(val).toString()
+                            )}
                         </View>
 
                         <View style={styles.sliderSection}>
-                            <View style={styles.sliderHeader}>
-                                <Text style={styles.label}>Max Squats</Text>
-                                <Text style={styles.sliderValue}>{Math.round(squats)}</Text>
-                            </View>
-                            <TypedSlider
-                                style={styles.slider}
-                                minimumValue={0}
-                                maximumValue={100}
-                                step={1}
-                                value={squats}
-                                onValueChange={setSquats}
-                                minimumTrackTintColor={Colors.primaryStart}
-                                maximumTrackTintColor={Colors.glassBorder}
-                                thumbTintColor={Colors.primaryStart}
-                            />
+                            {renderSliderSection(
+                                'Max Squats',
+                                squats,
+                                setSquats,
+                                0,
+                                100,
+                                1,
+                                (val) => Math.round(val).toString()
+                            )}
                         </View>
 
                         <View style={styles.sliderSection}>
-                            <View style={styles.sliderHeader}>
-                                <Text style={styles.label}>Plank Duration (min)</Text>
-                                <Text style={styles.sliderValue}>{plankMinutes.toFixed(1)} min</Text>
-                            </View>
-                            <TypedSlider
-                                style={styles.slider}
-                                minimumValue={0}
-                                maximumValue={5}
-                                step={0.1}
-                                value={plankMinutes}
-                                onValueChange={setPlankMinutes}
-                                minimumTrackTintColor={Colors.primaryStart}
-                                maximumTrackTintColor={Colors.glassBorder}
-                                thumbTintColor={Colors.primaryStart}
-                            />
+                            {renderSliderSection(
+                                'Plank Duration (min)',
+                                Math.round(plankMinutes * 60), // Convert min to sec for slider
+                                (val) => setPlankMinutes(val / 60), // Convert sec to min for state
+                                0,
+                                300, // 5 mins max (in seconds)
+                                1,   // 1 second step
+                                (val) => {
+                                    const m = Math.floor(val / 60);
+                                    const s = val % 60;
+                                    return `${m}.${s.toString().padStart(2, '0')} min`;
+                                }
+                            )}
                         </View>
                     </View>
                 );
@@ -765,54 +826,59 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
     return (
         <View style={styles.container}>
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
             >
-                <View style={styles.content}>
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Complete Your Profile</Text>
-                        <Text style={styles.subtitle}>
-                            Step {currentStep} of {totalSteps}
-                        </Text>
-                    </View>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <View style={styles.content}>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>Complete Your Profile</Text>
+                            <Text style={styles.subtitle}>
+                                Step {currentStep} of {totalSteps}
+                            </Text>
+                        </View>
 
-                    {renderProgressBar()}
-                    {renderStep()}
+                        {renderProgressBar()}
+                        {renderStep()}
 
-                    {/* Navigation Buttons */}
-                    <View style={styles.buttonContainer}>
-                        {currentStep > 1 && (
+                        {/* Navigation Buttons */}
+                        <View style={styles.buttonContainer}>
+                            {currentStep > 1 && (
+                                <TouchableOpacity
+                                    style={styles.backButton}
+                                    onPress={handleBack}
+                                    disabled={loading || generatingPlan}
+                                >
+                                    <Text style={styles.backButtonText}>Back</Text>
+                                </TouchableOpacity>
+                            )}
+
                             <TouchableOpacity
-                                style={styles.backButton}
-                                onPress={handleBack}
+                                style={[styles.nextButtonContainer, (loading || generatingPlan) && styles.buttonDisabled]}
+                                onPress={currentStep < totalSteps ? handleNext : handleComplete}
                                 disabled={loading || generatingPlan}
                             >
-                                <Text style={styles.backButtonText}>Back</Text>
+                                <LinearGradient
+                                    colors={Gradients.primary}
+                                    style={styles.nextButton}
+                                >
+                                    {generatingPlan ? (
+                                        <ActivityIndicator color="#FFFFFF" />
+                                    ) : (
+                                        <Text style={styles.nextButtonText}>
+                                            {currentStep < totalSteps ? 'Next' : 'Complete Setup'}
+                                        </Text>
+                                    )}
+                                </LinearGradient>
                             </TouchableOpacity>
-                        )}
-
-                        <TouchableOpacity
-                            style={[styles.nextButtonContainer, (loading || generatingPlan) && styles.buttonDisabled]}
-                            onPress={currentStep < totalSteps ? handleNext : handleComplete}
-                            disabled={loading || generatingPlan}
-                        >
-                            <LinearGradient
-                                colors={Gradients.primary}
-                                style={styles.nextButton}
-                            >
-                                {generatingPlan ? (
-                                    <ActivityIndicator color="#FFFFFF" />
-                                ) : (
-                                    <Text style={styles.nextButtonText}>
-                                        {currentStep < totalSteps ? 'Next' : 'Complete Setup'}
-                                    </Text>
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
+                        </View>
                     </View>
-                </View>
-            </ScrollView>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </View>
     );
 }
@@ -1104,5 +1170,15 @@ const styles = StyleSheet.create({
     },
     buttonDisabled: {
         opacity: 0.6,
+    },
+    sliderButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.glassSurface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
     },
 });

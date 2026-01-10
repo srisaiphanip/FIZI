@@ -7,7 +7,7 @@ import { store, RootState } from './src/store';
 import { auth } from './src/services/firebaseConfig';
 import { authService } from './src/services/authService';
 import { setUser } from './src/store/slices/authSlice';
-import { View, Text } from 'react-native';
+import { View, Text, BackHandler } from 'react-native';
 
 // Import screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -132,6 +132,27 @@ function AppContent() {
   }, [isAuthenticated, user, checkingOnboarding, checkingAuth]);
 
   const [history, setHistory] = useState<ScreenType[]>([]);
+
+  // Hardware Back Button Handler
+  useEffect(() => {
+    const onBackPress = () => {
+      if (history.length > 0) {
+        // Go back in history
+        const previousScreen = history[history.length - 1];
+        setHistory(prev => prev.slice(0, -1));
+        setCurrentScreen(previousScreen);
+        return true; // Stop event propagation
+      }
+      return false; // Let default behavior happen (exit app)
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress
+    );
+
+    return () => backHandler.remove();
+  }, [history]);
 
   // Navigation functions to pass to screens
   const navigation = {

@@ -15,6 +15,7 @@ import ExerciseSelector from '../components/ExerciseSelector';
 import CountdownOverlay from '../components/CountdownOverlay';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useKeepAwake } from 'expo-keep-awake';
 import { Colors, Gradients, Spacing, Shadows, Layout } from '../theme/Theme';
 
 import AppConfig from '../config/appConfig';
@@ -46,6 +47,7 @@ const AVAILABLE_EXERCISES = [
 type ExerciseId = typeof AVAILABLE_EXERCISES[number];
 
 export default function CameraScreen({ navigation }: CameraScreenProps) {
+    useKeepAwake(); // Keep screen awake while this screen is active
     const dispatch = useAppDispatch();
 
     // Camera state

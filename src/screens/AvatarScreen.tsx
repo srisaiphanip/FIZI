@@ -23,7 +23,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
-import { uploadPhoto, signOut } from '../store/slices/authSlice';
+import { uploadPhoto, signOut, updateProfile } from '../store/slices/authSlice';
 import {
     avatarService,
     AvatarState,
@@ -48,6 +48,13 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const [currentWeight, setCurrentWeight] = useState('');
     const [goalWeight, setGoalWeight] = useState('');
     const [showAllLevels, setShowAllLevels] = useState(false);
+
+    // Edit Profile State
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [editAge, setEditAge] = useState('');
+    const [editWeight, setEditWeight] = useState('');
+    const [editHeight, setEditHeight] = useState('');
+    const [editGender, setEditGender] = useState('');
 
     useEffect(() => {
         loadAvatarState();
@@ -130,6 +137,42 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 }
             ]
         );
+    };
+
+    const startEditingProfile = () => {
+        if (user) {
+            setEditAge(user.age?.toString() || '');
+            setEditWeight(user.weight?.toString() || '');
+            setEditHeight(user.height?.toString() || '');
+            setEditGender(user.gender || 'male');
+            setIsEditingProfile(true);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        const age = parseInt(editAge);
+        const weight = parseFloat(editWeight);
+        const height = parseFloat(editHeight);
+
+        if (isNaN(age) || isNaN(weight) || isNaN(height)) {
+            Alert.alert('Invalid Input', 'Please enter valid numbers');
+            return;
+        }
+
+        try {
+            await dispatch(updateProfile({
+                age,
+                weight,
+                height,
+                gender: editGender as any
+            })).unwrap();
+
+            setIsEditingProfile(false);
+            loadAvatarState(); // Reload avatar state to reflect changes (e.g. body metrics)
+            Alert.alert('Success', 'Profile updated successfully');
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to update profile');
+        }
     };
 
 
@@ -638,22 +681,82 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
                         <ScrollView showsVerticalScrollIndicator={false}>
                             {/* Personal Details */}
-                            <Text style={styles.modalSectionTitle}>Personal Details</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={styles.modalSectionTitle}>Personal Details</Text>
+                                <TouchableOpacity onPress={isEditingProfile ? handleSaveProfile : startEditingProfile}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <MaterialCommunityIcons
+                                            name={isEditingProfile ? "check" : "pencil"}
+                                            size={16}
+                                            color={Colors.primaryStart}
+                                        />
+                                        <Text style={{ color: Colors.primaryStart, fontWeight: '600' }}>
+                                            {isEditingProfile ? 'Save' : 'Edit'}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            </View>
+
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Age</Text>
-                                <Text style={styles.infoValue}>{user?.age || '--'} years</Text>
+                                {isEditingProfile ? (
+                                    <TextInput
+                                        style={styles.editInput}
+                                        value={editAge}
+                                        onChangeText={setEditAge}
+                                        keyboardType="number-pad"
+                                        placeholder="Age"
+                                        placeholderTextColor={Colors.textTertiary}
+                                    />
+                                ) : (
+                                    <Text style={styles.infoValue}>{user?.age || '--'} years</Text>
+                                )}
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Gender</Text>
-                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>{user?.gender || '--'}</Text>
+                                {isEditingProfile ? (
+                                    <View style={{ flexDirection: 'row', gap: 10 }}>
+                                        <TouchableOpacity onPress={() => setEditGender('male')}>
+                                            <Text style={[styles.infoValue, editGender === 'male' && { color: Colors.primaryStart }]}>Male</Text>
+                                        </TouchableOpacity>
+                                        <Text style={styles.infoValue}>|</Text>
+                                        <TouchableOpacity onPress={() => setEditGender('female')}>
+                                            <Text style={[styles.infoValue, editGender === 'female' && { color: Colors.primaryStart }]}>Female</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>{user?.gender || '--'}</Text>
+                                )}
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Weight</Text>
-                                <Text style={styles.infoValue}>{user?.weight || '--'} kg</Text>
+                                {isEditingProfile ? (
+                                    <TextInput
+                                        style={styles.editInput}
+                                        value={editWeight}
+                                        onChangeText={setEditWeight}
+                                        keyboardType="decimal-pad"
+                                        placeholder="kg"
+                                        placeholderTextColor={Colors.textTertiary}
+                                    />
+                                ) : (
+                                    <Text style={styles.infoValue}>{user?.weight || '--'} kg</Text>
+                                )}
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Height</Text>
-                                <Text style={styles.infoValue}>{user?.height || '--'} cm</Text>
+                                {isEditingProfile ? (
+                                    <TextInput
+                                        style={styles.editInput}
+                                        value={editHeight}
+                                        onChangeText={setEditHeight}
+                                        keyboardType="decimal-pad"
+                                        placeholder="cm"
+                                        placeholderTextColor={Colors.textTertiary}
+                                    />
+                                ) : (
+                                    <Text style={styles.infoValue}>{user?.height || '--'} cm</Text>
+                                )}
                             </View>
 
                             {/* Body Composition */}
@@ -1512,6 +1615,16 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         textAlign: 'right',
         flex: 1.5,
+    },
+    editInput: {
+        color: Colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '600',
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.primaryStart,
+        paddingVertical: 2,
+        minWidth: 60,
+        textAlign: 'right',
     },
     tagContainer: {
         flexDirection: 'row',
