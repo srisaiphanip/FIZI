@@ -535,25 +535,29 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {/* Level Training Split Breakdown - REMOVED */}
 
                 {/* Secondary Actions */}
-                <View style={styles.actionsGrid}>
+                <View style={styles.actionsContainer}>
                     <TouchableOpacity
-                        style={styles.actionCard}
+                        style={styles.historyButton}
                         onPress={() => navigation.navigate('History')}
+                        activeOpacity={0.8}
                     >
-                        <BlurView intensity={10} tint="dark" style={styles.actionCardBlur}>
-                            <Text style={styles.actionIcon}>📊</Text>
-                            <Text style={styles.actionTitle}>History</Text>
-                        </BlurView>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.actionCard}
-                        onPress={() => navigation.navigate('Avatar')}
-                    >
-                        <BlurView intensity={10} tint="dark" style={styles.actionCardBlur}>
-                            <Text style={styles.actionIcon}>🏆</Text>
-                            <Text style={styles.actionTitle}>Avatar</Text>
-                        </BlurView>
+                        <LinearGradient
+                            colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.historyButtonGradient}
+                        >
+                            <View style={styles.historyContent}>
+                                <View style={styles.historyIconContainer}>
+                                    <MaterialCommunityIcons name="history" size={28} color={Colors.accentCyan} />
+                                </View>
+                                <View style={styles.historyTextContainer}>
+                                    <Text style={styles.historyTitle}>Workout History</Text>
+                                    <Text style={styles.historySubtitle}>View past sessions & detailed stats</Text>
+                                </View>
+                                <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textTertiary} />
+                            </View>
+                        </LinearGradient>
                     </TouchableOpacity>
                 </View>
 
@@ -1024,36 +1028,47 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.m,
     },
 
-    // Action Grid
-    actionsGrid: {
-        flexDirection: 'row',
-        gap: Spacing.m,
+    // Actions
+    actionsContainer: {
         marginBottom: Spacing.l,
     },
-    actionCard: {
-        flex: 1,
-        height: 110,
+    historyButton: {
         borderRadius: Layout.borderRadius.m,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: Colors.glassBorder,
         ...Shadows.card,
     },
-    actionCardBlur: {
-        flex: 1,
+    historyButtonGradient: {
+        padding: Spacing.m,
+    },
+    historyContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    historyIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(6, 182, 212, 0.15)', // Cyan tint
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Colors.glassSurface,
+        marginRight: Spacing.m,
+        borderWidth: 1,
+        borderColor: 'rgba(6, 182, 212, 0.3)',
     },
-    actionIcon: {
-        fontSize: 32,
-        marginBottom: 8,
+    historyTextContainer: {
+        flex: 1,
     },
-    actionTitle: {
-        fontSize: 14,
+    historyTitle: {
+        fontSize: 16,
+        fontWeight: '700',
         color: Colors.textPrimary,
-        fontWeight: '600',
-        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    historySubtitle: {
+        fontSize: 12,
+        color: Colors.textSecondary,
     },
 
     // Logout

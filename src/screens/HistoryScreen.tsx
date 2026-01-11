@@ -31,23 +31,33 @@ interface HistoryScreenProps {
 
 export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const dispatch = useAppDispatch();
-    const { history, stats, personalBests, loading } = useAppSelector(
+    const { history, stats, personalBests, loading, error } = useAppSelector(
         (state) => state.workout
     );
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
 
     useEffect(() => {
+        console.log('[HistoryScreen] Mounting, loading data...');
         loadData();
     }, [selectedPeriod]);
 
     const loadData = async () => {
-        dispatch(fetchWorkoutHistory(20));
-        dispatch(fetchWorkoutStats(selectedPeriod));
-        dispatch(fetchPersonalBests());
+        console.log('[HistoryScreen] Loading data for period:', selectedPeriod);
+        try {
+            await Promise.all([
+                dispatch(fetchWorkoutHistory(20)),
+                dispatch(fetchWorkoutStats(selectedPeriod)),
+                dispatch(fetchPersonalBests())
+            ]);
+            console.log('[HistoryScreen] Data loaded successfully');
+        } catch (err) {
+            console.error('[HistoryScreen] Error loading data:', err);
+        }
     };
 
     const onRefresh = async () => {
+        console.log('[HistoryScreen] Manual refresh triggered');
         setRefreshing(true);
         await loadData();
         setRefreshing(false);
@@ -194,15 +204,26 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 <View style={styles.historySection}>
                     <Text style={styles.sectionTitle}>Recent Activities</Text>
 
-                    {loading && history.length === 0 ? (
+                    {error && (
+                        <BlurView intensity={10} tint="dark" style={styles.errorState}>
+                            <Text style={styles.errorIcon}>⚠️</Text>
+                            <Text style={styles.errorText}>Failed to load history</Text>
+                            <Text style={styles.errorSubtext}>{error}</Text>
+                            <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
+                                <Text style={styles.retryButtonText}>Retry</Text>
+                            </TouchableOpacity>
+                        </BlurView>
+                    )}
+
+                    {!error && loading && history.length === 0 ? (
                         <ActivityIndicator color={Colors.primaryStart} size="large" style={{ marginTop: 20 }} />
-                    ) : history.length === 0 ? (
+                    ) : !error && history.length === 0 ? (
                         <BlurView intensity={10} tint="dark" style={styles.emptyState}>
                             <Text style={styles.emptyIcon}>🏋️</Text>
                             <Text style={styles.emptyText}>No workouts yet</Text>
                             <Text style={styles.emptySubtext}>Complete a workout to see it here</Text>
                         </BlurView>
-                    ) : (
+                    ) : !error && (
                         history.map((workout) => (
                             <BlurView key={workout.id} intensity={15} tint="dark" style={styles.workoutItem}>
                                 <View style={styles.workoutHeaderRow}>
@@ -482,5 +503,43 @@ const styles = StyleSheet.create({
         marginTop: 8,
         textAlign: 'center',
         paddingHorizontal: 40,
+    },
+
+    // Error State
+    errorState: {
+        alignItems: 'center',
+        paddingVertical: 40,
+        borderRadius: Layout.borderRadius.m,
+        borderWidth: 1,
+        borderColor: Colors.accentError,
+        backgroundColor: 'rgba(248, 113, 113, 0.1)',
+    },
+    errorIcon: {
+        fontSize: 48,
+        marginBottom: 12,
+    },
+    errorText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.accentError,
+        marginBottom: 4,
+    },
+    errorSubtext: {
+        fontSize: 13,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        paddingHorizontal: 32,
+        marginBottom: 16,
+    },
+    retryButton: {
+        backgroundColor: Colors.primaryStart,
+        paddingHorizontal: 24,
+        paddingVertical: 10,
+        borderRadius: Layout.borderRadius.m,
+    },
+    retryButtonText: {
+        color: Colors.textPrimary,
+        fontSize: 14,
+        fontWeight: 'bold',
     },
 });

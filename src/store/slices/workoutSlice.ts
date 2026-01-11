@@ -59,14 +59,24 @@ export const saveWorkout = createAsyncThunk(
         reps: number;
         averageFormScore: number;
         caloriesBurned: number;
-    }, { rejectWithValue }) => {
+    }, { rejectWithValue, dispatch }) => {
         try {
+            console.log('[WorkoutSlice] Saving workout:', session.exerciseName);
             const workoutId = await workoutService.saveWorkoutSession(session);
             if (!workoutId) {
                 throw new Error('Failed to save workout');
             }
+            console.log('[WorkoutSlice] Workout saved successfully:', workoutId);
+
+            // Automatically refresh history to show the new workout
+            setTimeout(() => {
+                console.log('[WorkoutSlice] Auto-refreshing history after save');
+                dispatch(fetchWorkoutHistory(20));
+            }, 500);
+
             return { ...session, id: workoutId, createdAt: new Date() };
         } catch (error: any) {
+            console.error('[WorkoutSlice] Save workout failed:', error);
             return rejectWithValue(error.message);
         }
     }
@@ -76,10 +86,13 @@ export const fetchWorkoutHistory = createAsyncThunk(
     'workout/fetchHistory',
     async (limit: number = 20, { rejectWithValue }) => {
         try {
+            console.log('[WorkoutSlice] Fetching workout history, limit:', limit);
             const history = await workoutService.getWorkoutHistory(limit);
+            console.log('[WorkoutSlice] History fetched:', history.length, 'workouts');
             return history;
         } catch (error: any) {
-            return rejectWithValue(error.message);
+            console.error('[WorkoutSlice] Fetch history failed:', error);
+            return rejectWithValue(error.message || 'Failed to fetch workout history');
         }
     }
 );
@@ -88,10 +101,13 @@ export const fetchWorkoutStats = createAsyncThunk(
     'workout/fetchStats',
     async (period: 'week' | 'month' | 'all' = 'week', { rejectWithValue }) => {
         try {
+            console.log('[WorkoutSlice] Fetching workout stats for period:', period);
             const stats = await workoutService.getStats(period);
+            console.log('[WorkoutSlice] Stats fetched:', stats);
             return stats;
         } catch (error: any) {
-            return rejectWithValue(error.message);
+            console.error('[WorkoutSlice] Fetch stats failed:', error);
+            return rejectWithValue(error.message || 'Failed to fetch workout stats');
         }
     }
 );
@@ -100,10 +116,13 @@ export const fetchPersonalBests = createAsyncThunk(
     'workout/fetchPersonalBests',
     async (_, { rejectWithValue }) => {
         try {
+            console.log('[WorkoutSlice] Fetching personal bests');
             const bests = await workoutService.getPersonalBests();
+            console.log('[WorkoutSlice] Personal bests fetched:', bests);
             return bests;
         } catch (error: any) {
-            return rejectWithValue(error.message);
+            console.error('[WorkoutSlice] Fetch personal bests failed:', error);
+            return rejectWithValue(error.message || 'Failed to fetch personal bests');
         }
     }
 );
