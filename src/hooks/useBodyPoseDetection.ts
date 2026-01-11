@@ -35,7 +35,7 @@ export const useBodyPoseDetection = (isActive: boolean, cameraRef: React.RefObje
                 // Let's pass them as is for now, and handle scaling in the Component using this hook
                 // OR map them here if we knew dimensions. 
                 // We don't know dimensions inside this hook easily.
-                setPoses(detectedPoses);
+                setPoses(detectedPoses.poses);
             }
         } catch (err) {
             // console.warn('[useBodyPoseDetection] Capture error:', err);

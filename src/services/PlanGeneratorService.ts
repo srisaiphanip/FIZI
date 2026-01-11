@@ -11,7 +11,7 @@ import { exercises, getExercisesByCategory } from '../models/exercises';
 import RECOVERY_EXERCISES from '../models/recovery_exercises';
 import RecoveryService from './RecoveryService';
 
-type SessionFocus = 'upper' | 'lower' | 'fullbody' | 'cardio' | 'recovery';
+type SessionFocus = 'upper' | 'lower' | 'fullbody' | 'cardio' | 'recovery' | 'hybrid';
 
 export class PlanGeneratorService {
     /**
@@ -206,12 +206,8 @@ export class PlanGeneratorService {
      */
     private static determineSplitPattern(frequency: number, experienceLevel: string = 'intermediate'): SessionFocus[] {
         if (frequency >= 6) {
-            if (experienceLevel === 'beginner') {
-                // Beginner 6-day split: Full Body + Cardio/Recovery focus to prevent burnout
-                return ['fullbody', 'cardio', 'fullbody', 'cardio', 'fullbody', 'recovery'];
-            }
-            // Push/Pull/Legs/Upper/Lower/Cardio
-            return ['upper', 'lower', 'upper', 'lower', 'fullbody', 'cardio'];
+            // 6-day hybrid split: Every day is 50% Full Body Strength + 50% Cardio
+            return ['hybrid', 'hybrid', 'hybrid', 'hybrid', 'hybrid', 'hybrid'];
         } else if (frequency === 5) {
             // Upper/Lower/Upper/Lower/Fullbody
             return ['upper', 'lower', 'upper', 'lower', 'fullbody'];
@@ -233,6 +229,7 @@ export class PlanGeneratorService {
     private static getSessionType(focus: SessionFocus): WorkoutSession['type'] {
         if (focus === 'cardio') return 'cardio';
         if (focus === 'recovery') return 'flexibility';
+        if (focus === 'hybrid') return 'strength'; // Hybrid is primarily strength with cardio
         return 'strength';
     }
 
@@ -242,7 +239,8 @@ export class PlanGeneratorService {
             lower: 'Lower Body Strength',
             fullbody: 'Full Body Workout',
             cardio: 'Cardio & Conditioning',
-            recovery: 'Active Recovery & Flexibility'
+            recovery: 'Active Recovery & Flexibility',
+            hybrid: 'Full Body & Cardio Mix'
         };
         return `${titles[focus]} - Day ${day}`;
     }
@@ -253,7 +251,8 @@ export class PlanGeneratorService {
             lower: 'Legs, Glutes, Core',
             fullbody: 'Total Body Strength',
             cardio: 'Cardiovascular Conditioning',
-            recovery: 'Flexibility & Mobility'
+            recovery: 'Flexibility & Mobility',
+            hybrid: '50% Strength / 50% Cardio'
         };
         return descriptions[focus];
     }
@@ -267,6 +266,8 @@ export class PlanGeneratorService {
             return 'Arm circles, shoulder rolls, 5 min light cardio';
         } else if (focus === 'lower') {
             return 'Leg swings, bodyweight squats, light cardio';
+        } else if (focus === 'hybrid') {
+            return '5-10 min dynamic full body warm-up';
         } else {
             return '5-10 min dynamic stretching and light cardio';
         }
@@ -285,7 +286,8 @@ export class PlanGeneratorService {
             lower: 50,
             fullbody: 60,
             cardio: 30,
-            recovery: 25
+            recovery: 25,
+            hybrid: 55
         };
         return isDeload ? Math.floor(baseDurations[focus] * 0.7) : baseDurations[focus];
     }
@@ -390,6 +392,32 @@ export class PlanGeneratorService {
             targetCategories = ['cardio', 'plyometric'];
         } else if (focus === 'recovery') {
             targetCategories = ['flexibility'];
+        } else if (focus === 'hybrid') {
+            // Hybrid: 50% Strength + 50% Cardio
+            const halfCount = Math.ceil(count / 2);
+
+            // Get strength exercises (full body focus)
+            const strengthMuscles = ['chest', 'back', 'legs', 'shoulders', 'arms', 'core'];
+            const strengthPool = pool.filter(ex => {
+                const matchesCategory = ex.category === 'strength';
+                const matchesMuscle = (ex.muscleGroups as string[]).some(mg => strengthMuscles.includes(mg));
+                const isWarmupCooldown = ex.id === 'running-in-place' || ex.id === 'jumping-jacks' ||
+                    ex.id === 'high-knees' || ex.category === 'flexibility';
+                return matchesCategory && matchesMuscle && !isWarmupCooldown;
+            });
+            const strengthExercises = this.balanceMuscleGroups(strengthPool, strengthMuscles, halfCount);
+
+            // Get cardio exercises
+            const cardioPool = pool.filter(ex => {
+                const matchesCategory = ex.category === 'cardio' || ex.category === 'plyometric';
+                const isWarmupCooldown = ex.id === 'running-in-place' || ex.id === 'jumping-jacks' ||
+                    ex.id === 'high-knees' || ex.category === 'flexibility';
+                return matchesCategory && !isWarmupCooldown;
+            });
+            const cardioExercises = this.randomSelect(cardioPool, Math.min(count - halfCount, cardioPool.length));
+
+            // Combine and return
+            return [...strengthExercises, ...cardioExercises];
         }
 
         // Filter pool by focus

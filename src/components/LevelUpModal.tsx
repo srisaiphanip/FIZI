@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
         maxWidth: 400,
         borderRadius: 24,
         overflow: 'hidden',
-        ...Shadows.large,
+        ...Shadows.card,
     },
     gradient: {
         padding: Spacing.xxl,

@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
         marginVertical: Spacing.s,
         borderRadius: Layout.borderRadius.m,
         overflow: 'hidden',
-        ...Shadows.medium,
+        ...Shadows.card,
     },
     gradientCard: {
         padding: Spacing.m,

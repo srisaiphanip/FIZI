@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
         padding: Spacing.l,
         marginHorizontal: Spacing.m,
         marginVertical: Spacing.m,
-        ...Shadows.large,
+        ...Shadows.card,
     },
     content: {
         flexDirection: 'row',

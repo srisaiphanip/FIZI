@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Alert } from 'react-native';
 
 import { getExerciseImage } from '../config/imageMap';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,6 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Colors, Gradients, Spacing, Shadows, Layout } from '../theme/Theme';
 import { getExerciseById } from '../models/exercises';
+import { useAppDispatch } from '../hooks/reduxHooks';
+import { saveWorkout } from '../store/slices/workoutSlice';
+import { avatarService } from '../services/AvatarService';
 
 interface ExerciseInstructionsScreenProps {
     navigation: any;
@@ -15,6 +18,7 @@ interface ExerciseInstructionsScreenProps {
 const { width, height } = Dimensions.get('window');
 
 export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstructionsScreenProps) {
+    const dispatch = useAppDispatch();
     const params = navigation.params || {};
     const exerciseId = params.exerciseId || 'push-ups';
     const exercise = getExerciseById(exerciseId);
@@ -40,6 +44,57 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
             targetReps: params.targetReps,
             fromPlan: params.fromPlan
         });
+    };
+
+    const handleSkipDetection = async () => {
+        // Use target values if from plan, otherwise defaults
+        const targetReps = parseInt(params.targetReps?.split('-')[0]) || 10;
+        const targetSets = params.targetSets || 3;
+        const totalReps = targetReps * targetSets;
+
+        // Estimate duration (e.g., 3 seconds per rep + 30s rest per set)
+        const estimatedDuration = (totalReps * 3) + ((targetSets - 1) * 30);
+
+        // Estimate score (assume good form if skipping)
+        const estimatedScore = 100;
+
+        // Calculate calories
+        const caloriesBurned = Math.round(totalReps * 0.5 + estimatedDuration * 0.1);
+
+        try {
+            // Save to Redux/Firestore
+            await dispatch(saveWorkout({
+                exerciseId: exercise.id,
+                exerciseName: exercise.name,
+                duration: estimatedDuration,
+                reps: totalReps,
+                averageFormScore: estimatedScore,
+                caloriesBurned,
+            })).unwrap();
+
+            // Update Avatar
+            await avatarService.updateAfterWorkout({
+                exerciseId: exercise.id,
+                reps: totalReps,
+                duration: estimatedDuration,
+                formScore: estimatedScore,
+            });
+
+            Alert.alert(
+                'Workout Logged!',
+                `Marked ${totalReps} reps of ${exercise.name} as complete.\nEarned ${caloriesBurned} cal!`,
+                [
+                    {
+                        text: 'Great!',
+                        onPress: () => navigation.navigate('Home')
+                    }
+                ]
+            );
+
+        } catch (error) {
+            console.error('Failed to log skipped workout:', error);
+            Alert.alert('Error', 'Failed to save workout progress.');
+        }
     };
 
     return (
@@ -129,10 +184,10 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     </View>
                 )}
 
-                <View style={{ height: 120 }} />
+                <View style={{ height: 160 }} />
             </ScrollView>
 
-            {/* Sticky Start Button */}
+            {/* Sticky Footer */}
             <View style={styles.footer}>
                 <TouchableOpacity activeOpacity={0.9} onPress={handleStart} style={styles.startWorkoutButtonContainer}>
                     <LinearGradient
@@ -145,6 +200,14 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                         <MaterialCommunityIcons name="play-circle" size={24} color={Colors.textPrimary} />
                     </LinearGradient>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={handleSkipDetection}
+                    style={styles.skipButton}
+                    activeOpacity={0.7}
+                >
+                    <Text style={styles.skipButtonText}>Skip Live Detection</Text>
+                </TouchableOpacity>
             </View>
         </LinearGradient>
     );
@@ -153,18 +216,6 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 function getIconForExercise(id: string): any {
     // Temporarily using dumbbell for all exercises
     return 'dumbbell';
-
-    /* Original icon mapping:
-    switch (id) {
-        case 'push-ups': return 'arm-flex';
-        case 'squats': return 'human-handsdown';
-        case 'plank': return 'floor-lamp';
-        case 'bicep-curls': return 'weight-lifter';
-        case 'burpees': return 'run-fast';
-        case 'jumping-jacks': return 'human-greeting';
-        default: return 'lightning-bolt';
-    }
-    */
 }
 
 const styles = StyleSheet.create({
@@ -392,6 +443,19 @@ const styles = StyleSheet.create({
     },
     backButtonText: {
         color: Colors.textPrimary,
+        fontWeight: 'bold',
+    },
+    skipButton: {
+        marginTop: Spacing.m,
+        alignItems: 'center',
+        paddingVertical: Spacing.m,
+        paddingHorizontal: Spacing.l,
+        backgroundColor: '#FFFFFF',
+        borderRadius: Layout.borderRadius.m,
+    },
+    skipButtonText: {
+        color: Colors.primaryStart,
+        fontSize: 15,
         fontWeight: 'bold',
     },
 });
