@@ -74,10 +74,11 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
             // Update Avatar
             await avatarService.updateAfterWorkout({
-                exerciseId: exercise.id,
-                reps: totalReps,
+                exerciseId: exerciseId,
+                reps: targetReps, // Assuming targetReps is the correct value for reps here
                 duration: estimatedDuration,
-                formScore: estimatedScore,
+                formScore: 80, // Reduced from 100 to 80 for skipped
+                isSkipped: true
             });
 
             Alert.alert(
@@ -187,26 +188,39 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 <View style={{ height: 160 }} />
             </ScrollView>
 
-            {/* Sticky Footer */}
+            {/* Footer with Actions */}
             <View style={styles.footer}>
-                <TouchableOpacity activeOpacity={0.9} onPress={handleStart} style={styles.startWorkoutButtonContainer}>
+                <TouchableOpacity
+                    onPress={handleStart}
+                    activeOpacity={0.8}
+                >
                     <LinearGradient
                         colors={Gradients.primary}
+                        style={styles.startButton}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={styles.startWorkoutButton}
                     >
-                        <Text style={styles.startWorkoutButtonText}>Start Exercise</Text>
-                        <MaterialCommunityIcons name="play-circle" size={24} color={Colors.textPrimary} />
+                        <MaterialCommunityIcons name="play-circle-outline" size={28} color="white" />
+                        <Text style={styles.startButtonText}>Start Exercise</Text>
                     </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     onPress={handleSkipDetection}
-                    style={styles.skipButton}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
+                    style={styles.skipButtonContainer}
                 >
-                    <Text style={styles.skipButtonText}>Skip Live Detection</Text>
+                    <LinearGradient
+                        colors={['#FFFFFF', '#F5F5F7']}
+                        style={styles.skipButtonGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <MaterialCommunityIcons name="check-circle-outline" size={20} color={Colors.primaryStart} />
+                            <Text style={styles.skipButtonText}>Skip Live Detection</Text>
+                        </View>
+                    </LinearGradient>
                 </TouchableOpacity>
             </View>
         </LinearGradient>
@@ -410,18 +424,16 @@ const styles = StyleSheet.create({
         paddingBottom: 40,
         backgroundColor: 'transparent',
     },
-    startWorkoutButtonContainer: {
-        ...Shadows.glow,
-    },
-    startWorkoutButton: {
+    startButton: {
         height: 64,
         borderRadius: Layout.borderRadius.l,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: Spacing.m,
+        ...Shadows.glow,
     },
-    startWorkoutButtonText: {
+    startButtonText: {
         color: Colors.textPrimary,
         fontSize: 20,
         fontWeight: 'bold',
@@ -445,17 +457,25 @@ const styles = StyleSheet.create({
         color: Colors.textPrimary,
         fontWeight: 'bold',
     },
-    skipButton: {
+    // Skip Button Styles
+    skipButtonContainer: {
         marginTop: Spacing.m,
-        alignItems: 'center',
+        borderRadius: Layout.borderRadius.m,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.5)',
+        ...Shadows.small,
+    },
+    skipButtonGradient: {
         paddingVertical: Spacing.m,
         paddingHorizontal: Spacing.l,
-        backgroundColor: '#FFFFFF',
-        borderRadius: Layout.borderRadius.m,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     skipButtonText: {
         color: Colors.primaryStart,
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
 });

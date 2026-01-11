@@ -42,6 +42,16 @@ def decode_image(base64_string):
 @app.before_request
 def log_request_info():
     print(f"📡 Incoming {request.method} {request.path} from {request.remote_addr}")
+    
+    # Security Check (Non-blocking for Phase 3)
+    api_key = request.headers.get('x-api-key')
+    expected_key = "development_key_123"
+    
+    if api_key == expected_key:
+         print(f"🔐 API Key Verified")
+    else:
+         print(f"⚠️ API Key Warning: Missing or Invalid (Received: {api_key})")
+         # future: return jsonify({"error": "Unauthorized"}), 401
 
 @app.route('/health', methods=['GET'])
 def health():

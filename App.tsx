@@ -233,10 +233,15 @@ function AppContent() {
   );
 }
 
+// Import components
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+
 export default function App() {
   return (
     <Provider store={store}>
-      <AppContent />
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </Provider>
   );
 }

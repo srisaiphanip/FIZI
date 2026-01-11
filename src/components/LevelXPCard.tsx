@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ProgressionService } from '../services/ProgressionService';
-import { Colors, Spacing, Shadows } from '../theme/Theme';
+import { Colors, Spacing, Shadows, Layout, Gradients } from '../theme/Theme';
+import { AVATAR_LEVELS, AvatarState } from '../services/AvatarService';
 
 interface LevelXPCardProps {
     level: number;
@@ -12,194 +12,138 @@ interface LevelXPCardProps {
 }
 
 export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardProps) {
-    const progressAnim = useRef(new Animated.Value(0)).current;
+    // Helper to calculate progress
+    const getLevelProgress = () => {
+        const currentLevelInfo = AVATAR_LEVELS.find(l => l.level === level) || AVATAR_LEVELS[0];
+        const nextLevel = AVATAR_LEVELS.find(l => l.level === level + 1);
 
-    // Calculate XP thresholds
-    const currentLevelXP = ProgressionService.getXPThresholdForLevel(level);
-    const nextLevelXP = ProgressionService.getXPThresholdForLevel(level + 1);
-    const xpInCurrentLevel = xp - currentLevelXP;
-    const xpNeededForNextLevel = nextLevelXP - currentLevelXP;
-    const progressPercent = Math.min((xpInCurrentLevel / xpNeededForNextLevel) * 100, 100);
+        if (!nextLevel) return 100;
 
-    // Get difficulty tier
-    const tier = ProgressionService.getDifficultyTier(level);
+        const currentLevelXP = currentLevelInfo.minXP || 0;
+        const nextLevelXP = nextLevel.minXP || 1000;
 
-    // Tier colors
-    const tierGradients: Record<string, readonly [string, string]> = {
-        beginner: ['#4A90E2', '#50C9F2'] as const,
-        intermediate: ['#F5A623', '#F76B1C'] as const,
-        advanced: ['#D0021B', '#9013FE'] as const
+        // Ensure we don't have negative progress if logic drifts
+        const progress = Math.max(0, xp - currentLevelXP);
+        const totalNeeded = nextLevelXP - currentLevelXP;
+
+        return Math.min(100, (progress / totalNeeded) * 100);
     };
 
-    const tierIcons = {
-        beginner: 'baby-face-outline',
-        intermediate: 'fire',
-        advanced: 'trophy'
+    const getXPText = () => {
+        const nextLevel = AVATAR_LEVELS.find(l => l.level === level + 1);
+        if (!nextLevel) return 'Max Level';
+
+        const formatValue = (val: number) => {
+            if (val >= 10000) return (val / 1000).toFixed(1) + 'k';
+            return val.toLocaleString();
+        };
+
+        return `${formatValue(xp)} / ${formatValue(nextLevel.minXP)} XP`;
     };
 
-    useEffect(() => {
-        Animated.timing(progressAnim, {
-            toValue: progressPercent,
-            duration: 1000,
-            useNativeDriver: false,
-        }).start();
-    }, [xp, level]);
-
-    const progressWidth = progressAnim.interpolate({
-        inputRange: [0, 100],
-        outputRange: ['0%', '100%'],
-    });
+    const currentLevelIcon = AVATAR_LEVELS.find(l => l.level === level)?.icon || '✨';
 
     return (
-        <LinearGradient
-            colors={tierGradients[tier]}
-            style={styles.container}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-        >
-            <View style={styles.content}>
-                {/* Level Badge */}
-                <View style={styles.levelSection}>
-                    <MaterialCommunityIcons
-                        name={tierIcons[tier] as any}
-                        size={32}
-                        color={Colors.textPrimary}
-                    />
-                    <View style={styles.levelText}>
-                        <Text style={styles.levelLabel}>LEVEL</Text>
-                        <Text style={styles.levelNumber}>{level}</Text>
+        <View style={styles.cardContainer}>
+            <BlurView intensity={20} tint="dark" style={styles.content}>
+                <View style={styles.header}>
+                    <View>
+                        <Text style={styles.label}>Current Level</Text>
+                        <Text style={styles.levelValue}>{level}</Text>
+                    </View>
+                    <View style={styles.iconCircle}>
+                        <Text style={styles.emoji}>{currentLevelIcon}</Text>
                     </View>
                 </View>
 
-                {/* Tier Label */}
-                <View style={styles.tierBadge}>
-                    <Text style={styles.tierText}>{tier.toUpperCase()}</Text>
+                <View style={styles.barContainer}>
+                    <View style={styles.barBg}>
+                        <LinearGradient
+                            colors={Gradients.primary}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={[
+                                styles.barFill,
+                                { width: `${getLevelProgress()}%` }
+                            ]}
+                        />
+                    </View>
+                    <Text style={styles.percentage}>{getXPText()}</Text>
                 </View>
-            </View>
-
-            {/* XP Progress Bar */}
-            <View style={styles.progressSection}>
-                <View style={styles.progressBar}>
-                    <Animated.View
-                        style={[
-                            styles.progressFill,
-                            { width: progressWidth }
-                        ]}
-                    />
-                </View>
-                <View style={styles.xpTextRow}>
-                    <Text style={styles.xpText}>
-                        {xpInCurrentLevel.toLocaleString()} / {xpNeededForNextLevel.toLocaleString()} XP
-                    </Text>
-                    <Text style={styles.xpPercent}>{Math.round(progressPercent)}%</Text>
-                </View>
-            </View>
-
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                    <MaterialCommunityIcons name="dumbbell" size={16} color={Colors.textPrimary} />
-                    <Text style={styles.statText}>{totalWorkouts} Workouts</Text>
-                </View>
-                <View style={styles.statItem}>
-                    <MaterialCommunityIcons name="star" size={16} color={Colors.textPrimary} />
-                    <Text style={styles.statText}>{xp.toLocaleString()} Total XP</Text>
-                </View>
-            </View>
-        </LinearGradient>
+            </BlurView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        borderRadius: 16,
-        padding: Spacing.l,
-        marginHorizontal: Spacing.m,
-        marginVertical: Spacing.m,
+    cardContainer: {
+        borderRadius: Layout.borderRadius.l,
+        overflow: 'hidden',
+        marginBottom: Spacing.l,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
         ...Shadows.card,
     },
     content: {
+        padding: Spacing.m,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.m,
-    },
-    levelSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.m,
-    },
-    levelText: {
-        alignItems: 'flex-start',
-    },
-    levelLabel: {
-        color: Colors.textPrimary,
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 1,
-        opacity: 0.9,
-    },
-    levelNumber: {
-        color: Colors.textPrimary,
-        fontSize: 36,
-        fontWeight: 'bold',
-        lineHeight: 40,
-    },
-    tierBadge: {
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-        paddingHorizontal: Spacing.m,
-        paddingVertical: Spacing.s,
-        borderRadius: 12,
-    },
-    tierText: {
-        color: Colors.textPrimary,
-        fontSize: 11,
-        fontWeight: 'bold',
-        letterSpacing: 1,
-    },
-    progressSection: {
-        marginBottom: Spacing.m,
-    },
-    progressBar: {
-        height: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: 4,
-        overflow: 'hidden',
         marginBottom: Spacing.s,
     },
-    progressFill: {
-        height: '100%',
-        backgroundColor: Colors.textPrimary,
-        borderRadius: 4,
-    },
-    xpTextRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    xpText: {
-        color: Colors.textPrimary,
-        fontSize: 13,
+    label: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
         fontWeight: '600',
-        opacity: 0.95,
     },
-    xpPercent: {
+    levelValue: {
+        fontSize: 36,
+        fontWeight: '900',
         color: Colors.textPrimary,
-        fontSize: 13,
-        fontWeight: 'bold',
+        textShadowColor: Colors.primaryStart,
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
     },
-    statsRow: {
-        flexDirection: 'row',
-        gap: Spacing.l,
+    iconCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: Colors.glassHighlight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
     },
-    statItem: {
+    emoji: {
+        fontSize: 24,
+    },
+    barContainer: {
+        marginTop: Spacing.s,
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.s,
     },
-    statText: {
-        color: Colors.textPrimary,
+    barBg: {
+        flex: 1,
+        height: 12,
+        backgroundColor: Colors.glassSurface,
+        borderRadius: 6,
+        overflow: 'hidden',
+    },
+    barFill: {
+        height: '100%',
+        borderRadius: 6,
+    },
+    percentage: {
         fontSize: 12,
-        fontWeight: '500',
-        opacity: 0.9,
+        fontWeight: 'bold',
+        color: Colors.accentCyan,
+        textAlign: 'right',
+        minWidth: 100,
     },
 });

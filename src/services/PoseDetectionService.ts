@@ -67,6 +67,28 @@ class PoseDetectionService {
     }
 
     /**
+     * Helper to fetch with exponential backoff
+     */
+    private async fetchWithRetry(url: string, options: any, retries: number = 2, delay: number = 500): Promise<Response> {
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok && retries > 0) {
+                console.warn(`[PoseDetection] Request failed with status ${response.status}. Retrying in ${delay}ms... (${retries} left)`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.fetchWithRetry(url, options, retries - 1, delay * 2);
+            }
+            return response;
+        } catch (error: any) {
+            if (retries > 0) {
+                console.warn(`[PoseDetection] Request failed: ${error.message}. Retrying in ${delay}ms... (${retries} left)`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return this.fetchWithRetry(url, options, retries - 1, delay * 2);
+            }
+            throw error;
+        }
+    }
+
+    /**
      * Detect poses from a base64 image string
      * @param base64Image - Base64 encoded image frame
      * @param exerciseId - The ID of the exercise being performed
@@ -88,10 +110,11 @@ class PoseDetectionService {
 
         try {
             const t0 = performance.now();
-            const response = await fetch(`${POSE_API_URL}/detect`, {
+            const response = await this.fetchWithRetry(`${POSE_API_URL}/detect`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-api-key': 'development_key_123' // TODO: Move to strict .env in production
                 },
                 body: JSON.stringify({
                     image: base64Image,
@@ -99,7 +122,10 @@ class PoseDetectionService {
                 }),
             });
             const t1 = performance.now();
-            console.log(`[PoseDetection] Request took ${Math.round(t1 - t0)}ms | Payload: ~${Math.round(base64Image.length / 1024)}KB`);
+
+            if (t1 - t0 > 1000) {
+                console.warn(`[PoseDetection] Slow request took ${Math.round(t1 - t0)}ms | Payload: ~${Math.round(base64Image.length / 1024)}KB`);
+            }
 
             if (!response.ok) return emptyResult;
 
@@ -135,7 +161,7 @@ class PoseDetectionService {
             };
 
         } catch (error: any) {
-            console.warn('[PoseDetection] Request failed:', error.message);
+            console.warn('[PoseDetection] DetectPose failed after retries:', error.message);
             return emptyResult;
         }
     }

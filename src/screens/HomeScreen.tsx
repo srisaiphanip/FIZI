@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,11 @@ import { Colors, Gradients, Spacing, Shadows, Layout } from '../theme/Theme';
 import { seedAllInstructions } from '../store/slices/exerciseSlice';
 import { ExerciseInstructions, WorkoutSession } from '../types';
 import { setRecoveryStatus, updatePlanLevel } from '../store/slices/workoutPlanSlice';
+import { avatarService, AvatarState, AVATAR_LEVELS } from '../services/AvatarService';
+import LevelXPCard from '../components/LevelXPCard';
+import { HomeHeader } from '../components/home/HomeHeader';
+import { DailyStatusCard } from '../components/home/DailyStatusCard';
+import { WeeklySchedule } from '../components/home/WeeklySchedule';
 
 interface HomeScreenProps {
     navigation: any;
@@ -26,6 +31,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
     const scrollViewRef = React.useRef<ScrollView>(null);
     const scheduleLayoutY = React.useRef<number>(0);
+    const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
+
+    const loadAvatarState = async () => {
+        const state = await avatarService.getAvatarState();
+        setAvatarState(state);
+    };
+
+    useEffect(() => {
+        loadAvatarState();
+    }, []);
 
     useEffect(() => {
         dispatch(fetchWorkoutStats('week'));
@@ -245,55 +260,21 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 contentContainerStyle={styles.scrollContent}
             >
                 {/* Header Section */}
-                <View style={styles.header}>
-                    <View>
-                        <Text style={styles.greeting}>Hello,</Text>
-                        <Text style={styles.title}>{user?.displayName || 'Champion'}! 👋</Text>
-                    </View>
-                    <TouchableOpacity style={styles.avatarCircle} onPress={() => navigation.navigate('Avatar')}>
-                        {user?.photoURL ? (
-                            <Image
-                                source={{ uri: user.photoURL }}
-                                style={{ width: 56, height: 56, borderRadius: 28 }}
-                            />
-                        ) : (
-                            <Text style={styles.avatarText}>{user?.displayName?.[0] || 'U'}</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
+                <HomeHeader
+                    user={user}
+                    onAvatarPress={() => navigation.navigate('Avatar')}
+                />
 
                 {/* Level & XP Progress Card */}
                 <TouchableOpacity
-                    style={styles.xpCard}
                     onPress={() => navigation.navigate('LevelProgress')}
+                    activeOpacity={0.9}
                 >
-                    <BlurView intensity={20} tint="dark" style={styles.xpCardContent}>
-                        <View style={styles.xpHeader}>
-                            <View>
-                                <Text style={styles.xpLabel}>Current Level</Text>
-                                <Text style={styles.levelValue}>{user?.progressSystem?.currentLevel || 1}</Text>
-                            </View>
-                            <View style={styles.xpCircle}>
-                                <Text style={styles.xpEmoji}>✨</Text>
-                            </View>
-                        </View>
-                        <View style={styles.xpBarContainer}>
-                            <View style={styles.xpBarBg}>
-                                <LinearGradient
-                                    colors={Gradients.primary}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[
-                                        styles.xpBarFill,
-                                        { width: `${Math.min(100, (user?.progressSystem?.currentXP || 0) % 1000 / 10)}%` }
-                                    ]}
-                                />
-                            </View>
-                            <Text style={styles.xpPercentage}>
-                                {Math.round((user?.progressSystem?.currentXP || 0) % 1000 / 10)}%
-                            </Text>
-                        </View>
-                    </BlurView>
+                    <LevelXPCard
+                        level={avatarState?.level || user?.progressSystem?.currentLevel || 1}
+                        xp={avatarState?.xp || 0}
+                        totalWorkouts={avatarState?.totalWorkouts || 0}
+                    />
                 </TouchableOpacity>
 
                 {/* Motivational Tip */}
@@ -301,31 +282,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <MotivationalTip />
                 </View>
 
-
                 {/* Dynamic Status Card */}
-                <BlurView intensity={30} tint="dark" style={styles.todayStatusCard}>
-                    <View style={styles.statusRow}>
-                        <View>
-                            <Text style={styles.statusLabel}>Today's Status</Text>
-                            <Text style={styles.statusDate}>
-                                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                            </Text>
-                        </View>
-                        <View style={styles.statusBadgeContainer}>
-                            {isRestDay ? (
-                                <View style={styles.statusBadgeRest}>
-                                    <Text style={styles.statusEmoji}>😌</Text>
-                                    <Text style={styles.statusBadgeText}>REST DAY</Text>
-                                </View>
-                            ) : (
-                                <View style={styles.statusBadgeWorkout}>
-                                    <Text style={styles.statusEmoji}>💪</Text>
-                                    <Text style={styles.statusBadgeText}>WORKOUT</Text>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                </BlurView>
+                <DailyStatusCard isRestDay={isRestDay} />
 
                 {/* Today's Workout Header */}
                 {todaysWorkout && !todaysWorkout.isRestDay && (
@@ -394,11 +352,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <View>
                         <BlurView intensity={20} tint="dark" style={styles.todayWorkoutCard}>
                             <View style={styles.workoutHeader}>
-                                <Text style={styles.workoutTitle}>Rest Day 😌</Text>
-                                <Text style={styles.workoutFocus}>{todaysWorkout.focus || 'Recovery is important!'}</Text>
+                                <View>
+                                    <View style={styles.restDayBadge}>
+                                        <Text style={styles.workoutTitle}>Rest Day 😌</Text>
+                                    </View>
+                                    <Text style={styles.workoutFocus}>{todaysWorkout.focus || 'Rest & Recovery'}</Text>
+                                </View>
                             </View>
                             <Text style={styles.restDayMessage}>
-                                {todaysWorkout.notes || 'Take today to recover and prepare for your next workout.'}
+                                {(todaysWorkout.notes || 'Take today to recover and prepare for your next workout.').replace(/\*\*/g, '')}
                             </Text>
                         </BlurView>
 
@@ -484,54 +446,15 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
                 {/* Weekly Schedule Grid */}
                 {currentPlan && (
-                    <View
-                        style={styles.section}
+                    <WeeklySchedule
+                        currentPlan={currentPlan}
+                        selectedDayIndex={selectedDayIndex}
+                        onDaySelect={setSelectedDayIndex}
                         onLayout={(event) => {
                             const layout = event.nativeEvent.layout;
                             scheduleLayoutY.current = layout.y;
                         }}
-                    >
-                        <Text style={styles.sectionTitle}>📅 Weekly Schedule</Text>
-                        <View style={styles.weeklyGrid}>
-                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => {
-                                const dayOfWeek = (idx + 1) % 7;
-                                const session = currentPlan.sessions.find(s => s.dayOfWeek === dayOfWeek);
-                                const isToday = new Date().getDay() === dayOfWeek;
-                                const isSelected = selectedDayIndex === idx;
-                                const isSunday = idx === 6;
-
-                                return (
-                                    <TouchableOpacity
-                                        key={day}
-                                        onPress={() => setSelectedDayIndex(idx)}
-                                        style={[
-                                            styles.gridDayCard,
-                                            isToday && styles.gridDayToday,
-                                            isSelected && styles.gridDaySelected,
-                                            isSunday && styles.gridDayRest
-                                        ]}
-                                    >
-                                        <Text style={[
-                                            styles.gridDayLabel,
-                                            isToday && styles.gridDayLabelToday,
-                                            isSelected && styles.gridDayLabelSelected,
-                                            isSunday && styles.gridDayLabelRest
-                                        ]}>{day}</Text>
-                                        <Text style={styles.gridDayIcon}>{isSunday ? '🧘' : '💪'}</Text>
-                                        <Text style={[
-                                            styles.gridDayFocus,
-                                            isToday && styles.gridDayFocusToday,
-                                            isSelected && styles.gridDayFocusSelected,
-                                            isSunday && styles.gridDayFocusRest
-                                        ]} numberOfLines={1}>
-                                            {isSunday ? 'Rest' : (session?.focus?.split('(')[0].trim() || 'Workout')}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
-                        <Text style={styles.gridHint}>💜 = Today | Select any day to see details</Text>
-                    </View>
+                    />
                 )}
 
                 {/* Selected Day Details */}
@@ -548,7 +471,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                     <View style={styles.detailsHeader}>
                                         <View style={styles.detailsTitleContainer}>
                                             <MaterialCommunityIcons name="tea" size={24} color={Colors.accentSuccess} />
-                                            <Text style={styles.detailsTitle}>{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - Rest & Recovery</Text>
+                                            <Text style={styles.detailsTitle}>
+                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - Rest & Recovery
+                                            </Text>
                                         </View>
                                     </View>
                                     <View style={styles.detailsNotes}>
@@ -662,175 +587,15 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.l,
-    },
-    greeting: {
-        fontSize: 16,
-        color: Colors.accentCyan,
-        fontWeight: '600',
-        letterSpacing: 1,
-        marginBottom: 4,
-        textTransform: 'uppercase',
-    },
-    title: {
-        fontSize: 32,
-        fontWeight: '800',
-        color: Colors.textPrimary,
-        letterSpacing: 0.5,
-    },
-    avatarCircle: {
-        width: 56,
-        height: 56,
-        borderRadius: Layout.borderRadius.round,
-        backgroundColor: Colors.glassSurface,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.accentCyan,
-        ...Shadows.glow,
-    },
-    avatarText: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
+        marginBottom: Spacing.l, // Keep for layout if needed, or remove entire block if HomeHeader handles it. HomeHeader has marginBottom: Spacing.l
     },
     section: {
         marginBottom: Spacing.l,
     },
 
-    // XP Card
-    xpCard: {
-        borderRadius: Layout.borderRadius.l,
-        overflow: 'hidden',
-        marginBottom: Spacing.l,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        ...Shadows.card,
-    },
-    xpCardContent: {
-        padding: Spacing.m,
-        backgroundColor: 'rgba(0,0,0,0.3)',
-    },
-    xpHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.s,
-    },
-    xpLabel: {
-        fontSize: 14,
-        color: Colors.textSecondary,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        fontWeight: '600',
-    },
-    levelValue: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: Colors.textPrimary,
-        textShadowColor: Colors.primaryStart,
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-    },
-    xpCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: Colors.glassHighlight,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-    },
-    xpEmoji: {
-        fontSize: 24,
-    },
-    xpBarContainer: {
-        marginTop: Spacing.s,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.s,
-    },
-    xpBarBg: {
-        flex: 1,
-        height: 8,
-        backgroundColor: Colors.glassSurface,
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    xpBarFill: {
-        height: '100%',
-        borderRadius: 4,
-    },
-    xpPercentage: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: Colors.accentCyan,
-        width: 40,
-        textAlign: 'right',
-    },
+    // XP Card moved to component
 
-    // Today Status Grid
-    todayStatusCard: {
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        overflow: 'hidden',
-        marginBottom: Spacing.l,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(0,0,0,0.2)',
-    },
-    statusRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    statusLabel: {
-        fontSize: 12,
-        color: Colors.textTertiary,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    statusDate: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: Colors.textPrimary,
-        marginTop: 4,
-    },
-    statusBadgeContainer: {},
-    statusBadgeWorkout: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(34, 211, 238, 0.15)', // Cyan tint
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.s,
-        borderWidth: 1,
-        borderColor: Colors.accentCyan,
-    },
-    statusBadgeRest: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.s,
-        borderWidth: 1,
-        borderColor: Colors.textSecondary,
-    },
-    statusEmoji: {
-        marginRight: 6,
-        fontSize: 14,
-    },
-    statusBadgeText: {
-        color: Colors.textPrimary,
-        fontWeight: '700',
-        fontSize: 12,
-        letterSpacing: 0.5,
-    },
+    // Today Status Grid moved to component
 
     // Workout Card
     todayWorkoutCard: {
@@ -849,23 +614,33 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.m,
     },
     workoutTitle: {
-        fontSize: 14,
+        fontSize: 10,
         color: Colors.accentPink,
-        fontWeight: '700',
+        fontWeight: '900',
         textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: 4,
+        letterSpacing: 1.5,
+    },
+    restDayBadge: {
+        backgroundColor: 'rgba(244, 114, 182, 0.15)',
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: Layout.borderRadius.round,
+        alignSelf: 'flex-start',
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(244, 114, 182, 0.3)',
     },
     workoutFocus: {
         fontSize: 28,
-        fontWeight: '800',
+        fontWeight: '900',
         color: Colors.textPrimary,
+        letterSpacing: -0.5,
     },
     viewLibraryLink: {
         backgroundColor: Colors.glassSurface,
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.s,
+        borderRadius: Layout.borderRadius.round, // Pill shape
     },
     viewLibraryText: {
         fontSize: 12,
@@ -1087,75 +862,7 @@ const styles = StyleSheet.create({
         borderLeftColor: Colors.accentCyan,
     },
 
-    // Weekly Grid
-    weeklyGrid: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: Spacing.s,
-    },
-    gridDayCard: {
-        width: (Dimensions.get('window').width - Spacing.l * 2 - Spacing.xs * 6) / 7,
-        aspectRatio: 0.6,
-        borderRadius: Layout.borderRadius.s,
-        backgroundColor: Colors.glassSurface,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: 'transparent',
-    },
-    gridDayToday: {
-        borderColor: Colors.accentPink,
-        backgroundColor: 'rgba(244, 114, 182, 0.1)',
-        ...Shadows.glow,
-    },
-    gridDaySelected: {
-        borderColor: Colors.accentCyan,
-        backgroundColor: 'rgba(34, 211, 238, 0.1)',
-    },
-    gridDayRest: {
-        opacity: 0.5,
-    },
-    gridDayLabel: {
-        fontSize: 10,
-        color: Colors.textSecondary,
-        marginBottom: 4,
-        fontWeight: '600',
-    },
-    gridDayLabelToday: {
-        color: Colors.accentPink,
-        fontWeight: 'bold',
-    },
-    gridDayLabelSelected: {
-        color: Colors.accentCyan,
-        fontWeight: 'bold',
-    },
-    gridDayLabelRest: {
-        color: Colors.textTertiary,
-    },
-    gridDayIcon: {
-        fontSize: 14,
-        marginBottom: 4,
-    },
-    gridDayFocus: {
-        fontSize: 8,
-        color: Colors.textSecondary,
-        textAlign: 'center',
-    },
-    gridDayFocusToday: {
-        color: Colors.accentPink,
-    },
-    gridDayFocusSelected: {
-        color: Colors.accentCyan,
-    },
-    gridDayFocusRest: {
-        color: Colors.textTertiary,
-    },
-    gridHint: {
-        textAlign: 'center',
-        color: Colors.textTertiary,
-        fontSize: 10,
-        marginTop: Spacing.s,
-    },
+    // Weekly Schedule Grid styles moved to component
 
     // Recovery Grid
     recoveryGrid: {
@@ -1213,20 +920,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: Spacing.s,
         flex: 1,
+        marginRight: Spacing.s,
     },
     detailsTitle: {
         fontSize: 18,
         fontWeight: '700',
         color: Colors.textPrimary,
+        flex: 1,
     },
     detailsDurationBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
         backgroundColor: Colors.glassSurface,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: Layout.borderRadius.s,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: Layout.borderRadius.round, // Pill shape
     },
     detailsDurationText: {
         color: Colors.textPrimary,
@@ -1281,7 +990,7 @@ const styles = StyleSheet.create({
     // Tips Card
     tipsCard: {
         padding: Spacing.m,
-        borderRadius: Layout.borderRadius.l,
+        borderRadius: Layout.borderRadius.xl, // Even rounder
         overflow: 'hidden',
         backgroundColor: 'rgba(0,0,0,0.2)',
         borderWidth: 1,

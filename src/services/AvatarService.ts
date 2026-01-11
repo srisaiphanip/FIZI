@@ -13,18 +13,17 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 
-// Avatar levels based on workout progress
+// Avatar levels based on XP and workout progress
 export const AVATAR_LEVELS = [
-    { level: 1, name: 'Beginner', minWorkouts: 0, minReps: 0, icon: '🌱' },
-    { level: 2, name: 'Starter', minWorkouts: 5, minReps: 50, icon: '🏃' },
-    { level: 3, name: 'Regular', minWorkouts: 15, minReps: 200, icon: '💪' },
-    { level: 4, name: 'Dedicated', minWorkouts: 30, minReps: 500, icon: '🔥' },
-    { level: 5, name: 'Athlete', minWorkouts: 50, minReps: 1000, icon: '⚡' },
-    { level: 6, name: 'Champion', minWorkouts: 100, minReps: 2500, icon: '🏆' },
-    { level: 7, name: 'Legend', minWorkouts: 200, minReps: 5000, icon: '👑' },
+    { level: 1, name: 'Beginner', minWorkouts: 0, minReps: 0, minXP: 0, icon: '🌱' },
+    { level: 2, name: 'Starter', minWorkouts: 5, minReps: 50, minXP: 500, icon: '🏃' },
+    { level: 3, name: 'Regular', minWorkouts: 15, minReps: 200, minXP: 2000, icon: '💪' },
+    { level: 4, name: 'Dedicated', minWorkouts: 30, minReps: 500, minXP: 5000, icon: '🔥' },
+    { level: 5, name: 'Athlete', minWorkouts: 50, minReps: 1000, minXP: 10000, icon: '⚡' },
+    { level: 6, name: 'Champion', minWorkouts: 100, minReps: 2500, minXP: 25000, icon: '🏆' },
+    { level: 7, name: 'Legend', minWorkouts: 200, minReps: 5000, minXP: 50000, icon: '👑' },
 ];
 
-// Achievements
 export const ACHIEVEMENTS = [
     { id: 'first_workout', name: 'First Steps', description: 'Complete your first workout', icon: '🎯', requirement: { workouts: 1 } },
     { id: 'week_streak', name: 'Week Warrior', description: 'Work out 7 days in a row', icon: '📅', requirement: { streak: 7 } },
@@ -41,6 +40,7 @@ export const ACHIEVEMENTS = [
 export interface AvatarState {
     level: number;
     levelName: string;
+    xp: number; // Added XP
     totalWorkouts: number;
     totalReps: number;
     totalMinutes: number;
@@ -73,7 +73,12 @@ class AvatarService {
             const avatarDoc = await getDoc(avatarRef);
 
             if (avatarDoc.exists()) {
-                return avatarDoc.data() as AvatarState;
+                const data = avatarDoc.data() as AvatarState;
+                // Backfill XP if missing
+                if (data.xp === undefined) {
+                    data.xp = this.calculateBackfillXP(data);
+                }
+                return data;
             }
 
             // Create default avatar state
@@ -89,6 +94,11 @@ class AvatarService {
         }
     }
 
+    private calculateBackfillXP(data: AvatarState): number {
+        // Rough estimate for existing users
+        return (data.totalWorkouts * 100) + (data.totalReps * 2) + (data.totalMinutes * 5);
+    }
+
     /**
      * Update avatar after workout
      */
@@ -97,6 +107,7 @@ class AvatarService {
         reps: number;
         duration: number;
         formScore: number;
+        isSkipped?: boolean; // New param
     }): Promise<AvatarState | null> {
         const user = auth.currentUser;
         if (!user) return null;
@@ -131,15 +142,30 @@ class AvatarService {
                 exercisesTried.push(workoutData.exerciseId);
             }
 
+            // Calculate XP Gained
+            // Base: 50
+            // Reps: 2 XP per rep
+            // Time: 5 XP per min
+            // Live Bonus: 150 XP (if not skipped)
+            // Form Bonus: score * 1
+            const baseXP = 50;
+            const repXP = workoutData.reps * 2;
+            const timeXP = Math.round(workoutData.duration / 60) * 5;
+            const liveBonus = workoutData.isSkipped ? 0 : 150;
+            const formBonus = Math.round(workoutData.formScore);
+
+            const xpGained = baseXP + repXP + timeXP + liveBonus + formBonus;
+
             // Calculate new totals
             const newTotalWorkouts = currentState.totalWorkouts + 1;
             const newTotalReps = currentState.totalReps + workoutData.reps;
             const newTotalMinutes = currentState.totalMinutes + Math.round(workoutData.duration / 60);
             const newBestForm = Math.max(currentState.bestFormScore, workoutData.formScore);
             const newLongestStreak = Math.max(currentState.longestStreak, newStreak);
+            const newXP = (currentState.xp || 0) + xpGained;
 
             // Calculate new level
-            const newLevel = this.calculateLevel(newTotalWorkouts, newTotalReps);
+            const newLevel = this.calculateLevel(newTotalWorkouts, newTotalReps, newXP);
 
             // Check for new achievements
             const newAchievements = this.checkAchievements({
@@ -155,6 +181,7 @@ class AvatarService {
                 ...currentState,
                 level: newLevel.level,
                 levelName: newLevel.name,
+                xp: newXP,
                 totalWorkouts: newTotalWorkouts,
                 totalReps: newTotalReps,
                 totalMinutes: newTotalMinutes,
@@ -213,13 +240,16 @@ class AvatarService {
     }
 
     /**
-     * Calculate level based on progress
+     * Calculate level based on progress (XP is now the primary driver)
      */
-    private calculateLevel(workouts: number, reps: number): { level: number; name: string } {
+    private calculateLevel(workouts: number, reps: number, xp: number): { level: number; name: string } {
         let currentLevel = AVATAR_LEVELS[0];
 
         for (const level of AVATAR_LEVELS) {
-            if (workouts >= level.minWorkouts && reps >= level.minReps) {
+            // Check if user meets ALL requirements for this level hierarchy? 
+            // Or just XP? Let's use XP as primary, but they shouldn't just spam fake workouts.
+            // Let's require XP AND Workouts for higher levels.
+            if (xp >= level.minXP) {
                 currentLevel = level;
             }
         }
@@ -271,6 +301,7 @@ class AvatarService {
         return {
             level: 1,
             levelName: 'Beginner',
+            xp: 0,
             totalWorkouts: 0,
             totalReps: 0,
             totalMinutes: 0,
@@ -301,10 +332,10 @@ class AvatarService {
     /**
      * Get next level requirements
      */
-    getNextLevelRequirements(currentLevel: number): { workouts: number; reps: number } | null {
+    getNextLevelRequirements(currentLevel: number): { workouts: number; reps: number; xp: number } | null {
         const nextLevel = AVATAR_LEVELS.find(l => l.level === currentLevel + 1);
         if (!nextLevel) return null;
-        return { workouts: nextLevel.minWorkouts, reps: nextLevel.minReps };
+        return { workouts: nextLevel.minWorkouts, reps: nextLevel.minReps, xp: nextLevel.minXP };
     }
 }
 

@@ -27,7 +27,18 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
     React.useEffect(() => {
         if (error) {
-            Alert.alert('Login Error', error);
+            if (error === 'No account found with this email') {
+                Alert.alert(
+                    'Account Not Found',
+                    'No account exists with this email. Would you like to create one?',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Sign Up', onPress: () => navigation.navigate('Signup') }
+                    ]
+                );
+            } else {
+                Alert.alert('Login Error', error);
+            }
             dispatch(clearError());
         }
     }, [error]);

@@ -400,6 +400,23 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </TouchableOpacity>
                 </BlurView>
 
+                {/* Exercise Library */}
+                <BlurView intensity={20} tint="light" style={styles.userInfoCard}>
+                    <TouchableOpacity
+                        style={styles.userInfoButton}
+                        onPress={() => navigation.navigate('ExerciseLibrary')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="dumbbell" size={24} color={Colors.accentCyan} />
+                        </View>
+                        <View style={styles.userInfoTextContainer}>
+                            <Text style={styles.userInfoTitle}>Browse Exercise Library</Text>
+                            <Text style={styles.userInfoSubtitle}>Explore all available exercises</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textTertiary} />
+                    </TouchableOpacity>
+                </BlurView>
+
                 {/* Lifetime Stats */}
                 <BlurView intensity={10} tint="light" style={styles.statsCard}>
                     <Text style={styles.sectionTitle}>Lifetime Stats</Text>
