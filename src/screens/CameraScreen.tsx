@@ -371,7 +371,6 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
         // Mock Animation Loop
         if (AppConfig.features.enableMockPoseOverlay && !AppConfig.features.enablePoseDetection) {
-            console.log("Starting debug animation loop");
             let frame = 0;
             // Clear any existing mock timer
             if ((window as any).mockTimer) clearInterval((window as any).mockTimer);

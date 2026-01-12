@@ -38,19 +38,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
 
     useEffect(() => {
-        console.log('[HistoryScreen] Mounting, loading data...');
         loadData();
     }, [selectedPeriod]);
 
     const loadData = async () => {
-        console.log('[HistoryScreen] Loading data for period:', selectedPeriod);
         try {
             await Promise.all([
                 dispatch(fetchWorkoutHistory(20)),
                 dispatch(fetchWorkoutStats(selectedPeriod)),
                 dispatch(fetchPersonalBests())
             ]);
-            console.log('[HistoryScreen] Data loaded successfully');
         } catch (err) {
             console.error('[HistoryScreen] Error loading data:', err);
         }

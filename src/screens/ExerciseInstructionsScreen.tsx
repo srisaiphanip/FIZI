@@ -48,7 +48,13 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
     const handleSkipDetection = async () => {
         // Use target values if from plan, otherwise defaults
-        const targetReps = parseInt(params.targetReps?.split('-')[0]) || 10;
+        let targetReps = 10;
+        if (typeof params.targetReps === 'number') {
+            targetReps = params.targetReps;
+        } else if (typeof params.targetReps === 'string') {
+            targetReps = parseInt(params.targetReps.split('-')[0]) || 10;
+        }
+
         const targetSets = params.targetSets || 3;
         const totalReps = targetReps * targetSets;
 

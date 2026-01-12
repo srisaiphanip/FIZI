@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { WorkoutPlan, DailyWorkout } from '../../types';
+import { WorkoutPlan, DailyWorkout, UserProfile } from '../../types';
 import { workoutPlanService } from '../../services/WorkoutPlanService';
 
 interface WorkoutPlanState {
@@ -91,6 +91,26 @@ export const updatePlanLevel = createAsyncThunk(
             return newPlan;
         } catch (error: any) {
             return rejectWithValue(error.message || 'Failed to update plan level');
+        }
+    }
+);
+
+/**
+ * Force regenerate plan with latest profile
+ */
+export const regenerateUserPlan = createAsyncThunk(
+    'workoutPlan/regenerate',
+    async (profile: UserProfile, { rejectWithValue }) => {
+        try {
+            console.log('Regenerating plan for:', profile.displayName, 'Days:', profile.fitnessProfile.availableDays);
+            const newPlan = workoutPlanService.generateWorkoutPlan(profile);
+            console.log('--- REGENERATED PLAN ---');
+            console.log('Frequency:', newPlan.frequency);
+            console.log('Split:', newPlan.sessions.slice(0, 7).map(s => s.focus).join(', '));
+            await workoutPlanService.saveWorkoutPlan(newPlan);
+            return newPlan;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to regenerate plan');
         }
     }
 );
@@ -237,6 +257,46 @@ const workoutPlanSlice = createSlice({
                 }
             })
             .addCase(updatePlanLevel.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+            // Regenerate Plan
+            .addCase(regenerateUserPlan.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(regenerateUserPlan.fulfilled, (state, action) => {
+                state.loading = false;
+                state.currentPlan = action.payload;
+
+                // Set today's workout
+                const today = new Date().getDay();
+                const todaysWorkout = (action.payload.sessions as any[]).find(
+                    (s) => s.dayOfWeek === today
+                );
+
+                if (todaysWorkout) {
+                    state.todaysWorkout = {
+                        ...todaysWorkout,
+                        isRestDay: todaysWorkout.isRestDay ?? todaysWorkout.type === 'rest'
+                    };
+                } else {
+                    state.todaysWorkout = {
+                        id: `rest_regen_fallback_${today}`,
+                        day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today],
+                        dayOfWeek: today,
+                        focus: 'Rest & Recovery',
+                        exercises: [],
+                        duration: 0,
+                        status: 'completed',
+                        type: 'rest',
+                        intensity: 'low',
+                        isRestDay: true,
+                        notes: 'Plan regenerated. Take today to prep!'
+                    } as any;
+                }
+            })
+            .addCase(regenerateUserPlan.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             });

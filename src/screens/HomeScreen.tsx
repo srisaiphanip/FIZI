@@ -10,12 +10,14 @@ import MotivationalTip from '../components/MotivationalTip';
 import { Colors, Gradients, Spacing, Shadows, Layout } from '../theme/Theme';
 import { seedAllInstructions } from '../store/slices/exerciseSlice';
 import { ExerciseInstructions, WorkoutSession } from '../types';
-import { setRecoveryStatus, updatePlanLevel } from '../store/slices/workoutPlanSlice';
+import { setRecoveryStatus, updatePlanLevel, regenerateUserPlan } from '../store/slices/workoutPlanSlice';
 import { avatarService, AvatarState, AVATAR_LEVELS } from '../services/AvatarService';
 import LevelXPCard from '../components/LevelXPCard';
 import { HomeHeader } from '../components/home/HomeHeader';
 import { DailyStatusCard } from '../components/home/DailyStatusCard';
 import { WeeklySchedule } from '../components/home/WeeklySchedule';
+import { getSimplifiedFocus } from '../utils/workoutUtils';
+
 
 interface HomeScreenProps {
     navigation: any;
@@ -48,14 +50,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             dispatch(fetchWorkoutPlan(user.uid));
         }
 
-        if (todaysWorkout) {
-            console.log('[HomeScreen] Today\'s Workout:', todaysWorkout.title);
-            console.log('[HomeScreen] Exercises count:', todaysWorkout.exercises?.length || 0);
-            if (todaysWorkout.exercises?.length > 0) {
-                console.log('[HomeScreen] First Exercise:', todaysWorkout.exercises[0].name);
-            }
-        }
-
         const today = new Date().getDay();
         if (today !== 0) {
             setSelectedDayIndex(today - 1);
@@ -68,8 +62,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const handleStartExercise = (exercise: any) => {
         // Handle multiple possible ID property names
         const exerciseId = exercise.exerciseId || exercise.id || exercise.name?.toLowerCase().replace(/\s+/g, '-');
-        console.log('HomeScreen: Starting exercise with data:', JSON.stringify(exercise));
-        console.log('HomeScreen: Extracted exerciseId:', exerciseId);
 
         navigation.navigate('ExerciseInstructions', {
             exerciseId: exerciseId,
@@ -124,7 +116,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         dispatch(setRecoveryStatus(status));
     };
 
-    const handleSeedData = () => {
+    const handleSeedData = async () => {
         // 1. Seed Instructions (Fix Images)
         const initialInstructions: ExerciseInstructions[] = [
             {
@@ -239,14 +231,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         // 2. Fix Schedule (Force Regenerate Plan)
         if (user?.uid) {
-            console.log('[HomeScreen] Manual Fix: Regenerating plan to enforce Sunday-only rest...');
-            dispatch(updatePlanLevel({
-                userId: user.uid,
-                level: user.progressSystem?.currentLevel || 1
-            }));
-        }
+            // Force 7 days to verify custom split logic
+            // Use JSON parse/stringify to break any redux immutability or reference issues
+            const forcedProfile = JSON.parse(JSON.stringify(user));
+            if (!forcedProfile.fitnessProfile) {
+                forcedProfile.fitnessProfile = { availableDays: 7 };
+            } else {
+                forcedProfile.fitnessProfile.availableDays = 7;
+            }
 
-        alert('Fixing Schedule & Images... Wait 5 seconds for update! 🛠️');
+            const result = await dispatch(regenerateUserPlan(forcedProfile)).unwrap();
+            alert(`Plan Regenerated!\nFreq: ${result.frequency}\nSplit: ${result.sessions.slice(0, 3).map(s => s.focus).join(', ')}`);
+        } else {
+            alert('Fixing Schedule & Images... Wait 5 seconds for update! 🛠️');
+        }
     };
 
     return (
@@ -271,9 +269,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     activeOpacity={0.9}
                 >
                     <LevelXPCard
-                        level={avatarState?.level || user?.progressSystem?.currentLevel || 1}
-                        xp={avatarState?.xp || 0}
-                        totalWorkouts={avatarState?.totalWorkouts || 0}
+                        level={avatarState?.level || user?.progressSystem?.currentLevel || user?.level || 1}
+                        xp={avatarState?.xp || user?.progressSystem?.currentXP || user?.xp || 0}
+                        totalWorkouts={avatarState?.totalWorkouts || user?.progressSystem?.totalWorkoutsCompleted || user?.totalWorkouts || 0}
                     />
                 </TouchableOpacity>
 
@@ -291,7 +289,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         <View style={styles.workoutHeader}>
                             <View>
                                 <Text style={styles.workoutTitle}>Today's Workout 🎯</Text>
-                                <Text style={styles.workoutFocus}>{todaysWorkout.focus}</Text>
+                                <Text style={styles.workoutFocus}>{getSimplifiedFocus(todaysWorkout.focus)}</Text>
                             </View>
                         </View>
 
@@ -370,7 +368,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                 <Text style={styles.nextWorkoutLabel}>Preview: Next Workout 🔜</Text>
                                 <BlurView intensity={15} tint="dark" style={styles.nextWorkoutCard}>
                                     <View style={styles.nextWorkoutHeader}>
-                                        <Text style={styles.nextWorkoutTitle}>{nextWorkout.focus}</Text>
+                                        <Text style={styles.nextWorkoutTitle}>{getSimplifiedFocus(nextWorkout.focus)}</Text>
                                         <Text style={styles.nextWorkoutDay}>
                                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][nextWorkout.dayOfWeek || 0]}
                                         </Text>
@@ -498,7 +496,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                                         <View style={styles.detailsTitleContainer}>
                                             <MaterialCommunityIcons name="flash" size={24} color={Colors.accentCyan} />
                                             <Text style={styles.detailsTitle}>
-                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.focus || 'Workout'}
+                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - {getSimplifiedFocus(currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.focus || 'Workout')}
+
                                             </Text>
                                         </View>
                                         <View style={styles.detailsDurationBadge}>
@@ -563,15 +562,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
 
 
-                {/* DB Sync Button
-                {__DEV__ && (
-                    <TouchableOpacity
-                        style={[styles.logoutButton, { marginTop: 20, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' }]}
-                        onPress={handleSeedData}
-                    >
-                        <Text style={[styles.logoutText, { color: Colors.accentCyan }]}>🧪 Fix Schedule & AI Images</Text>
-                    </TouchableOpacity>
-                )} */}
+
 
 
 
@@ -977,8 +968,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: Spacing.s,
         paddingVertical: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.glassBorder,
+        // Removed borderBottomWidth as requested
     },
     detailExerciseNumber: {
         color: Colors.accentCyan,

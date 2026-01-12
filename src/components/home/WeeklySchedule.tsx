@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Spacing, Layout } from '../../theme/Theme';
 import { WorkoutPlan } from '../../types';
+import { getSimplifiedFocus } from '../../utils/workoutUtils';
+
 
 interface WeeklyScheduleProps {
     currentPlan: WorkoutPlan;
@@ -25,7 +27,7 @@ export const WeeklySchedule: React.FC<WeeklyScheduleProps> = ({
                     const session = currentPlan.sessions.find(s => s.dayOfWeek === dayOfWeek);
                     const isToday = new Date().getDay() === dayOfWeek;
                     const isSelected = selectedDayIndex === idx;
-                    const isSunday = idx === 6;
+                    const isRest = session?.isRestDay || session?.type === 'rest';
 
                     return (
                         <TouchableOpacity
@@ -35,23 +37,23 @@ export const WeeklySchedule: React.FC<WeeklyScheduleProps> = ({
                                 styles.gridDayCard,
                                 isToday && styles.gridDayToday,
                                 isSelected && styles.gridDaySelected,
-                                isSunday && styles.gridDayRest
+                                isRest && styles.gridDayRest
                             ]}
                         >
                             <Text style={[
                                 styles.gridDayLabel,
                                 isToday && styles.gridDayLabelToday,
                                 isSelected && styles.gridDayLabelSelected,
-                                isSunday && styles.gridDayLabelRest
+                                isRest && styles.gridDayLabelRest
                             ]}>{day}</Text>
-                            <Text style={styles.gridDayIcon}>{isSunday ? '🧘' : '💪'}</Text>
+                            <Text style={styles.gridDayIcon}>{isRest ? '🧘' : '💪'}</Text>
                             <Text style={[
                                 styles.gridDayFocus,
                                 isToday && styles.gridDayFocusToday,
                                 isSelected && styles.gridDayFocusSelected,
-                                isSunday && styles.gridDayFocusRest
+                                isRest && styles.gridDayFocusRest
                             ]} numberOfLines={1}>
-                                {isSunday ? 'Rest' : (session?.focus?.split('(')[0].trim() || 'Workout')}
+                                {isRest ? 'Rest' : getSimplifiedFocus(session?.focus || 'Workout')}
                             </Text>
                         </TouchableOpacity>
                     );

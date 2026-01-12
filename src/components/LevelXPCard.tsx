@@ -56,7 +56,7 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
                     </View>
                 </View>
 
-                <View style={styles.barContainer}>
+                <View style={[styles.barContainer, { marginBottom: 8 }]}>
                     <View style={styles.barBg}>
                         <LinearGradient
                             colors={Gradients.primary}
@@ -69,6 +69,11 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
                         />
                     </View>
                     <Text style={styles.percentage}>{getXPText()}</Text>
+                </View>
+
+                <View style={styles.statsRow}>
+                    <Text style={styles.statLabel}>Total Workouts</Text>
+                    <Text style={styles.statValue}>{totalWorkouts}</Text>
                 </View>
             </BlurView>
         </View>
@@ -145,5 +150,24 @@ const styles = StyleSheet.create({
         color: Colors.accentCyan,
         textAlign: 'right',
         minWidth: 100,
+    },
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: Spacing.s,
+        paddingTop: Spacing.s,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.1)',
+    },
+    statLabel: {
+        fontSize: 12,
+        color: Colors.textSecondary,
+        fontWeight: '600',
+    },
+    statValue: {
+        fontSize: 14,
+        color: Colors.textPrimary,
+        fontWeight: 'bold',
     },
 });

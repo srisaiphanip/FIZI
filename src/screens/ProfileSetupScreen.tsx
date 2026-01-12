@@ -283,8 +283,6 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 }
             };
 
-            console.log('[ProfileSetup] Profile update:', JSON.stringify(profileUpdate));
-
             // Update profile in auth slice (updates Local state and Firestore via authService)
             await dispatch(updateProfile(profileUpdate)).unwrap();
 
@@ -314,7 +312,6 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             );
         } catch (error: any) {
             setGeneratingPlan(false);
-            console.error('[ProfileSetup] Completion error:', error);
             Alert.alert('Error', error.message || 'Failed to complete setup');
         }
     };

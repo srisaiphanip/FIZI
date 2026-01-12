@@ -38,10 +38,7 @@ export class PlanGeneratorService {
             }
         };
 
-        // Enforce 6 days for beginners to ensure the new split is applied
-        if (safeProfile.fitnessProfile.experienceLevel === 'beginner') {
-            safeProfile.fitnessProfile.availableDays = 6;
-        }
+
 
         const availableExercises = this.filterExercises(safeProfile);
         const sessions = this.createSessions(safeProfile, availableExercises);
@@ -114,7 +111,8 @@ export class PlanGeneratorService {
         const { availableDays } = profile.fitnessProfile;
 
         // Determine session split pattern based on frequency
-        const splitPattern = this.determineSplitPattern(availableDays, profile.fitnessProfile.experienceLevel);
+        const targetSplit = this.determineSplitPattern(availableDays, profile.fitnessProfile.experienceLevel);
+        console.log('[PlanGen] Using Split Pattern:', targetSplit.join(', '));
         let patternIndex = 0;
 
         // Simple 28-day schedule based on frequency
@@ -127,7 +125,7 @@ export class PlanGeneratorService {
             const isWorkoutDay = this.isWorkoutDay(dayOfWeek, availableDays);
 
             if (isWorkoutDay) {
-                const focus = splitPattern[patternIndex % splitPattern.length];
+                const focus = targetSplit[patternIndex % targetSplit.length];
                 const sessionType = this.getSessionType(focus);
 
                 sessions.push({
@@ -205,9 +203,11 @@ export class PlanGeneratorService {
      * Determine optimal split pattern based on weekly frequency
      */
     private static determineSplitPattern(frequency: number, experienceLevel: string = 'intermediate'): SessionFocus[] {
+        console.log(`[PlanGen] Determine Split (v2-Fix): Freq=${frequency}, Level=${experienceLevel}`);
         if (frequency >= 6) {
-            // 6-day hybrid split: Every day is 50% Full Body Strength + 50% Cardio
-            return ['hybrid', 'hybrid', 'hybrid', 'hybrid', 'hybrid', 'hybrid'];
+            // 6-7 day high frequency split: Custom Rolling Split
+            // Index 0 is Sunday. User request: Sun=Full, Mon/Tue=Upper, Wed=Lower, Thu/Fri=Upper, Sat=Lower
+            return ['fullbody', 'upper', 'upper', 'lower', 'upper', 'upper', 'lower'];
         } else if (frequency === 5) {
             // Upper/Lower/Upper/Lower/Fullbody
             return ['upper', 'lower', 'upper', 'lower', 'fullbody'];
@@ -235,24 +235,24 @@ export class PlanGeneratorService {
 
     private static getSessionTitle(focus: SessionFocus, day: number): string {
         const titles: Record<SessionFocus, string> = {
-            upper: 'Upper Body Strength',
-            lower: 'Lower Body Strength',
-            fullbody: 'Full Body Workout',
-            cardio: 'Cardio & Conditioning',
-            recovery: 'Active Recovery & Flexibility',
-            hybrid: 'Full Body & Cardio Mix'
+            upper: 'Upper Body',
+            lower: 'Lower Body',
+            fullbody: 'Full Body',
+            cardio: 'Cardio',
+            recovery: 'Recovery',
+            hybrid: 'Full Body'
         };
         return `${titles[focus]} - Day ${day}`;
     }
 
     private static getFocusDescription(focus: SessionFocus): string {
         const descriptions: Record<SessionFocus, string> = {
-            upper: 'Chest, Back, Shoulders, Arms',
-            lower: 'Legs, Glutes, Core',
-            fullbody: 'Total Body Strength',
-            cardio: 'Cardiovascular Conditioning',
-            recovery: 'Flexibility & Mobility',
-            hybrid: '50% Strength / 50% Cardio'
+            upper: 'Upper Body',
+            lower: 'Lower Body',
+            fullbody: 'Full Body',
+            cardio: 'Cardio',
+            recovery: 'Recovery',
+            hybrid: 'Full Body'
         };
         return descriptions[focus];
     }
@@ -301,7 +301,8 @@ export class PlanGeneratorService {
     private static isWorkoutDay(day: number, frequency: number): boolean {
         // Distribute workouts evenly based on frequency
         // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-        if (frequency >= 6) return day !== 0; // 6-7 days: only rest on Sunday
+        if (frequency === 7) return true; // 7 days: no rest
+        if (frequency === 6) return day !== 0; // 6 days: rest Sunday
         if (frequency === 5) return day !== 0 && day !== 6; // 5 days: rest Sun, Sat
         if (frequency === 4) return day !== 0 && day !== 6 && day !== 3; // 4 days: rest Sun, Sat, Wed
         if (frequency === 3) return day === 2 || day === 4 || day === 6; // 3 days: Tue, Thu, Sat
@@ -325,8 +326,9 @@ export class PlanGeneratorService {
         const warmupExercises = this.selectWarmupExercises(pool, 1);
         selected.push(...warmupExercises);
 
-        // Select main exercises based on focus
-        const mainExercises = this.selectMainExercises(pool, focus, 5);
+        // Select main exercises based on focus and level
+        const mainCount = this.getMainExerciseCount(profile.fitnessProfile.experienceLevel);
+        const mainExercises = this.selectMainExercises(pool, focus, mainCount);
         selected.push(...mainExercises);
 
         // Add cooldown exercises
@@ -384,6 +386,24 @@ export class PlanGeneratorService {
 
         if (focus === 'upper') {
             targetMuscles = ['chest', 'back', 'shoulders', 'arms'];
+            // Upper body days now include 1 cardio exercise at the end
+            const cardioCount = 1;
+            const strengthCount = Math.max(1, count - cardioCount);
+
+            const strengthPool = pool.filter(ex =>
+                ex.category === 'strength' &&
+                (ex.muscleGroups as string[]).some(mg => targetMuscles.includes(mg))
+            );
+            const strengthExercises = this.balanceMuscleGroups(strengthPool, targetMuscles, strengthCount);
+
+            const cardioPool = pool.filter(ex => {
+                const matchesCategory = ex.category === 'cardio' || ex.category === 'plyometric';
+                const isWarmupCooldown = ex.id === 'running-in-place' || ex.id === 'jumping-jacks' || ex.id === 'high-knees';
+                return matchesCategory && !isWarmupCooldown;
+            });
+            const cardioExercises = this.randomSelect(cardioPool, cardioCount);
+
+            return [...strengthExercises, ...cardioExercises];
         } else if (focus === 'lower') {
             targetMuscles = ['legs', 'core'];
         } else if (focus === 'fullbody') {
@@ -614,6 +634,17 @@ ${guidance.mentalRecovery.slice(0, 2).map((activity: string) => `• ${activity}
 **Hydration Goal:** ${guidance.hydrationGoal}
 
 Remember: Rest days are when your muscles actually grow and adapt. They're just as important as workout days!`;
+    }
+    /**
+     * Get number of main exercises based on user level
+     */
+    private static getMainExerciseCount(level: string): number {
+        switch (level) {
+            case 'beginner': return 2;
+            case 'intermediate': return 3;
+            case 'advanced': return 4;
+            default: return 3;
+        }
     }
 }
 

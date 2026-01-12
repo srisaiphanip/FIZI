@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "ai-fitness-trainer",
-    "slug": "ai-fitness-trainer",
-    "scheme": "ai-fitness-trainer",
-    "version": "1.0.1",
+    "name": "FIZI-Fitness and Workouts",
+    "slug": "fizi",
+    "scheme": "fizi",
+    "version": "1.0.2",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -28,7 +28,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.maheshchalla.fizi",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {},
     "extra": {

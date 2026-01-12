@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { uploadPhoto, signOut, updateProfile } from '../store/slices/authSlice';
+import { UserProfile } from '../types';
 import {
     avatarService,
     AvatarState,
@@ -33,6 +34,20 @@ import {
 import { exercises } from '../models/exercises'; // Import exercises data
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const COMMON_HEALTH_ISSUES = [
+    'knee_pain', 'lower_back_pain', 'shoulder_injury', 'wrist_pain',
+    'ankle_injury', 'hip_injury', 'neck_pain', 'heart_condition'
+];
+
+const EQUIPMENT_OPTIONS = [
+    { id: 'dumbbells', label: 'Dumbbells' },
+    { id: 'resistance_bands', label: 'Resistance Bands' },
+    { id: 'pull_up_bar', label: 'Pull-up Bar' },
+    { id: 'yoga_mat', label: 'Yoga Mat' },
+    { id: 'bench', label: 'Bench' },
+    { id: 'kettlebells', label: 'Kettlebells' },
+];
 
 interface AvatarScreenProps {
     navigation: any;
@@ -51,10 +66,16 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
     // Edit Profile State
     const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [editName, setEditName] = useState('');
     const [editAge, setEditAge] = useState('');
     const [editWeight, setEditWeight] = useState('');
     const [editHeight, setEditHeight] = useState('');
     const [editGender, setEditGender] = useState('');
+    const [editFitnessGoal, setEditFitnessGoal] = useState<UserProfile['fitnessGoal']>('muscle_gain');
+    const [editExperienceLevel, setEditExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+    const [editEquipmentAccess, setEditEquipmentAccess] = useState<'bodyweight' | 'home' | 'gym'>('bodyweight');
+    const [editHealthIssues, setEditHealthIssues] = useState<string[]>([]);
+    const [editAvailableEquipment, setEditAvailableEquipment] = useState<string[]>([]);
 
     useEffect(() => {
         loadAvatarState();
@@ -140,41 +161,62 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     };
 
     const startEditingProfile = () => {
-        if (user) {
-            setEditAge(user.age?.toString() || '');
-            setEditWeight(user.weight?.toString() || '');
-            setEditHeight(user.height?.toString() || '');
-            setEditGender(user.gender || 'male');
-            setIsEditingProfile(true);
-        }
+        setEditName(user?.displayName || '');
+        setEditWeight(user?.weight?.toString() || '');
+        setEditHeight(user?.height?.toString() || '');
+        setEditAge(user?.age?.toString() || '');
+        setEditFitnessGoal(user?.fitnessGoal || 'muscle_gain');
+        setEditExperienceLevel(user?.workoutExperience || (user?.fitnessProfile?.experienceLevel as any) || 'beginner');
+        setEditEquipmentAccess(user?.fitnessProfile?.equipmentAccess || 'bodyweight');
+        setEditHealthIssues(user?.fitnessProfile?.healthIssues || []);
+        setEditAvailableEquipment(user?.fitnessProfile?.availableEquipment || []);
+        setIsEditingProfile(true);
     };
 
     const handleSaveProfile = async () => {
-        const age = parseInt(editAge);
-        const weight = parseFloat(editWeight);
-        const height = parseFloat(editHeight);
-
-        if (isNaN(age) || isNaN(weight) || isNaN(height)) {
-            Alert.alert('Invalid Input', 'Please enter valid numbers');
-            return;
-        }
-
         try {
-            await dispatch(updateProfile({
-                age,
-                weight,
-                height,
-                gender: editGender as any
-            })).unwrap();
+            const updates: Partial<UserProfile> = {
+                displayName: editName,
+                weight: parseFloat(editWeight) || 0,
+                height: parseFloat(editHeight) || 0,
+                age: parseInt(editAge) || 0,
+                fitnessGoal: editFitnessGoal,
+                workoutExperience: editExperienceLevel,
+                fitnessProfile: {
+                    ...(user?.fitnessProfile || {
+                        availableDays: 4, // Default value if fitnessProfile doesn't exist
+                        fitnessGoals: [editFitnessGoal],
+                        healthIssues: [],
+                        availableEquipment: [],
+                        experienceLevel: editExperienceLevel,
+                        equipmentAccess: editEquipmentAccess
+                    }),
+                    experienceLevel: editExperienceLevel,
+                    equipmentAccess: editEquipmentAccess,
+                    healthIssues: editHealthIssues,
+                    availableEquipment: editAvailableEquipment as any[],
+                }
+            };
 
+            await dispatch(updateProfile(updates)).unwrap();
             setIsEditingProfile(false);
-            loadAvatarState(); // Reload avatar state to reflect changes (e.g. body metrics)
             Alert.alert('Success', 'Profile updated successfully');
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to update profile');
         }
     };
 
+    const toggleEditHealthIssue = (issue: string) => {
+        setEditHealthIssues(prev =>
+            prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]
+        );
+    };
+
+    const toggleEditEquipment = (equipment: string) => {
+        setEditAvailableEquipment(prev =>
+            prev.includes(equipment) ? prev.filter(e => e !== equipment) : [...prev, equipment]
+        );
+    };
 
 
     const getAvatarEmoji = (level: number): string => {
@@ -274,6 +316,55 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             bodyAge: Math.max(15, Math.min(100, metabolicAge)),
             skeletalMuscle: parseFloat(Math.max(10, Math.min(50, skeletalMuscleKg)).toFixed(1)),
         };
+    };
+
+    const getMetricStatusColor = (type: string, value: number) => {
+        if (!user || value === undefined) return Colors.textPrimary;
+        const gender = user.gender || 'male';
+        const age = user.age || 30;
+
+        switch (type) {
+            case 'bmi':
+                if (value >= 18.5 && value < 25) return Colors.accentSuccess;
+                if ((value >= 25 && value < 30) || (value < 18.5)) return Colors.accentYellow;
+                return Colors.accentError;
+            case 'bodyFat':
+                // thresholds in kg, need to convert to % for meaningful comparison with general ranges if possible,
+                // but thresholds in my plan were for %, and bodyComp returns kg.
+                // Let's recalculate % for the check.
+                const bfPercent = (value / (user.weight || 70)) * 100;
+                if (gender === 'male') {
+                    if (bfPercent >= 10 && bfPercent <= 20) return Colors.accentSuccess;
+                    if (bfPercent > 20 && bfPercent <= 25) return Colors.accentYellow;
+                    return Colors.accentError;
+                } else {
+                    if (bfPercent >= 18 && bfPercent <= 28) return Colors.accentSuccess;
+                    if (bfPercent > 28 && bfPercent <= 33) return Colors.accentYellow;
+                    return Colors.accentError;
+                }
+            case 'visceralFat':
+                if (value < 10) return Colors.accentSuccess;
+                if (value >= 10 && value < 15) return Colors.accentYellow;
+                return Colors.accentError;
+            case 'skeletalMuscle':
+                // value is in kg. Calculate % of body weight.
+                const smPercent = (value / (user.weight || 70)) * 100;
+                if (gender === 'male') {
+                    if (smPercent > 40) return Colors.accentSuccess;
+                    if (smPercent >= 33 && smPercent <= 40) return Colors.accentYellow;
+                    return Colors.accentError;
+                } else {
+                    if (smPercent > 30) return Colors.accentSuccess;
+                    if (smPercent >= 24 && smPercent <= 30) return Colors.accentYellow;
+                    return Colors.accentError;
+                }
+            case 'bodyAge':
+                if (value <= age) return Colors.accentSuccess;
+                if (value <= age + 5) return Colors.accentYellow;
+                return Colors.accentError;
+            default:
+                return Colors.textPrimary;
+        }
     };
 
     const bodyComp = getBodyComposition();
@@ -715,6 +806,21 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             </View>
 
                             <View style={styles.infoRow}>
+                                <Text style={styles.infoLabel}>Name</Text>
+                                {isEditingProfile ? (
+                                    <TextInput
+                                        style={styles.editInput}
+                                        value={editName}
+                                        onChangeText={setEditName}
+                                        placeholder="Name"
+                                        placeholderTextColor={Colors.textTertiary}
+                                    />
+                                ) : (
+                                    <Text style={styles.infoValue}>{user?.displayName || '--'}</Text>
+                                )}
+                            </View>
+
+                            <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Age</Text>
                                 {isEditingProfile ? (
                                     <TextInput
@@ -785,7 +891,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             <View style={styles.infoRow}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.infoLabel}>Current BMI</Text>
-                                    <Text style={styles.infoValue}>{bodyComp?.bmi?.toFixed(1) || '--'}</Text>
+                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('bmi', bodyComp?.bmi || 0) }]}>{bodyComp?.bmi?.toFixed(1) || '--'}</Text>
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
@@ -796,7 +902,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             <View style={styles.infoRow}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.infoLabel}>Body Fat</Text>
-                                    <Text style={styles.infoValue}>{bodyComp?.bodyFat || '--'} kg</Text>
+                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('bodyFat', bodyComp?.bodyFat || 0) }]}>{bodyComp?.bodyFat || '--'} kg</Text>
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
@@ -820,7 +926,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             <View style={styles.infoRow}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.infoLabel}>Visceral Fat</Text>
-                                    <Text style={styles.infoValue}>{bodyComp?.visceralFat || '--'}%</Text>
+                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('visceralFat', bodyComp?.visceralFat || 0) }]}>{bodyComp?.visceralFat || '--'}%</Text>
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
@@ -831,7 +937,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             <View style={styles.infoRow}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.infoLabel}>Skeletal Muscle</Text>
-                                    <Text style={styles.infoValue}>{bodyComp?.skeletalMuscle || '--'} kg</Text>
+                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('skeletalMuscle', bodyComp?.skeletalMuscle || 0) }]}>{bodyComp?.skeletalMuscle || '--'} kg</Text>
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
@@ -844,7 +950,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             <View style={styles.infoRow}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.infoLabel}>Body Age</Text>
-                                    <Text style={styles.infoValue}>{bodyComp?.bodyAge || '--'} years</Text>
+                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('bodyAge', bodyComp?.bodyAge || 0) }]}>{bodyComp?.bodyAge || '--'} years</Text>
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Target</Text>
@@ -858,52 +964,147 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             <Text style={styles.modalSectionTitle}>Fitness Profile</Text>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Primary Goal</Text>
-                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
-                                    {user?.fitnessGoal?.replace('_', ' ') || '--'}
-                                </Text>
+                                {isEditingProfile ? (
+                                    <View style={styles.editOptionsContainer}>
+                                        {[
+                                            { value: 'weight_loss', label: 'Loss' },
+                                            { value: 'muscle_gain', label: 'Gain' },
+                                            { value: 'endurance', label: 'Endure' },
+                                            { value: 'flexibility', label: 'Flex' },
+                                        ].map(goal => (
+                                            <TouchableOpacity
+                                                key={goal.value}
+                                                onPress={() => setEditFitnessGoal(goal.value as any)}
+                                                style={[styles.editOptionChip, editFitnessGoal === goal.value && styles.editOptionChipActive]}
+                                            >
+                                                <Text style={[styles.editOptionText, editFitnessGoal === goal.value && styles.editOptionTextActive]}>{goal.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                        {user?.fitnessGoal?.replace('_', ' ') || '--'}
+                                    </Text>
+                                )}
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Experience</Text>
-                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
-                                    {user?.workoutExperience || '--'}
-                                </Text>
+                                {isEditingProfile ? (
+                                    <View style={styles.editOptionsContainer}>
+                                        {['beginner', 'intermediate', 'advanced'].map(exp => (
+                                            <TouchableOpacity
+                                                key={exp}
+                                                onPress={() => setEditExperienceLevel(exp as any)}
+                                                style={[styles.editOptionChip, editExperienceLevel === exp && styles.editOptionChipActive]}
+                                            >
+                                                <Text style={[styles.editOptionText, editExperienceLevel === exp && styles.editOptionTextActive]}>{exp.charAt(0).toUpperCase() + exp.slice(1, 3)}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                        {user?.fitnessProfile?.experienceLevel || user?.workoutExperience || '--'}
+                                    </Text>
+                                )}
                             </View>
 
                             {/* Equipment & Health */}
                             <Text style={styles.modalSectionTitle}>Environment & Health</Text>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Location</Text>
-                                <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
-                                    {user?.fitnessProfile?.equipmentAccess || '--'}
-                                </Text>
+                                {isEditingProfile ? (
+                                    <View style={styles.editOptionsContainer}>
+                                        {[
+                                            { value: 'bodyweight', label: 'Home' },
+                                            { value: 'home', label: 'Equip' },
+                                            { value: 'gym', label: 'Gym' },
+                                        ].map(loc => (
+                                            <TouchableOpacity
+                                                key={loc.value}
+                                                onPress={() => setEditEquipmentAccess(loc.value as any)}
+                                                style={[styles.editOptionChip, editEquipmentAccess === loc.value && styles.editOptionChipActive]}
+                                            >
+                                                <Text style={[styles.editOptionText, editEquipmentAccess === loc.value && styles.editOptionTextActive]}>{loc.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                        {user?.fitnessProfile?.equipmentAccess || '--'}
+                                    </Text>
+                                )}
                             </View>
                             <View style={styles.infoRow}>
                                 <Text style={styles.infoLabel}>Health Issues</Text>
-                                <View style={styles.tagContainer}>
-                                    {user?.fitnessProfile?.healthIssues && user.fitnessProfile.healthIssues.length > 0 ? (
-                                        user.fitnessProfile.healthIssues.map((issue, idx) => (
-                                            <View key={idx} style={styles.infoTag}>
-                                                <Text style={styles.tagText}>{issue.replace('_', ' ')}</Text>
-                                            </View>
-                                        ))
-                                    ) : (
-                                        <Text style={styles.infoValue}>None declared</Text>
-                                    )}
-                                </View>
+                                {isEditingProfile ? (
+                                    <View style={styles.tagContainer}>
+                                        {COMMON_HEALTH_ISSUES.map((issue) => (
+                                            <TouchableOpacity
+                                                key={issue}
+                                                style={[
+                                                    styles.infoTag,
+                                                    editHealthIssues.includes(issue) && { backgroundColor: Colors.accentError + '33' }
+                                                ]}
+                                                onPress={() => toggleEditHealthIssue(issue)}
+                                            >
+                                                <Text style={[
+                                                    styles.tagText,
+                                                    editHealthIssues.includes(issue) && { color: Colors.accentError }
+                                                ]}>
+                                                    {issue.replace('_', ' ')}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <View style={styles.tagContainer}>
+                                        {user?.fitnessProfile?.healthIssues && user.fitnessProfile.healthIssues.length > 0 ? (
+                                            user.fitnessProfile.healthIssues.map((issue, idx) => (
+                                                <View key={idx} style={styles.infoTag}>
+                                                    <Text style={styles.tagText}>{issue.replace('_', ' ')}</Text>
+                                                </View>
+                                            ))
+                                        ) : (
+                                            <Text style={styles.infoValue}>None declared</Text>
+                                        )}
+                                    </View>
+                                )}
                             </View>
                             <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
                                 <Text style={styles.infoLabel}>Equipment</Text>
-                                <View style={styles.tagContainer}>
-                                    {user?.fitnessProfile?.availableEquipment && user.fitnessProfile.availableEquipment.length > 0 ? (
-                                        user.fitnessProfile.availableEquipment.map((eq, idx) => (
-                                            <View key={idx} style={[styles.infoTag, { backgroundColor: 'rgba(7, 185, 231, 0.1)' }]}>
-                                                <Text style={[styles.tagText, { color: Colors.accentCyan }]}>{eq.replace('_', ' ')}</Text>
-                                            </View>
-                                        ))
-                                    ) : (
-                                        <Text style={styles.infoValue}>Bodyweight only</Text>
-                                    )}
-                                </View>
+                                {isEditingProfile ? (
+                                    <View style={styles.tagContainer}>
+                                        {EQUIPMENT_OPTIONS.map((eq) => (
+                                            <TouchableOpacity
+                                                key={eq.id}
+                                                style={[
+                                                    styles.infoTag,
+                                                    editAvailableEquipment.includes(eq.id) && { backgroundColor: Colors.accentCyan + '33' }
+                                                ]}
+                                                onPress={() => toggleEditEquipment(eq.id)}
+                                            >
+                                                <Text style={[
+                                                    styles.tagText,
+                                                    editAvailableEquipment.includes(eq.id) && { color: Colors.accentCyan }
+                                                ]}>
+                                                    {eq.label}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ) : (
+                                    <View style={styles.tagContainer}>
+                                        {user?.fitnessProfile?.availableEquipment && user.fitnessProfile.availableEquipment.length > 0 ? (
+                                            user.fitnessProfile.availableEquipment.map((eq, idx) => (
+                                                <View key={idx} style={[styles.infoTag, { backgroundColor: 'rgba(7, 185, 231, 0.1)' }]}>
+                                                    <Text style={[styles.tagText, { color: Colors.accentCyan }]}>{eq.replace('_', ' ')}</Text>
+                                                </View>
+                                            ))
+                                        ) : (
+                                            <Text style={styles.infoValue}>Bodyweight only</Text>
+                                        )}
+                                    </View>
+                                )}
                             </View>
                         </ScrollView>
 
@@ -1666,5 +1867,32 @@ const styles = StyleSheet.create({
         fontSize: 12,
         textAlign: 'center',
         fontStyle: 'italic',
+    },
+    editOptionsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        justifyContent: 'flex-end',
+        flex: 2,
+    },
+    editOptionChip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    editOptionChipActive: {
+        backgroundColor: Colors.primaryStart,
+        borderColor: Colors.primaryStart,
+    },
+    editOptionText: {
+        color: Colors.textSecondary,
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    editOptionTextActive: {
+        color: Colors.textPrimary,
     },
 });
