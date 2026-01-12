@@ -15,10 +15,10 @@
         "NSMicrophoneUsageDescription": "This app needs microphone access for voice commands."
       }
     },
-    "icon": "./assets/app-icon.png",
+    "icon": "assets/app-icon.png",
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/app-icon.png",
+        "foregroundImage": "assets/app-icon.png",
         "backgroundColor": "#0A0E27"
       },
       "permissions": [
