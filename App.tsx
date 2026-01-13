@@ -22,13 +22,11 @@ import ExerciseInstructionsScreen from './src/screens/ExerciseInstructionsScreen
 import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 
-import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 
-import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
 
-export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'PrivacyPolicy' | 'TermsOfService' | 'AboutUs' | 'DataUsage';
+export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -112,7 +110,7 @@ function AppContent() {
 
     // 2. Authenticated State - Manual Navigation Check
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'PrivacyPolicy' || currentScreen === 'TermsOfService' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage') {
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage') {
       return;
     }
 
@@ -212,10 +210,6 @@ function AppContent() {
         return <LevelProgressScreen navigation={navigation} />;
       case 'ExerciseLibrary':
         return <ExerciseLibraryScreen navigation={navigation} />;
-      case 'PrivacyPolicy':
-        return <PrivacyPolicyScreen navigation={navigation} />;
-      case 'TermsOfService':
-        return <TermsOfServiceScreen navigation={navigation} />;
       case 'AboutUs':
         return <AboutUsScreen navigation={navigation} />;
       case 'DataUsage':

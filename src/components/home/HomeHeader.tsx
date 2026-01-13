@@ -10,9 +10,9 @@ interface HomeHeaderProps {
 export const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onAvatarPress }) => {
     return (
         <View style={styles.header}>
-            <View>
+            <View style={{ flex: 1, marginRight: Spacing.m }}>
                 <Text style={styles.greeting}>Hello,</Text>
-                <Text style={styles.title}>{user?.displayName || 'Champion'}! 👋</Text>
+                <Text style={styles.title} numberOfLines={2}>{user?.displayName || 'Champion'}! 👋</Text>
             </View>
             <TouchableOpacity style={styles.avatarCircle} onPress={onAvatarPress}>
                 {user?.photoURL ? (

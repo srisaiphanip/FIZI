@@ -8,12 +8,12 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
-    Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { signIn, clearError } from '../store/slices/authSlice';
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
+import CustomAlert from '../components/CustomAlert';
 
 interface LoginScreenProps {
     navigation: any;
@@ -22,30 +22,63 @@ interface LoginScreenProps {
 export default function LoginScreen({ navigation }: LoginScreenProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertConfig, setAlertConfig] = useState<{
+        title: string;
+        message: string;
+        type: 'error' | 'success' | 'warning' | 'info';
+        buttons: Array<{ text: string; onPress: () => void; style?: 'default' | 'cancel' }>;
+    } | null>(null);
     const dispatch = useAppDispatch();
     const { loading, error } = useAppSelector((state) => state.auth);
 
     React.useEffect(() => {
         if (error) {
-            if (error === 'No account found with this email') {
-                Alert.alert(
-                    'Account Not Found',
-                    'No account exists with this email. Would you like to create one?',
-                    [
-                        { text: 'Cancel', style: 'cancel' },
-                        { text: 'Sign Up', onPress: () => navigation.navigate('Signup') }
+            // Debug: Log the actual error to console
+            console.log('Login error received:', error);
+
+            // Check if it's a "user not found" or "invalid credential" error
+            // auth/invalid-credential means either user doesn't exist OR wrong password (Firebase doesn't distinguish for security)
+            if (error.includes('No account found') ||
+                error.includes('user-not-found') ||
+                error.includes('Invalid email or password')) {
+                setAlertConfig({
+                    title: 'Login Failed',
+                    message: "Invalid email or password. Don't have an account yet?",
+                    type: 'error',
+                    buttons: [
+                        { text: 'Try Again', onPress: () => { }, style: 'cancel' },
+                        { text: 'Sign Up', onPress: () => navigation.navigate('Signup', { prefillEmail: email }) }
                     ]
-                );
+                });
+                setAlertVisible(true);
             } else {
-                Alert.alert('Login Error', error);
+                // Show the specific error message from Firebase
+                setAlertConfig({
+                    title: 'Login Error',
+                    message: error,
+                    type: 'error',
+                    buttons: [
+                        { text: 'OK', onPress: () => { }, style: 'default' }
+                    ]
+                });
+                setAlertVisible(true);
             }
             dispatch(clearError());
         }
-    }, [error]);
+    }, [error, email, navigation, dispatch]);
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            setAlertConfig({
+                title: 'Error',
+                message: 'Please fill in all fields',
+                type: 'warning',
+                buttons: [
+                    { text: 'OK', onPress: () => { }, style: 'default' }
+                ]
+            });
+            setAlertVisible(true);
             return;
         }
 
@@ -120,6 +153,17 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                     </View>
                 </View>
             </KeyboardAvoidingView>
+
+            {alertConfig && (
+                <CustomAlert
+                    visible={alertVisible}
+                    title={alertConfig.title}
+                    message={alertConfig.message}
+                    type={alertConfig.type}
+                    buttons={alertConfig.buttons}
+                    onDismiss={() => setAlertVisible(false)}
+                />
+            )}
         </LinearGradient>
     );
 }

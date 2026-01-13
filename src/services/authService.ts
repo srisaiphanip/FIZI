@@ -94,6 +94,12 @@ class AuthService {
 
             return userProfile;
         } catch (error: any) {
+            // Debug logging
+            console.log('Firebase signIn error:', {
+                code: error.code,
+                message: error.message,
+                fullError: error
+            });
             throw new Error(this.handleAuthError(error.code));
         }
     }
@@ -256,6 +262,10 @@ class AuthService {
                 return 'No account found with this email';
             case 'auth/wrong-password':
                 return 'Incorrect password';
+            case 'auth/invalid-credential':
+                // This error means either user doesn't exist OR wrong password
+                // For security, Firebase doesn't distinguish between them
+                return 'Invalid email or password';
             case 'auth/too-many-requests':
                 return 'Too many attempts. Please try again later';
             case 'auth/network-request-failed':

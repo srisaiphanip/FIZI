@@ -25,8 +25,21 @@ export default function SignupScreen({ navigation }: SignupScreenProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const passwordInputRef = React.useRef<TextInput>(null);
     const dispatch = useAppDispatch();
     const { loading, error } = useAppSelector((state) => state.auth);
+
+    // Pre-fill email if coming from login screen
+    React.useEffect(() => {
+        const prefillEmail = navigation.params?.prefillEmail;
+        if (prefillEmail) {
+            setEmail(prefillEmail);
+            // Focus on password field after a short delay
+            setTimeout(() => {
+                passwordInputRef.current?.focus();
+            }, 100);
+        }
+    }, [navigation.params]);
 
     React.useEffect(() => {
         if (error) {
@@ -108,6 +121,7 @@ export default function SignupScreen({ navigation }: SignupScreenProps) {
                             <View style={styles.inputContainer}>
                                 <Text style={styles.label}>Password</Text>
                                 <TextInput
+                                    ref={passwordInputRef}
                                     style={styles.input}
                                     placeholder="Create a password"
                                     placeholderTextColor={Colors.textTertiary}

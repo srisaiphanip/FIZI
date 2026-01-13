@@ -382,7 +382,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Avatar Display */}
                 <BlurView intensity={20} tint="light" style={styles.avatarCard}>
-                    <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
+                    <View>
                         <LinearGradient
                             colors={Gradients.primary}
                             style={styles.avatarCircle}
@@ -403,11 +403,8 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                     <ActivityIndicator color="#FFF" />
                                 </View>
                             )}
-                            <View style={styles.editIconBadge}>
-                                <MaterialCommunityIcons name="camera" size={20} color="white" />
-                            </View>
                         </LinearGradient>
-                    </TouchableOpacity>
+                    </View>
 
                     <Text style={styles.userName}>{user?.displayName || 'Champion'}</Text>
                     <Text style={styles.levelName}>{avatarState.levelName}</Text>
@@ -676,7 +673,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     {/* Privacy Policy */}
                     <TouchableOpacity
                         style={styles.menuItem}
-                        onPress={() => navigation.navigate('PrivacyPolicy')}
+                        onPress={() => Linking.openURL('https://github.com/fizifitnessgenie/Legal/blob/main/Privacy-Policy.md')}
                     >
                         <View style={styles.menuIconContainer}>
                             <MaterialCommunityIcons name="shield-account-outline" size={22} color={Colors.textPrimary} />
@@ -688,7 +685,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     {/* Terms of Service */}
                     <TouchableOpacity
                         style={styles.menuItem}
-                        onPress={() => navigation.navigate('TermsOfService')}
+                        onPress={() => Linking.openURL('https://github.com/fizifitnessgenie/Legal/blob/main/Terms-of-Service.md')}
                     >
                         <View style={styles.menuIconContainer}>
                             <MaterialCommunityIcons name="file-document-outline" size={22} color={Colors.textPrimary} />
