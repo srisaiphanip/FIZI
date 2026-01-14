@@ -8,6 +8,7 @@ import { auth } from './src/services/firebaseConfig';
 import { authService } from './src/services/authService';
 import { setUser } from './src/store/slices/authSlice';
 import { View, Text, BackHandler } from 'react-native';
+import { useAppDispatch } from './src/hooks/reduxHooks';
 
 // Import screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -42,12 +43,22 @@ export interface NavigationParams {
 }
 
 
+import { loadTheme } from './src/store/slices/themeSlice';
+import { useTheme } from './src/hooks/useTheme';
+
 function AppContent() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+  const { colors, isDark } = useTheme(); // Use custom hook for theme
+  const dispatch = useAppDispatch(); // Need to use typed dispatch
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('Login');
   const navigationParamsRef = useRef<NavigationParams>({});
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Load saved theme on mount
+  useEffect(() => {
+    dispatch(loadTheme());
+  }, []);
 
   // Check onboarding status on mount
   useEffect(() => {
@@ -180,9 +191,9 @@ function AppContent() {
   const renderScreen = () => {
     if (checkingOnboarding || checkingAuth) {
       return (
-        <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: '#6C63FF', fontSize: 24, fontWeight: 'bold' }}>FIZI</Text>
-          <Text style={{ color: '#999', marginTop: 10 }}>Loading your workout...</Text>
+        <View style={{ flex: 1, backgroundColor: colors.backgroundDark, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: colors.primaryStart, fontSize: 24, fontWeight: 'bold' }}>FIZI</Text>
+          <Text style={{ color: colors.textSecondary, marginTop: 10 }}>Loading your workout...</Text>
         </View>
       );
     }
@@ -221,7 +232,7 @@ function AppContent() {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       {renderScreen()}
     </>
   );

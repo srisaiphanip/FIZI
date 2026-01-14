@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, Layout } from '../../theme/Theme';
+import { Spacing, Layout, ThemeColorsType, ThemeShadowsType } from '../../theme/Theme';
+import { useTheme } from '../../hooks/useTheme';
 import { WorkoutPlan } from '../../types';
 import { getSimplifiedFocus } from '../../utils/workoutUtils';
 
@@ -18,6 +19,8 @@ export const WeeklySchedule: React.FC<WeeklyScheduleProps> = ({
     onDaySelect,
     onLayout
 }) => {
+    const { colors, shadows } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     return (
         <View style={styles.section} onLayout={onLayout}>
             <Text style={styles.sectionTitle}>📅 Weekly Schedule</Text>
@@ -36,24 +39,21 @@ export const WeeklySchedule: React.FC<WeeklyScheduleProps> = ({
                             style={[
                                 styles.gridDayCard,
                                 isToday && styles.gridDayToday,
-                                isSelected && styles.gridDaySelected,
-                                isRest && styles.gridDayRest
+                                isSelected && styles.gridDaySelected
                             ]}
                         >
                             <Text style={[
                                 styles.gridDayLabel,
                                 isToday && styles.gridDayLabelToday,
-                                isSelected && styles.gridDayLabelSelected,
-                                isRest && styles.gridDayLabelRest
+                                isSelected && styles.gridDayLabelSelected
                             ]}>{day}</Text>
-                            <Text style={styles.gridDayIcon}>{isRest ? '🧘' : '💪'}</Text>
+                            <Text style={styles.gridDayIcon}>💪</Text>
                             <Text style={[
                                 styles.gridDayFocus,
                                 isToday && styles.gridDayFocusToday,
-                                isSelected && styles.gridDayFocusSelected,
-                                isRest && styles.gridDayFocusRest
+                                isSelected && styles.gridDayFocusSelected
                             ]} numberOfLines={1}>
-                                {isRest ? 'Rest' : getSimplifiedFocus(session?.focus || 'Workout')}
+                                {getSimplifiedFocus(session?.focus || 'Workout')}
                             </Text>
                         </TouchableOpacity>
                     );
@@ -64,14 +64,14 @@ export const WeeklySchedule: React.FC<WeeklyScheduleProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
     section: {
         marginBottom: Spacing.l,
     },
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: Spacing.m,
         marginLeft: Spacing.xs,
     },
@@ -85,42 +85,45 @@ const styles = StyleSheet.create({
     gridDayCard: {
         flex: 1, // Distribute evenly
         aspectRatio: 0.6,
-        borderRadius: Layout.borderRadius.l, // Maximum rounding
-        backgroundColor: Colors.glassSurface,
+        borderRadius: Layout.borderRadius.m, // Maximum rounding
+        backgroundColor: colors.glassSurface,
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         marginHorizontal: 2, // Minimal spacing
+        ...shadows.small,
     },
     gridDayToday: {
-        backgroundColor: 'rgba(124, 58, 237, 0.2)', // Primary purple tint
-        borderColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart + '33', // 20% opacity
+        borderColor: colors.primaryStart,
     },
     gridDaySelected: {
-        backgroundColor: Colors.primaryStart,
-        borderColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart,
+        borderColor: colors.primaryStart,
         transform: [{ scale: 1.05 }],
+        ...shadows.glow,
     },
     gridDayRest: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: colors.glassSurface,
+        borderColor: colors.glassBorder,
+        opacity: 0.6,
     },
     gridDayLabel: {
         fontSize: 11,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '600',
         marginBottom: 4,
     },
     gridDayLabelToday: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontWeight: 'bold',
     },
     gridDayLabelSelected: {
         color: '#FFFFFF',
     },
     gridDayLabelRest: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
     },
     gridDayIcon: {
         fontSize: 16,
@@ -128,25 +131,25 @@ const styles = StyleSheet.create({
     },
     gridDayFocus: {
         fontSize: 9,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
         width: '100%',
         paddingHorizontal: 2,
     },
     gridDayFocusToday: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: '600',
     },
     gridDayFocusSelected: {
         color: 'rgba(255, 255, 255, 0.9)',
     },
     gridDayFocusRest: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontStyle: 'italic',
     },
     gridHint: {
         fontSize: 12,
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         textAlign: 'center',
         marginTop: Spacing.s,
     },

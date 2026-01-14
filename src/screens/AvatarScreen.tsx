@@ -5,7 +5,7 @@
  * achievements, and level progression.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     View,
     Text,
@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { uploadPhoto, signOut, updateProfile } from '../store/slices/authSlice';
+import { regenerateUserPlan } from '../store/slices/workoutPlanSlice';
 import { UserProfile } from '../types';
 import {
     avatarService,
@@ -32,7 +33,8 @@ import {
     ACHIEVEMENTS
 } from '../services/AvatarService';
 import { exercises } from '../models/exercises'; // Import exercises data
-import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
+import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const COMMON_HEALTH_ISSUES = [
@@ -55,6 +57,8 @@ interface AvatarScreenProps {
 
 export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const dispatch = useAppDispatch();
+    const { colors, gradients, shadows, isDark, toggleTheme } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const { user, loading: authLoading } = useAppSelector((state) => state.auth);
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
     const [loading, setLoading] = useState(true);
@@ -198,9 +202,13 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 }
             };
 
-            await dispatch(updateProfile(updates)).unwrap();
+            const updatedProfile = await dispatch(updateProfile(updates)).unwrap();
+
+            // 2. Trigger Plan Regeneration with updated profile
+            await dispatch(regenerateUserPlan(updatedProfile)).unwrap();
+
             setIsEditingProfile(false);
-            Alert.alert('Success', 'Profile updated successfully');
+            Alert.alert('Success', 'Profile and Workout Plan updated successfully');
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to update profile');
         }
@@ -235,15 +243,15 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
     if (loading) {
         return (
-            <LinearGradient colors={Gradients.background} style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.primaryStart} />
+            <LinearGradient colors={gradients.background} style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primaryStart} />
             </LinearGradient>
         );
     }
 
     if (!avatarState) {
         return (
-            <LinearGradient colors={Gradients.background} style={styles.container}>
+            <LinearGradient colors={gradients.background} style={styles.container}>
                 <Text style={styles.errorText}>Failed to load avatar</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Home')}>
                     <Text style={styles.backLink}>Go Back</Text>
@@ -319,58 +327,58 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     };
 
     const getMetricStatusColor = (type: string, value: number) => {
-        if (!user || value === undefined) return Colors.textPrimary;
+        if (!user || value === undefined) return colors.textPrimary;
         const gender = user.gender || 'male';
         const age = user.age || 30;
 
         switch (type) {
             case 'bmi':
-                if (value >= 18.5 && value < 25) return Colors.accentSuccess;
-                if ((value >= 25 && value < 30) || (value < 18.5)) return Colors.accentYellow;
-                return Colors.accentError;
+                if (value >= 18.5 && value < 25) return colors.accentSuccess;
+                if ((value >= 25 && value < 30) || (value < 18.5)) return colors.accentYellow;
+                return colors.accentError;
             case 'bodyFat':
                 // thresholds in kg, need to convert to % for meaningful comparison with general ranges if possible,
                 // but thresholds in my plan were for %, and bodyComp returns kg.
                 // Let's recalculate % for the check.
                 const bfPercent = (value / (user.weight || 70)) * 100;
                 if (gender === 'male') {
-                    if (bfPercent >= 10 && bfPercent <= 20) return Colors.accentSuccess;
-                    if (bfPercent > 20 && bfPercent <= 25) return Colors.accentYellow;
-                    return Colors.accentError;
+                    if (bfPercent >= 10 && bfPercent <= 20) return colors.accentSuccess;
+                    if (bfPercent > 20 && bfPercent <= 25) return colors.accentYellow;
+                    return colors.accentError;
                 } else {
-                    if (bfPercent >= 18 && bfPercent <= 28) return Colors.accentSuccess;
-                    if (bfPercent > 28 && bfPercent <= 33) return Colors.accentYellow;
-                    return Colors.accentError;
+                    if (bfPercent >= 18 && bfPercent <= 28) return colors.accentSuccess;
+                    if (bfPercent > 28 && bfPercent <= 33) return colors.accentYellow;
+                    return colors.accentError;
                 }
             case 'visceralFat':
-                if (value < 10) return Colors.accentSuccess;
-                if (value >= 10 && value < 15) return Colors.accentYellow;
-                return Colors.accentError;
+                if (value < 10) return colors.accentSuccess;
+                if (value >= 10 && value < 15) return colors.accentYellow;
+                return colors.accentError;
             case 'skeletalMuscle':
                 // value is in kg. Calculate % of body weight.
                 const smPercent = (value / (user.weight || 70)) * 100;
                 if (gender === 'male') {
-                    if (smPercent > 40) return Colors.accentSuccess;
-                    if (smPercent >= 33 && smPercent <= 40) return Colors.accentYellow;
-                    return Colors.accentError;
+                    if (smPercent > 40) return colors.accentSuccess;
+                    if (smPercent >= 33 && smPercent <= 40) return colors.accentYellow;
+                    return colors.accentError;
                 } else {
-                    if (smPercent > 30) return Colors.accentSuccess;
-                    if (smPercent >= 24 && smPercent <= 30) return Colors.accentYellow;
-                    return Colors.accentError;
+                    if (smPercent > 30) return colors.accentSuccess;
+                    if (smPercent >= 24 && smPercent <= 30) return colors.accentYellow;
+                    return colors.accentError;
                 }
             case 'bodyAge':
-                if (value <= age) return Colors.accentSuccess;
-                if (value <= age + 5) return Colors.accentYellow;
-                return Colors.accentError;
+                if (value <= age) return colors.accentSuccess;
+                if (value <= age + 5) return colors.accentYellow;
+                return colors.accentError;
             default:
-                return Colors.textPrimary;
+                return colors.textPrimary;
         }
     };
 
     const bodyComp = getBodyComposition();
 
     return (
-        <LinearGradient colors={Gradients.background} style={styles.container}>
+        <LinearGradient colors={gradients.background} style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButtonGeneric}>
@@ -381,10 +389,10 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Avatar Display */}
-                <BlurView intensity={20} tint="light" style={styles.avatarCard}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.avatarCard}>
                     <View>
                         <LinearGradient
-                            colors={Gradients.primary}
+                            colors={gradients.primary}
                             style={styles.avatarCircle}
                         >
                             {user?.photoURL ? (
@@ -413,7 +421,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     {/* Streak */}
                     <View style={styles.streakContainer}>
                         <LinearGradient
-                            colors={Gradients.fire}
+                            colors={gradients.fire}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={styles.streakGradient}
@@ -438,7 +446,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             </View>
                             <View style={styles.progressBarBg}>
                                 <LinearGradient
-                                    colors={Gradients.primary}
+                                    colors={gradients.primary}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                     style={[
@@ -458,7 +466,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             </View>
                             <View style={styles.progressBarBg}>
                                 <LinearGradient
-                                    colors={Gradients.ocean}
+                                    colors={gradients.ocean}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 0 }}
                                     style={[
@@ -472,41 +480,41 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 )}
 
                 {/* User Info Section */}
-                <BlurView intensity={20} tint="light" style={styles.userInfoCard}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.userInfoCard}>
                     <TouchableOpacity
                         style={styles.userInfoButton}
                         onPress={() => setShowUserInfoModal(true)}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="account-details-outline" size={24} color={Colors.accentCyan} />
+                            <MaterialCommunityIcons name="account-details-outline" size={24} color={colors.accentCyan} />
                         </View>
                         <View style={styles.userInfoTextContainer}>
                             <Text style={styles.userInfoTitle}>User Profile Information</Text>
                             <Text style={styles.userInfoSubtitle}>View your registration details</Text>
                         </View>
-                        <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </BlurView>
 
                 {/* Exercise Library */}
-                <BlurView intensity={20} tint="light" style={styles.userInfoCard}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.userInfoCard}>
                     <TouchableOpacity
                         style={styles.userInfoButton}
                         onPress={() => navigation.navigate('ExerciseLibrary')}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="dumbbell" size={24} color={Colors.accentCyan} />
+                            <MaterialCommunityIcons name="dumbbell" size={24} color={colors.accentCyan} />
                         </View>
                         <View style={styles.userInfoTextContainer}>
                             <Text style={styles.userInfoTitle}>Browse Exercise Library</Text>
                             <Text style={styles.userInfoSubtitle}>Explore all available exercises</Text>
                         </View>
-                        <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </BlurView>
 
                 {/* Lifetime Stats */}
-                <BlurView intensity={10} tint="light" style={styles.statsCard}>
+                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.statsCard}>
                     <Text style={styles.sectionTitle}>Lifetime Stats</Text>
                     <View style={styles.statsGrid}>
                         {[
@@ -524,7 +532,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 </BlurView>
 
                 {/* Body Metrics */}
-                <BlurView intensity={15} tint="light" style={styles.metricsCard}>
+                <BlurView intensity={15} tint={isDark ? "light" : "dark"} style={styles.metricsCard}>
                     <View style={styles.metricsHeader}>
                         <Text style={styles.sectionTitle}>Body Metrics</Text>
                         <TouchableOpacity onPress={() => setShowMetricsModal(true)}>
@@ -574,7 +582,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 </BlurView>
 
                 {/* Achievements */}
-                <BlurView intensity={10} tint="light" style={styles.achievementsCard}>
+                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.achievementsCard}>
                     <Text style={styles.sectionTitle}>
                         Achievements ({avatarState.achievements.length}/{ACHIEVEMENTS.length})
                     </Text>
@@ -605,7 +613,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 </BlurView>
 
                 {/* Level Roadmap */}
-                <BlurView intensity={10} tint="light" style={styles.roadmapCard}>
+                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.roadmapCard}>
                     <Text style={styles.sectionTitle}>Level Map & Unlocks</Text>
                     {AVATAR_LEVELS.slice(0, showAllLevels ? undefined : 1).map((level) => {
                         // Find exercises that unlock at this level
@@ -661,13 +669,54 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         <MaterialCommunityIcons
                             name={showAllLevels ? 'chevron-up' : 'chevron-down'}
                             size={16}
-                            color={Colors.primaryStart}
+                            color={colors.primaryStart}
                         />
                     </TouchableOpacity>
                 </BlurView>
 
+                {/* Appearance Section */}
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
+                    <Text style={styles.sectionTitle}>Appearance</Text>
+
+                    <TouchableOpacity
+                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        onPress={toggleTheme}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons
+                                name={isDark ? "weather-night" : "white-balance-sunny"}
+                                size={22}
+                                color={colors.textPrimary}
+                            />
+                        </View>
+                        <Text style={styles.menuItemText}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
+                        <View style={{
+                            width: 50,
+                            height: 30,
+                            borderRadius: 15,
+                            backgroundColor: isDark ? colors.primaryStart : '#ddd',
+                            justifyContent: 'center',
+                            alignItems: isDark ? 'flex-end' : 'flex-start',
+                            paddingHorizontal: 2
+                        }}>
+                            <View style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: 13,
+                                backgroundColor: '#FFF',
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 2.5,
+                                elevation: 2
+                            }} />
+                        </View>
+                    </TouchableOpacity>
+                </BlurView>
+
                 {/* Support & Legal Section */}
-                <BlurView intensity={20} tint="light" style={styles.menuCard}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
                     <Text style={styles.sectionTitle}>Support & Legal</Text>
 
                     {/* Privacy Policy */}
@@ -676,10 +725,10 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         onPress={() => Linking.openURL('https://github.com/fizifitnessgenie/Legal/blob/main/Privacy-Policy.md')}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="shield-account-outline" size={22} color={Colors.textPrimary} />
+                            <MaterialCommunityIcons name="shield-account-outline" size={22} color={colors.textPrimary} />
                         </View>
                         <Text style={styles.menuItemText}>Privacy Policy</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
 
                     {/* Terms of Service */}
@@ -688,10 +737,10 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         onPress={() => Linking.openURL('https://github.com/fizifitnessgenie/Legal/blob/main/Terms-of-Service.md')}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="file-document-outline" size={22} color={Colors.textPrimary} />
+                            <MaterialCommunityIcons name="file-document-outline" size={22} color={colors.textPrimary} />
                         </View>
                         <Text style={styles.menuItemText}>Terms of Service</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
 
                     {/* About Us */}
@@ -700,10 +749,10 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         onPress={() => navigation.navigate('AboutUs')}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="information-outline" size={22} color={Colors.textPrimary} />
+                            <MaterialCommunityIcons name="information-outline" size={22} color={colors.textPrimary} />
                         </View>
                         <Text style={styles.menuItemText}>About Us</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
 
                     {/* Camera & Data Usage */}
@@ -712,10 +761,10 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         onPress={() => navigation.navigate('DataUsage')}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="camera-outline" size={22} color={Colors.textPrimary} />
+                            <MaterialCommunityIcons name="camera-outline" size={22} color={colors.textPrimary} />
                         </View>
                         <Text style={styles.menuItemText}>Camera & Data Usage</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
 
                     {/* Contact Support */}
@@ -724,15 +773,15 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com')}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="email-outline" size={22} color={Colors.textPrimary} />
+                            <MaterialCommunityIcons name="email-outline" size={22} color={colors.textPrimary} />
                         </View>
                         <Text style={styles.menuItemText}>Contact Support</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </BlurView>
 
                 {/* Account Actions Section */}
-                <BlurView intensity={20} tint="light" style={styles.menuCard}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
                     <Text style={styles.sectionTitle}>Account</Text>
 
                     {/* Sign Out */}
@@ -741,10 +790,10 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         onPress={handleSignOut}
                     >
                         <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="logout" size={22} color={Colors.textPrimary} />
+                            <MaterialCommunityIcons name="logout" size={22} color={colors.textPrimary} />
                         </View>
                         <Text style={styles.menuItemText}>Sign Out</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
 
                     {/* Delete Account */}
@@ -753,10 +802,10 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com?subject=Delete Account Request&body=Please delete my account data associated with this email.')}
                     >
                         <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(255, 59, 48, 0.1)' }]}>
-                            <MaterialCommunityIcons name="delete-outline" size={22} color={Colors.accentError} />
+                            <MaterialCommunityIcons name="delete-outline" size={22} color={colors.accentError} />
                         </View>
-                        <Text style={[styles.menuItemText, { color: Colors.accentError }]}>Delete Account</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.textTertiary} />
+                        <Text style={[styles.menuItemText, { color: colors.accentError }]}>Delete Account</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </BlurView>
 
@@ -772,7 +821,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
             {/* User Info Modal */}
             {showUserInfoModal && (
-                <BlurView intensity={80} tint="dark" style={styles.modalOverlay}>
+                <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
                     <View style={[styles.modal, { maxHeight: '80%' }]}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Registration Details</Text>
@@ -780,7 +829,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 style={styles.closeModalButton}
                                 onPress={() => setShowUserInfoModal(false)}
                             >
-                                <MaterialCommunityIcons name="close" size={24} color={Colors.textPrimary} />
+                                <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
                             </TouchableOpacity>
                         </View>
 
@@ -793,9 +842,9 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         <MaterialCommunityIcons
                                             name={isEditingProfile ? "check" : "pencil"}
                                             size={16}
-                                            color={Colors.primaryStart}
+                                            color={colors.primaryStart}
                                         />
-                                        <Text style={{ color: Colors.primaryStart, fontWeight: '600' }}>
+                                        <Text style={{ color: colors.primaryStart, fontWeight: '600' }}>
                                             {isEditingProfile ? 'Save' : 'Edit'}
                                         </Text>
                                     </View>
@@ -810,7 +859,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         value={editName}
                                         onChangeText={setEditName}
                                         placeholder="Name"
-                                        placeholderTextColor={Colors.textTertiary}
+                                        placeholderTextColor={colors.textTertiary}
                                     />
                                 ) : (
                                     <Text style={styles.infoValue}>{user?.displayName || '--'}</Text>
@@ -826,7 +875,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         onChangeText={setEditAge}
                                         keyboardType="number-pad"
                                         placeholder="Age"
-                                        placeholderTextColor={Colors.textTertiary}
+                                        placeholderTextColor={colors.textTertiary}
                                     />
                                 ) : (
                                     <Text style={styles.infoValue}>{user?.age || '--'} years</Text>
@@ -837,11 +886,11 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 {isEditingProfile ? (
                                     <View style={{ flexDirection: 'row', gap: 10 }}>
                                         <TouchableOpacity onPress={() => setEditGender('male')}>
-                                            <Text style={[styles.infoValue, editGender === 'male' && { color: Colors.primaryStart }]}>Male</Text>
+                                            <Text style={[styles.infoValue, editGender === 'male' && { color: colors.primaryStart }]}>Male</Text>
                                         </TouchableOpacity>
                                         <Text style={styles.infoValue}>|</Text>
                                         <TouchableOpacity onPress={() => setEditGender('female')}>
-                                            <Text style={[styles.infoValue, editGender === 'female' && { color: Colors.primaryStart }]}>Female</Text>
+                                            <Text style={[styles.infoValue, editGender === 'female' && { color: colors.primaryStart }]}>Female</Text>
                                         </TouchableOpacity>
                                     </View>
                                 ) : (
@@ -857,7 +906,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         onChangeText={setEditWeight}
                                         keyboardType="decimal-pad"
                                         placeholder="kg"
-                                        placeholderTextColor={Colors.textTertiary}
+                                        placeholderTextColor={colors.textTertiary}
                                     />
                                 ) : (
                                     <Text style={styles.infoValue}>{user?.weight || '--'} kg</Text>
@@ -872,7 +921,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         onChangeText={setEditHeight}
                                         keyboardType="decimal-pad"
                                         placeholder="cm"
-                                        placeholderTextColor={Colors.textTertiary}
+                                        placeholderTextColor={colors.textTertiary}
                                     />
                                 ) : (
                                     <Text style={styles.infoValue}>{user?.height || '--'} cm</Text>
@@ -892,7 +941,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>18.5 - 24.9</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>18.5 - 24.9</Text>
                                 </View>
                             </View>
 
@@ -903,7 +952,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         {user?.gender === 'male' ? '10-20%' : '18-28%'}
                                     </Text>
                                 </View>
@@ -916,7 +965,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Daily Calories</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.textSecondary }]}>Base metabolism</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.textSecondary }]}>Base metabolism</Text>
                                 </View>
                             </View>
 
@@ -927,7 +976,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>{'<10%'}</Text>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>{'<10%'}</Text>
                                 </View>
                             </View>
 
@@ -938,7 +987,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         {user?.gender === 'male' ? '>40% body wt' : '>30% body wt'}
                                     </Text>
                                 </View>
@@ -951,7 +1000,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.infoLabel, { fontSize: 11 }]}>Target</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         Equal to age ({user?.age || '--'})
                                     </Text>
                                 </View>
@@ -1040,13 +1089,13 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                                 key={issue}
                                                 style={[
                                                     styles.infoTag,
-                                                    editHealthIssues.includes(issue) && { backgroundColor: Colors.accentError + '33' }
+                                                    editHealthIssues.includes(issue) && { backgroundColor: colors.accentError + '33' }
                                                 ]}
                                                 onPress={() => toggleEditHealthIssue(issue)}
                                             >
                                                 <Text style={[
                                                     styles.tagText,
-                                                    editHealthIssues.includes(issue) && { color: Colors.accentError }
+                                                    editHealthIssues.includes(issue) && { color: colors.accentError }
                                                 ]}>
                                                     {issue.replace('_', ' ')}
                                                 </Text>
@@ -1076,13 +1125,13 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                                 key={eq.id}
                                                 style={[
                                                     styles.infoTag,
-                                                    editAvailableEquipment.includes(eq.id) && { backgroundColor: Colors.accentCyan + '33' }
+                                                    editAvailableEquipment.includes(eq.id) && { backgroundColor: colors.accentCyan + '33' }
                                                 ]}
                                                 onPress={() => toggleEditEquipment(eq.id)}
                                             >
                                                 <Text style={[
                                                     styles.tagText,
-                                                    editAvailableEquipment.includes(eq.id) && { color: Colors.accentCyan }
+                                                    editAvailableEquipment.includes(eq.id) && { color: colors.accentCyan }
                                                 ]}>
                                                     {eq.label}
                                                 </Text>
@@ -1094,7 +1143,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         {user?.fitnessProfile?.availableEquipment && user.fitnessProfile.availableEquipment.length > 0 ? (
                                             user.fitnessProfile.availableEquipment.map((eq, idx) => (
                                                 <View key={idx} style={[styles.infoTag, { backgroundColor: 'rgba(7, 185, 231, 0.1)' }]}>
-                                                    <Text style={[styles.tagText, { color: Colors.accentCyan }]}>{eq.replace('_', ' ')}</Text>
+                                                    <Text style={[styles.tagText, { color: colors.accentCyan }]}>{eq.replace('_', ' ')}</Text>
                                                 </View>
                                             ))
                                         ) : (
@@ -1111,7 +1160,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                             style={{ marginTop: 20 }}
                         >
                             <LinearGradient
-                                colors={Gradients.primary}
+                                colors={gradients.primary}
                                 style={styles.saveButton}
                             >
                                 <Text style={styles.saveButtonText}>Back to Profile</Text>
@@ -1124,7 +1173,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             {/* Metrics Modal */}
             {
                 showMetricsModal && (
-                    <BlurView intensity={50} tint="dark" style={styles.modalOverlay}>
+                    <BlurView intensity={50} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
                         <View style={styles.modal}>
                             <Text style={styles.modalTitle}>Update Body Metrics</Text>
 
@@ -1165,7 +1214,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                     style={{ flex: 1 }}
                                 >
                                     <LinearGradient
-                                        colors={Gradients.primary}
+                                        colors={gradients.primary}
                                         style={styles.saveButton}
                                     >
                                         <Text style={styles.saveButtonText}>Save</Text>
@@ -1180,7 +1229,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -1190,13 +1239,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     errorText: {
-        color: Colors.accentError,
+        color: colors.accentError,
         fontSize: 16,
         textAlign: 'center',
         marginTop: 100,
     },
     backLink: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontSize: 16,
         textAlign: 'center',
         marginTop: 20,
@@ -1212,14 +1261,14 @@ const styles = StyleSheet.create({
         marginRight: Spacing.m,
     },
     backButton: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontSize: 16,
         fontWeight: '600',
     },
     title: {
         fontSize: 28,
         fontWeight: '900',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.5,
     },
     content: {
@@ -1236,8 +1285,9 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.l,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(79, 70, 229, 0.05)',
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
+        ...shadows.card,
     },
     avatarCircle: {
         width: 160,
@@ -1246,9 +1296,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: Spacing.m,
-        ...Shadows.glow,
+        ...shadows.glow,
         borderWidth: 4,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: colors.primaryStart + '4D',
+        shadowColor: colors.primaryStart, // Override shadow color
     },
     avatarEmoji: {
         fontSize: 80,
@@ -1265,7 +1316,7 @@ const styles = StyleSheet.create({
         height: 140,
         borderRadius: 70,
         borderWidth: 4,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: colors.glassBorder,
     },
     uploadingOverlay: {
         ...StyleSheet.absoluteFillObject,
@@ -1278,15 +1329,15 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 4,
         right: 4,
-        backgroundColor: Colors.accentCyan,
+        backgroundColor: colors.accentCyan,
         width: 40,
         height: 40,
         borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
-        borderColor: Colors.backgroundDark,
-        ...Shadows.small,
+        borderColor: colors.backgroundDark,
+        ...shadows.small,
     },
     editIconText: {
         fontSize: 18,
@@ -1294,18 +1345,15 @@ const styles = StyleSheet.create({
     userName: {
         fontSize: 24, // Main name size
         fontWeight: '800',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginTop: Spacing.m,
         marginBottom: 4,
         textAlign: 'center',
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 4,
     },
     levelName: {
         fontSize: 16, // Reduced slightly to be secondary to name
         fontWeight: '600',
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         marginBottom: Spacing.xs,
         textAlign: 'center',
         textTransform: 'uppercase',
@@ -1313,7 +1361,7 @@ const styles = StyleSheet.create({
     },
     levelBadge: {
         fontSize: 15,
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         marginTop: 6,
         fontWeight: '700',
         letterSpacing: 1,
@@ -1323,7 +1371,7 @@ const styles = StyleSheet.create({
         marginTop: Spacing.m,
         overflow: 'hidden',
         borderRadius: Layout.borderRadius.round,
-        ...Shadows.small,
+        ...shadows.small,
     },
     streakGradient: {
         flexDirection: 'row',
@@ -1336,7 +1384,7 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     streakText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 15,
         fontWeight: '800',
     },
@@ -1348,8 +1396,9 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.l,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
+        ...shadows.card,
     },
     progressItem: {
         marginBottom: Spacing.m,
@@ -1361,22 +1410,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     progressLabel: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 15,
         fontWeight: '700',
     },
     progressValue: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontSize: 15,
         fontWeight: '800',
     },
     progressBarBg: {
         height: 14,
-        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: colors.glassSurface,
         borderRadius: 7,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderColor: colors.glassBorder,
     },
     progressFill: {
         height: '100%',
@@ -1397,19 +1446,20 @@ const styles = StyleSheet.create({
     },
     statItem: {
         width: '47%',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.glassSurface,
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
+        ...shadows.small,
     },
     statValue: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     statLabel: {
         fontSize: 12,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 4,
     },
 
@@ -1427,7 +1477,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     editButton: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontSize: 14,
         fontWeight: '600',
     },
@@ -1440,39 +1490,39 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     metricLabel: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
     },
     metricValue: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 24,
         fontWeight: 'bold',
     },
     unit: {
         fontSize: 14,
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontWeight: 'normal',
     },
     goalValue: {
-        color: Colors.accentSuccess,
+        color: colors.accentSuccess,
     },
     metricArrow: {
         marginHorizontal: 16,
     },
     arrowText: {
-        color: Colors.glassBorder,
+        color: colors.glassBorder,
         fontSize: 24,
     },
     addMetricsButton: {
         padding: 16,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         borderRadius: 12,
         borderStyle: 'dashed',
         alignItems: 'center',
     },
     addMetricsText: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontSize: 14,
     },
 
@@ -1503,12 +1553,12 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     achievementName: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 9, // Reduced font size
         textAlign: 'center',
     },
     achievementNameLocked: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
     },
 
     // Roadmap Card
@@ -1523,7 +1573,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         paddingVertical: 8, // Reduced vertical padding
         borderBottomWidth: 1,
-        borderBottomColor: Colors.glassBorder,
+        borderBottomColor: colors.glassBorder,
         opacity: 0.5,
     },
     roadmapItemActive: {
@@ -1545,20 +1595,20 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     roadmapName: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 16, // Increased back
         fontWeight: '600',
     },
     roadmapNameActive: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     roadmapReq: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 12, // Increased back
         marginTop: 2,
     },
     roadmapCheck: {
-        color: Colors.accentSuccess,
+        color: colors.accentSuccess,
         fontSize: 18, // Increased back
         fontWeight: 'bold',
         marginLeft: 8,
@@ -1572,13 +1622,13 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         flexDirection: 'row',
         justifyContent: 'center',
         gap: 8,
     },
     signOutButtonText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 16, // Increased back
         fontWeight: '600',
     },
@@ -1593,7 +1643,7 @@ const styles = StyleSheet.create({
         padding: 6, // Reduced padding
     },
     unlockedLabel: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontSize: 12, // Increased back
         fontWeight: 'bold',
         marginBottom: 2,
@@ -1604,7 +1654,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     unlockedItem: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12, // Increased back
         marginBottom: 1,
     },
@@ -1618,7 +1668,7 @@ const styles = StyleSheet.create({
         gap: 4,
     },
     showMoreText: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontSize: 12,
         fontWeight: '600',
     },
@@ -1635,19 +1685,19 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     modal: {
-        backgroundColor: Colors.backgroundLight,
+        backgroundColor: colors.backgroundLight,
         borderRadius: 20,
         padding: 24,
         width: '100%',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        ...Shadows.card,
+        borderColor: colors.glassBorder,
+        ...shadows.card,
     },
 
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -1655,7 +1705,7 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     inputLabel: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         marginBottom: 8,
     },
@@ -1663,10 +1713,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.2)',
         borderRadius: 12,
         padding: 16,
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 16,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
     },
     modalButtons: {
         flexDirection: 'row',
@@ -1681,7 +1731,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     cancelButtonText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: '600',
         fontSize: 16,
     },
@@ -1693,7 +1743,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     disclaimerText: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 11,
         textAlign: 'center',
         fontStyle: 'italic',
@@ -1708,7 +1758,7 @@ const styles = StyleSheet.create({
     saveButtonText: {
         color: 'white',
         fontSize: 16,
-        ...Shadows.glow,
+        ...shadows.glow,
         fontWeight: 'bold',
     },
 
@@ -1718,7 +1768,7 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.l,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         backgroundColor: 'rgba(255, 255, 255, 0.03)',
     },
     menuItem: {
@@ -1735,14 +1785,14 @@ const styles = StyleSheet.create({
     menuItemText: {
         flex: 1,
         fontSize: 16,
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: '600',
         letterSpacing: 0.3,
     },
     sectionTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         marginBottom: 8,
         marginTop: 16,
         marginLeft: 16,
@@ -1756,8 +1806,8 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.l,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
     },
     userInfoButton: {
         flexDirection: 'row',
@@ -1768,12 +1818,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     userInfoTitle: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 16,
         fontWeight: '700',
     },
     userInfoSubtitle: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 12,
         marginTop: 2,
     },
@@ -1781,12 +1831,12 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.glassSurface,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: colors.glassBorder,
     },
 
     // Modal Specific Styles
@@ -1800,7 +1850,7 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     modalSectionTitle: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontSize: 12,
         fontWeight: 'bold',
         textTransform: 'uppercase',
@@ -1820,23 +1870,23 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(255, 255, 255, 0.05)',
     },
     infoLabel: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         flex: 1,
     },
     infoValue: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 14,
         fontWeight: '600',
         textAlign: 'right',
         flex: 1.5,
     },
     editInput: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 16,
         fontWeight: '600',
         borderBottomWidth: 1,
-        borderBottomColor: Colors.primaryStart,
+        borderBottomColor: colors.primaryStart,
         paddingVertical: 2,
         minWidth: 60,
         textAlign: 'right',
@@ -1855,12 +1905,12 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     tagText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 11,
         fontWeight: '600',
     },
     summaryInfo: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 12,
         textAlign: 'center',
         fontStyle: 'italic',
@@ -1881,15 +1931,15 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     editOptionChipActive: {
-        backgroundColor: Colors.primaryStart,
-        borderColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart,
+        borderColor: colors.primaryStart,
     },
     editOptionText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 11,
         fontWeight: '600',
     },
     editOptionTextActive: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
 });

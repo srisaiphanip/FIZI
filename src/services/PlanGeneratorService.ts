@@ -71,20 +71,30 @@ export class PlanGeneratorService {
         const { currentLevel } = profile.progressSystem;
 
         const filtered = exercises.filter(ex => {
-            // 1. Level check
+            // 1. Level check - STRICT
             const isUnlocked = ex.unlockLevel <= currentLevel;
             if (!isUnlocked) return false;
 
-            // 2. Granular Equipment check
-            if (equipmentAccess === 'gym') return true;
+            // 2. Equipment access check - STRICT ENFORCEMENT
+            // Bodyweight profile MUST NOT see weighted exercises
+            if (equipmentAccess === 'bodyweight' && ex.equipmentRequired !== 'bodyweight') {
+                return false;
+            }
 
-            const hasRequiredItems = ex.requiredEquipment.length === 0 ||
-                ex.requiredEquipment.every(req => availableEquipment.includes(req));
+            // Home profile can see bodyweight and home exercises
+            if (equipmentAccess === 'home' && ex.equipmentRequired === 'gym') {
+                return false;
+            }
 
-            if (!hasRequiredItems) return false;
+            // 3. Granular Equipment check (for specific tools like dumbbells)
+            if (ex.requiredEquipment && ex.requiredEquipment.length > 0 && ex.requiredEquipment[0] !== 'none') {
+                const hasRequiredItems = ex.requiredEquipment.every(req =>
+                    availableEquipment.includes(req as any)
+                );
+                if (!hasRequiredItems && equipmentAccess !== 'gym') return false;
+            }
 
-            // 3. High-level category fallback
-            return this.checkEquipmentMatch(equipmentAccess, ex.equipmentRequired);
+            return true;
         });
 
         // Safety Fallback: If no exercises found (e.g. data mismatch), 
@@ -108,7 +118,7 @@ export class PlanGeneratorService {
      */
     private static createSessions(profile: UserProfile, availableExercises: Exercise[]): WorkoutSession[] {
         const sessions: WorkoutSession[] = [];
-        const { availableDays } = profile.fitnessProfile;
+        const availableDays = 7; // Fixed to 7 days for unified split
 
         // Determine session split pattern based on frequency
         const targetSplit = this.determineSplitPattern(availableDays, profile.fitnessProfile.experienceLevel);
@@ -121,11 +131,10 @@ export class PlanGeneratorService {
             const weekNumber = Math.floor(i / 7);
             const isDeloadWeek = weekNumber === 3; // Week 4 is deload
 
-            // Distribute workouts across the week
-            const isWorkoutDay = this.isWorkoutDay(dayOfWeek, availableDays);
+            const isWorkoutDay = true; // Every day is a workout day now
 
             if (isWorkoutDay) {
-                const focus = targetSplit[patternIndex % targetSplit.length];
+                const focus = targetSplit[dayOfWeek];
                 const sessionType = this.getSessionType(focus);
 
                 sessions.push({
@@ -150,49 +159,6 @@ export class PlanGeneratorService {
                 });
 
                 patternIndex++;
-            } else {
-                // Determine if should be active recovery or complete rest
-                const consecutiveWorkoutDays = this.getConsecutiveWorkoutDays(sessions, i);
-                const isActiveRecovery = consecutiveWorkoutDays >= 3 || (i > 0 && sessions[i - 1]?.intensity === 'high');
-
-                if (isActiveRecovery) {
-                    // Active Recovery Session
-                    const restGuidance = RecoveryService.getRestDayGuidance(profile.weight || 70);
-
-                    sessions.push({
-                        id: `recovery_${i}`,
-                        day: i + 1,
-                        dayOfWeek: i % 7,
-                        title: 'Active Recovery',
-                        focus: 'Active Recovery & Mobility',
-                        exercises: this.selectActiveRecoveryExercises(profile),
-                        status: 'scheduled',
-                        type: 'flexibility',
-                        duration: 25,
-                        isRestDay: false,
-                        intensity: 'low',
-                        warmup: 'Light movement and breathing',
-                        cooldown: 'Deep breathing and relaxation',
-                        notes: `Active recovery helps blood flow and speeds up recovery.\n\n**Benefits:**\n- Reduces muscle soreness\n- Improves mobility\n- Promotes mental relaxation\n\n**Today's Focus:**\n${restGuidance.recoveryActivities.slice(0, 3).map(a => `• ${a}`).join('\n')}`
-                    });
-                } else {
-                    // Complete Rest Day
-                    const restGuidance = RecoveryService.getRestDayGuidance(profile.weight || 70);
-
-                    sessions.push({
-                        id: `rest_${i}`,
-                        day: i + 1,
-                        dayOfWeek: i % 7,
-                        title: 'Complete Rest & Recovery',
-                        focus: 'Rest & Recovery',
-                        exercises: [],
-                        status: 'completed',
-                        type: 'rest',
-                        duration: 0,
-                        isRestDay: true,
-                        notes: this.generateRestDayNotes(restGuidance)
-                    });
-                }
             }
         }
 
@@ -203,27 +169,10 @@ export class PlanGeneratorService {
      * Determine optimal split pattern based on weekly frequency
      */
     private static determineSplitPattern(frequency: number, experienceLevel: string = 'intermediate'): SessionFocus[] {
-        console.log(`[PlanGen] Determine Split (v2-Fix): Freq=${frequency}, Level=${experienceLevel}`);
-        if (frequency >= 6) {
-            // 6-7 day high frequency split: Custom Rolling Split
-            // Index 0 is Sunday. User request: Sun=Full, Mon/Tue=Upper, Wed=Lower, Thu/Fri=Upper, Sat=Lower
-            return ['fullbody', 'upper', 'upper', 'lower', 'upper', 'upper', 'lower'];
-        } else if (frequency === 5) {
-            // Upper/Lower/Upper/Lower/Fullbody
-            return ['upper', 'lower', 'upper', 'lower', 'fullbody'];
-        } else if (frequency === 4) {
-            // Upper/Lower/Upper/Lower
-            return ['upper', 'lower', 'upper', 'lower'];
-        } else if (frequency === 3) {
-            // Full Body 3x
-            return ['fullbody', 'fullbody', 'fullbody'];
-        } else if (frequency === 2) {
-            // Full Body 2x
-            return ['fullbody', 'fullbody'];
-        } else {
-            // Full Body 1x
-            return ['fullbody'];
-        }
+        console.log(`[PlanGen] Unified Split Pattern: Freq=${frequency}, Level=${experienceLevel}`);
+        // Return consistent 7-day split sequence for all users
+        // 0=Sun (Full), 1=Mon (Upper), 2=Tue (Upper), 3=Wed (Lower), 4=Thu (Upper), 5=Fri (Upper), 6=Sat (Lower)
+        return ['fullbody', 'upper', 'upper', 'lower', 'upper', 'upper', 'lower'];
     }
 
     private static getSessionType(focus: SessionFocus): WorkoutSession['type'] {
@@ -299,15 +248,8 @@ export class PlanGeneratorService {
     }
 
     private static isWorkoutDay(day: number, frequency: number): boolean {
-        // Distribute workouts evenly based on frequency
-        // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-        if (frequency === 7) return true; // 7 days: no rest
-        if (frequency === 6) return day !== 0; // 6 days: rest Sunday
-        if (frequency === 5) return day !== 0 && day !== 6; // 5 days: rest Sun, Sat
-        if (frequency === 4) return day !== 0 && day !== 6 && day !== 3; // 4 days: rest Sun, Sat, Wed
-        if (frequency === 3) return day === 2 || day === 4 || day === 6; // 3 days: Tue, Thu, Sat
-        if (frequency === 2) return day === 2 || day === 5; // 2 days: Tue, Fri
-        return day === 3; // 1 day: Wed
+        // Every day is a workout day
+        return true;
     }
 
     /**

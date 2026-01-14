@@ -3,6 +3,7 @@ import authReducer from './slices/authSlice';
 import workoutReducer from './slices/workoutSlice';
 import workoutPlanReducer from './slices/workoutPlanSlice';
 import exerciseReducer from './slices/exerciseSlice';
+import themeReducer from './slices/themeSlice';
 
 export const store = configureStore({
     reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
         workout: workoutReducer,
         workoutPlan: workoutPlanReducer,
         exercise: exerciseReducer,
+        theme: themeReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

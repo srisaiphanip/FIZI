@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,7 +7,8 @@ import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { fetchWorkoutStats } from '../store/slices/workoutSlice';
 import { fetchWorkoutPlan } from '../store/slices/workoutPlanSlice';
 import MotivationalTip from '../components/MotivationalTip';
-import { Colors, Gradients, Spacing, Shadows, Layout } from '../theme/Theme';
+import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 import { seedAllInstructions } from '../store/slices/exerciseSlice';
 import { ExerciseInstructions, WorkoutSession } from '../types';
 import { setRecoveryStatus, updatePlanLevel, regenerateUserPlan } from '../store/slices/workoutPlanSlice';
@@ -27,6 +28,8 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
     const dispatch = useAppDispatch();
+    const { colors, gradients, shadows, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const { user } = useAppSelector((state) => state.auth);
     const { stats } = useAppSelector((state) => state.workout);
     const { currentPlan, todaysWorkout, recoveryStatus, loading: planLoading } = useAppSelector((state) => state.workoutPlan);
@@ -51,10 +54,39 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         }
 
         const today = new Date().getDay();
-        if (today !== 0) {
+        // Mon=1 -> 0, Tue=2 -> 1, ..., Sat=6 -> 5, Sun=0 -> 6
+        if (today === 0) {
+            setSelectedDayIndex(6);
+        } else {
             setSelectedDayIndex(today - 1);
         }
-    }, [dispatch, user?.uid, todaysWorkout?.id]);
+    }, [dispatch, user?.uid]); // Removed todaysWorkout.id to prevent loops during regen
+
+    // Auto-Enforce 7-Day Active Split
+    useEffect(() => {
+        if (currentPlan && user && !planLoading) {
+            const uniqueDays = new Set(currentPlan.sessions.map(s => s.dayOfWeek));
+            const hasRestOrRecovery = currentPlan.sessions.some(
+                s => s.type === 'rest' ||
+                    s.isRestDay === true ||
+                    s.focus?.toLowerCase().includes('rest') ||
+                    s.focus?.toLowerCase().includes('recovery')
+            );
+
+            const isIncomplete = uniqueDays.size < 7;
+
+            if (hasRestOrRecovery || isIncomplete) {
+                console.log('[HomeScreen] Invalid plan (Rest detected or Incomplete days). Enforcing 7-day split...');
+                const forcedProfile = JSON.parse(JSON.stringify(user));
+                if (!forcedProfile.fitnessProfile) {
+                    forcedProfile.fitnessProfile = { availableDays: 7 };
+                } else {
+                    forcedProfile.fitnessProfile.availableDays = 7;
+                }
+                dispatch(regenerateUserPlan(forcedProfile));
+            }
+        }
+    }, [currentPlan?.id, user?.uid, planLoading]);
 
 
 
@@ -249,7 +281,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
     return (
         <LinearGradient
-            colors={Gradients.background}
+            colors={gradients.background}
             style={styles.container}
         >
             <ScrollView
@@ -304,7 +336,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <View style={styles.exercisesList}>
                         {todaysWorkout.exercises.length > 0 ? (
                             todaysWorkout.exercises.map((exercise, index) => (
-                                <BlurView key={`${exercise.exerciseId}-${index}`} intensity={20} tint="dark" style={styles.exerciseCard}>
+                                <BlurView key={`${exercise.exerciseId}-${index}`} intensity={15} tint="dark" style={styles.exerciseCard}>
                                     <View style={styles.exerciseCardHeader}>
                                         <View style={styles.exerciseInfo}>
                                             <View style={styles.exerciseNumberBadge}>
@@ -430,7 +462,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
                 {/* Recovery Tips */}
                 <View style={styles.section}>
-                    <BlurView intensity={10} tint="dark" style={styles.tipsCard}>
+                    <BlurView intensity={20} tint="dark" style={styles.tipsCard}>
                         <Text style={styles.tipsTitle}>{isRestDay ? '🌙 Rest Day Tips' : '💪 Post-Workout Tips'}</Text>
                         <View style={styles.tipsList}>
                             {getRecoveryTips().map((tip, idx) => (
@@ -459,74 +491,39 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {selectedDayIndex !== null && currentPlan && (
                     <View style={styles.section}>
                         <BlurView intensity={30} tint="dark" style={styles.detailsCard}>
-                            {(() => {
-                                const session = currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7);
-                                const isRest = session?.isRestDay || session?.type === 'rest';
-                                return isRest;
-                            })() ? (
-                                // Rest Day View
-                                <View style={styles.restDayDetailContainer}>
-                                    <View style={styles.detailsHeader}>
-                                        <View style={styles.detailsTitleContainer}>
-                                            <MaterialCommunityIcons name="tea" size={24} color={Colors.accentSuccess} />
-                                            <Text style={styles.detailsTitle}>
-                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - Rest & Recovery
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.detailsNotes}>
-                                        <Text style={styles.detailsNotesText}>
-                                            Recovery is just as important as the workout itself. Use today to let your muscles repair, hydrate well, and get extra sleep.
-                                        </Text>
-                                    </View>
-                                    <Text style={styles.exercisesTitle}>Recovery Tips:</Text>
-                                    <View style={styles.detailsExercises}>
-                                        {['8-9 hours of sleep', 'Light stretching/yoga', 'Hydrate (3-4L)', 'Meal Prep for the week'].map((tip, idx) => (
-                                            <View key={idx} style={styles.detailExerciseItem}>
-                                                <Text style={styles.detailExerciseNumber}>{idx + 1}.</Text>
-                                                <Text style={styles.detailExerciseText}>{tip}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
+                            <View style={styles.detailsHeader}>
+                                <View style={styles.detailsTitleContainer}>
+                                    <MaterialCommunityIcons name="flash" size={24} color={colors.accentCyan} />
+                                    <Text style={styles.detailsTitle}>
+                                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - {getSimplifiedFocus(currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.focus || 'Workout')}
+
+                                    </Text>
                                 </View>
-                            ) : (
-                                // Regular Workout View
-                                <>
-                                    <View style={styles.detailsHeader}>
-                                        <View style={styles.detailsTitleContainer}>
-                                            <MaterialCommunityIcons name="flash" size={24} color={Colors.accentCyan} />
-                                            <Text style={styles.detailsTitle}>
-                                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - {getSimplifiedFocus(currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.focus || 'Workout')}
+                                <View style={styles.detailsDurationBadge}>
+                                    <MaterialCommunityIcons name="clock-outline" size={16} color={colors.textPrimary} />
+                                    <Text style={styles.detailsDurationText}>
+                                        {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.duration} min
+                                    </Text>
+                                </View>
+                            </View>
 
-                                            </Text>
-                                        </View>
-                                        <View style={styles.detailsDurationBadge}>
-                                            <MaterialCommunityIcons name="clock-outline" size={16} color={Colors.textPrimary} />
-                                            <Text style={styles.detailsDurationText}>
-                                                {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.duration} min
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.notes && (
-                                        <View style={styles.detailsNotes}>
-                                            <Text style={styles.detailsNotesText}>
-                                                {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.notes}
-                                            </Text>
-                                        </View>
-                                    )}
-
-                                    <Text style={styles.exercisesTitle}>Exercises:</Text>
-                                    <View style={styles.detailsExercises}>
-                                        {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.exercises.map((exercise, idx) => (
-                                            <View key={idx} style={styles.detailExerciseItem}>
-                                                <Text style={styles.detailExerciseNumber}>{idx + 1}.</Text>
-                                                <Text style={styles.detailExerciseText}>{exercise.name}: {exercise.sets}x{exercise.reps}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                </>
+                            {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.notes && (
+                                <View style={styles.detailsNotes}>
+                                    <Text style={styles.detailsNotesText}>
+                                        {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.notes}
+                                    </Text>
+                                </View>
                             )}
+
+                            <Text style={styles.exercisesTitle}>Exercises:</Text>
+                            <View style={styles.detailsExercises}>
+                                {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.exercises.map((exercise, idx) => (
+                                    <View key={idx} style={styles.detailExerciseItem}>
+                                        <Text style={styles.detailExerciseNumber}>{idx + 1}.</Text>
+                                        <Text style={styles.detailExerciseText}>{exercise.name}: {exercise.sets}x{exercise.reps}</Text>
+                                    </View>
+                                ))}
+                            </View>
                         </BlurView>
                     </View>
                 )}
@@ -548,13 +545,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         >
                             <View style={styles.historyContent}>
                                 <View style={styles.historyIconContainer}>
-                                    <MaterialCommunityIcons name="history" size={28} color={Colors.accentCyan} />
+                                    <MaterialCommunityIcons name="history" size={28} color={colors.accentCyan} />
                                 </View>
                                 <View style={styles.historyTextContainer}>
                                     <Text style={styles.historyTitle}>Workout History</Text>
                                     <Text style={styles.historySubtitle}>View past sessions & detailed stats</Text>
                                 </View>
-                                <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.textTertiary} />
+                                <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textTertiary} />
                             </View>
                         </LinearGradient>
                     </TouchableOpacity>
@@ -572,35 +569,32 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
     container: {
         flex: 1,
     },
     scrollContent: {
-        padding: Spacing.m,
+        padding: Spacing.l,
         paddingTop: 80,
         paddingBottom: 100,
     },
     header: {
-        marginBottom: Spacing.l, // Keep for layout if needed, or remove entire block if HomeHeader handles it. HomeHeader has marginBottom: Spacing.l
+        marginBottom: Spacing.l,
     },
     section: {
         marginBottom: Spacing.l,
     },
 
-    // XP Card moved to component
-
-    // Today Status Grid moved to component
-
     // Workout Card
     todayWorkoutCard: {
-        borderRadius: Layout.borderRadius.l,
+        borderRadius: Layout.borderRadius.m,
         padding: Spacing.m,
         overflow: 'hidden',
         marginBottom: Spacing.l,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
+        ...shadows.card,
     },
     workoutHeader: {
         flexDirection: 'row',
@@ -610,41 +604,41 @@ const styles = StyleSheet.create({
     },
     workoutTitle: {
         fontSize: 10,
-        color: Colors.accentPink,
+        color: colors.accentPink,
         fontWeight: '900',
         textTransform: 'uppercase',
         letterSpacing: 1.5,
     },
     restDayBadge: {
-        backgroundColor: 'rgba(244, 114, 182, 0.15)',
+        backgroundColor: colors.accentPink + '26',
         paddingVertical: 4,
         paddingHorizontal: 10,
         borderRadius: Layout.borderRadius.round,
         alignSelf: 'flex-start',
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: 'rgba(244, 114, 182, 0.3)',
+        borderColor: colors.accentPink + '4D',
     },
     workoutFocus: {
         fontSize: 28,
         fontWeight: '900',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: -0.5,
     },
     viewLibraryLink: {
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.round, // Pill shape
+        borderRadius: Layout.borderRadius.round,
     },
     viewLibraryText: {
         fontSize: 12,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '600',
     },
     workoutDuration: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '500',
     },
 
@@ -658,8 +652,9 @@ const styles = StyleSheet.create({
         padding: Spacing.m,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
+        ...shadows.small,
     },
     exerciseCardHeader: {
         flexDirection: 'row',
@@ -676,39 +671,40 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
     },
     exerciseNumber: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '700',
         fontSize: 14,
     },
     exerciseCardName: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     exerciseCardTarget: {
         fontSize: 13,
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontWeight: '600',
     },
     completedBadge: {
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: Colors.accentSuccess,
+        backgroundColor: colors.accentSuccess,
         justifyContent: 'center',
         alignItems: 'center',
-        ...Shadows.glow,
+        ...shadows.glow,
+        shadowColor: colors.accentSuccess,
     },
     completedIcon: {
-        color: '#000',
+        color: '#FFFFFF',
         fontWeight: 'bold',
         fontSize: 14,
     },
@@ -718,16 +714,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 12,
         borderRadius: Layout.borderRadius.s,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
     },
     startExerciseButtonCompleted: {
-        backgroundColor: 'rgba(74, 222, 128, 0.1)',
-        borderColor: Colors.accentSuccess,
+        backgroundColor: colors.accentSuccess + '1A',
+        borderColor: colors.accentSuccess,
     },
     startExerciseButtonText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: '600',
         fontSize: 14,
     },
@@ -735,10 +731,11 @@ const styles = StyleSheet.create({
         padding: Spacing.l,
         borderRadius: Layout.borderRadius.m,
         alignItems: 'center',
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
+        ...shadows.card,
     },
     emptyExercisesText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
     },
 
@@ -748,7 +745,7 @@ const styles = StyleSheet.create({
     },
     nextWorkoutLabel: {
         fontSize: 14,
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         marginBottom: Spacing.s,
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -757,10 +754,11 @@ const styles = StyleSheet.create({
     nextWorkoutCard: {
         padding: Spacing.m,
         borderRadius: Layout.borderRadius.m,
-        backgroundColor: 'rgba(255,255,255,0.03)',
+        backgroundColor: colors.glassSurface,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         overflow: 'hidden',
+        ...shadows.card,
     },
     nextWorkoutHeader: {
         flexDirection: 'row',
@@ -770,11 +768,11 @@ const styles = StyleSheet.create({
     nextWorkoutTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     nextWorkoutDay: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '600',
     },
     nextExercisesPreview: {
@@ -786,16 +784,16 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     nextExerciseBullet: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         marginRight: 8,
         fontSize: 16,
     },
     nextExerciseName: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
     },
     moreExercisesText: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 12,
         fontStyle: 'italic',
         marginTop: 4,
@@ -804,10 +802,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 8,
         borderTopWidth: 1,
-        borderTopColor: Colors.glassBorder,
+        borderTopColor: colors.glassBorder,
     },
     viewPlanButtonText: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontWeight: '600',
         fontSize: 13,
     },
@@ -815,13 +813,14 @@ const styles = StyleSheet.create({
     // Start Button (Main)
     startButtonContainer: {
         marginBottom: Spacing.l,
-        ...Shadows.glow,
+        ...shadows.glow,
+        shadowColor: colors.primaryStart,
     },
     startButton: {
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: colors.glassBorder,
     },
     startButtonContent: {
         flexDirection: 'row',
@@ -835,13 +834,13 @@ const styles = StyleSheet.create({
     startButtonText: {
         fontSize: 22,
         fontWeight: '900',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.5,
         textTransform: 'uppercase',
     },
     startButtonSubtext: {
         fontSize: 12,
-        color: 'rgba(255, 255, 255, 0.8)',
+        color: colors.textSecondary,
         fontWeight: '500',
         letterSpacing: 1,
     },
@@ -850,14 +849,12 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: Spacing.m,
         paddingLeft: Spacing.xs,
         borderLeftWidth: 3,
-        borderLeftColor: Colors.accentCyan,
+        borderLeftColor: colors.accentCyan,
     },
-
-    // Weekly Schedule Grid styles moved to component
 
     // Recovery Grid
     recoveryGrid: {
@@ -868,41 +865,42 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 12,
         borderRadius: Layout.borderRadius.m,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
     },
     recoveryButtonGood: {
-        backgroundColor: 'rgba(74, 222, 128, 0.1)',
-        borderColor: Colors.accentSuccess,
+        backgroundColor: colors.accentSuccess + '1A',
+        borderColor: colors.accentSuccess,
     },
     recoveryButtonModerate: {
-        backgroundColor: 'rgba(250, 204, 21, 0.1)',
-        borderColor: Colors.accentYellow,
+        backgroundColor: colors.accentYellow + '1A',
+        borderColor: colors.accentYellow,
     },
     recoveryButtonPoor: {
-        backgroundColor: 'rgba(248, 113, 113, 0.1)',
-        borderColor: Colors.accentError,
+        backgroundColor: colors.accentError + '1A',
+        borderColor: colors.accentError,
     },
     recoveryButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
     recoveryButtonTextActive: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: '800',
     },
 
     // Details Card
     detailsCard: {
         padding: Spacing.m,
-        borderRadius: Layout.borderRadius.l,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: Layout.borderRadius.m,
+        backgroundColor: colors.glassSurface,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
+        ...shadows.card,
     },
     detailsHeader: {
         flexDirection: 'row',
@@ -920,31 +918,33 @@ const styles = StyleSheet.create({
     detailsTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         flex: 1,
     },
     detailsDurationBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.round, // Pill shape
+        borderRadius: Layout.borderRadius.round,
     },
     detailsDurationText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 12,
         fontWeight: '600',
     },
     detailsNotes: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: colors.glassSurface,
         padding: Spacing.m,
         borderRadius: Layout.borderRadius.s,
         marginBottom: Spacing.m,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
     },
     detailsNotesText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontStyle: 'italic',
         fontSize: 14,
         lineHeight: 20,
@@ -954,7 +954,7 @@ const styles = StyleSheet.create({
     },
     exercisesTitle: {
         fontSize: 14,
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginBottom: Spacing.s,
@@ -968,15 +968,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: Spacing.s,
         paddingVertical: 8,
-        // Removed borderBottomWidth as requested
     },
     detailExerciseNumber: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontWeight: 'bold',
         width: 24,
     },
     detailExerciseText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 14,
         flex: 1,
     },
@@ -984,16 +983,17 @@ const styles = StyleSheet.create({
     // Tips Card
     tipsCard: {
         padding: Spacing.m,
-        borderRadius: Layout.borderRadius.xl, // Even rounder
+        borderRadius: Layout.borderRadius.m,
         overflow: 'hidden',
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        backgroundColor: colors.glassSurface,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
+        ...shadows.card,
     },
     tipsTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: Spacing.m,
     },
     tipsList: {
@@ -1005,14 +1005,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     tipText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         lineHeight: 20,
     },
 
-    // Rest Day Details (Specific to Sunday view text etc)
+    // Rest Day Details
     restDayMessage: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 16,
         lineHeight: 24,
         marginBottom: Spacing.m,
@@ -1026,8 +1026,8 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.m,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        ...Shadows.card,
+        borderColor: colors.glassBorder,
+        ...shadows.card,
     },
     historyButtonGradient: {
         padding: Spacing.m,
@@ -1040,12 +1040,12 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: 'rgba(6, 182, 212, 0.15)', // Cyan tint
+        backgroundColor: colors.accentCyan + '26',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: Spacing.m,
         borderWidth: 1,
-        borderColor: 'rgba(6, 182, 212, 0.3)',
+        borderColor: colors.accentCyan + '4D',
     },
     historyTextContainer: {
         flex: 1,
@@ -1053,12 +1053,12 @@ const styles = StyleSheet.create({
     historyTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 2,
     },
     historySubtitle: {
         fontSize: 12,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
 
     // Logout
@@ -1067,12 +1067,12 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.m,
     },
     logoutText: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 14,
         fontWeight: '600',
     },
 
-    // Training Split (Legacy support or new style)
+    // Training Split
     splitList: {
         gap: 8,
     },
@@ -1081,15 +1081,15 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.glassBorder,
+        borderBottomColor: colors.glassBorder,
     },
     splitDay: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontWeight: '600',
         width: 80,
     },
     splitFocus: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         flex: 1,
     },
     splitItemRest: {
@@ -1097,21 +1097,17 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.glassBorder,
+        borderBottomColor: colors.glassBorder,
         opacity: 0.7,
     },
     splitDayRest: {
-        color: Colors.accentPink,
+        color: colors.accentPink,
         fontWeight: '600',
         width: 80,
     },
     splitFocusRest: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         flex: 1,
         fontStyle: 'italic',
     },
-
-
-
-
 });

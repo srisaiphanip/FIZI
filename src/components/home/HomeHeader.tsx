@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Colors, Spacing, Shadows, Layout } from '../../theme/Theme';
+import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../../theme/Theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface HomeHeaderProps {
     user: any;
@@ -8,6 +9,8 @@ interface HomeHeaderProps {
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onAvatarPress }) => {
+    const { colors, shadows } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     return (
         <View style={styles.header}>
             <View style={{ flex: 1, marginRight: Spacing.m }}>
@@ -28,7 +31,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({ user, onAvatarPress }) =
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -37,7 +40,7 @@ const styles = StyleSheet.create({
     },
     greeting: {
         fontSize: 16,
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontWeight: '600',
         letterSpacing: 1,
         marginBottom: 4,
@@ -46,23 +49,24 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: '800',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         letterSpacing: 0.5,
     },
     avatarCircle: {
         width: 56,
         height: 56,
         borderRadius: Layout.borderRadius.round,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.accentCyan,
-        ...Shadows.glow,
+        borderColor: colors.accentCyan,
+        ...shadows.glow,
+        shadowColor: colors.accentCyan,
     },
     avatarText: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
 });

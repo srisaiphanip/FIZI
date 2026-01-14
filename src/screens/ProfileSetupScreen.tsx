@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     View,
     Text,
@@ -16,11 +16,10 @@ import Slider from '@react-native-community/slider';
 const TypedSlider = Slider as any;
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { updateProfile } from '../store/slices/authSlice';
+import { regenerateUserPlan } from '../store/slices/workoutPlanSlice';
 import { UserProfile } from '../types';
-import { workoutPlanService } from '../services/WorkoutPlanService';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../services/firebaseConfig';
-import { Colors, Layout, Spacing, Gradients } from '../theme/Theme';
+import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -29,7 +28,7 @@ interface ProfileSetupScreenProps {
 }
 
 const COMMON_HEALTH_ISSUES = [
-    'knee_pain', 'lower_back_pain', 'shoulder_injury', 'wrist_pain',
+    'none', 'knee_pain', 'lower_back_pain', 'shoulder_injury', 'wrist_pain',
     'ankle_injury', 'hip_injury', 'neck_pain', 'heart_condition'
 ];
 
@@ -42,7 +41,317 @@ const EQUIPMENT_OPTIONS = [
     { id: 'kettlebells', label: 'Kettlebells' },
 ];
 
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: colors.backgroundDark,
+    },
+    scrollContent: {
+        flexGrow: 1,
+    },
+    content: {
+        flex: 1,
+        paddingHorizontal: Spacing.l,
+        paddingVertical: Spacing.xxl,
+    },
+    header: {
+        marginBottom: Spacing.l,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: Spacing.s,
+    },
+    subtitle: {
+        fontSize: 16,
+        color: colors.textSecondary,
+    },
+    progressContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: Spacing.s,
+        marginBottom: Spacing.xl,
+    },
+    progressDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: colors.glassBorder,
+    },
+    progressDotActive: {
+        backgroundColor: colors.primaryStart,
+        width: 24,
+    },
+    progressDotCompleted: {
+        backgroundColor: colors.accentSuccess,
+    },
+    stepContainer: {
+        marginBottom: Spacing.xl,
+    },
+    stepTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: Spacing.s,
+    },
+    stepSubtitle: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: Spacing.l,
+    },
+    inputContainer: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.textPrimary,
+        marginBottom: Spacing.s,
+    },
+    input: {
+        backgroundColor: colors.glassSurface,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        fontSize: 16,
+        color: colors.textPrimary,
+    },
+    optionsContainer: {
+        gap: Spacing.s,
+    },
+    optionButton: {
+        backgroundColor: colors.glassSurface,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        flexDirection: 'row',
+        alignItems: 'center',
+        ...shadows.small,
+    },
+    optionButtonActive: {
+        backgroundColor: colors.primaryStart,
+        borderColor: colors.primaryStart,
+    },
+    optionEmoji: {
+        fontSize: 24,
+        marginRight: Spacing.s,
+    },
+    optionButtonText: {
+        color: colors.textSecondary,
+        fontSize: 16,
+        fontWeight: '600',
+        flex: 1,
+    },
+    optionButtonTextActive: {
+        color: '#FFFFFF',
+    },
+    optionDesc: {
+        color: colors.textTertiary,
+        fontSize: 12,
+    },
+    sliderSection: {
+        marginBottom: Spacing.l,
+    },
+    sliderHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.s,
+    },
+    sliderValue: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: colors.primaryStart,
+    },
+    slider: {
+        width: '100%',
+        height: 40,
+    },
+    healthIssuesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: Spacing.s,
+    },
+    healthIssueChip: {
+        backgroundColor: colors.glassSurface,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        borderRadius: Layout.borderRadius.round,
+        paddingVertical: Spacing.s,
+        paddingHorizontal: Spacing.m,
+    },
+    healthIssueChipActive: {
+        backgroundColor: colors.primaryStart,
+        borderColor: colors.primaryStart,
+    },
+    healthIssueText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        textTransform: 'capitalize',
+        fontWeight: '600',
+    },
+    healthIssueTextActive: {
+        color: '#FFFFFF',
+    },
+    summaryCard: {
+        backgroundColor: colors.glassSurface,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        marginBottom: Spacing.m,
+        ...shadows.card,
+    },
+    summaryTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: Spacing.m,
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: Spacing.s,
+    },
+    summaryLabel: {
+        color: colors.textSecondary,
+        fontSize: 14,
+    },
+    summaryValue: {
+        color: colors.textPrimary,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    genderContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    genderButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: colors.glassSurface,
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        ...shadows.small,
+    },
+    genderButtonActive: {
+        backgroundColor: colors.primaryStart,
+        borderColor: colors.primaryStart,
+    },
+    genderText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    genderTextActive: {
+        color: '#FFF',
+    },
+    metricsGrid: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    bmiDisplay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        marginBottom: 16,
+        paddingVertical: 8,
+    },
+    bmiLabel: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        textAlign: 'center',
+        marginBottom: 4,
+    },
+    bmiValue: {
+        color: colors.textPrimary,
+        fontSize: 32,
+        fontWeight: '800',
+        textAlign: 'center',
+    },
+    bmiStatus: {
+        fontSize: 12,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginTop: 4,
+    },
+    divider: {
+        width: 1,
+        height: '80%',
+        backgroundColor: colors.glassBorder,
+    },
+    summaryInfo: {
+        color: colors.textTertiary,
+        fontSize: 12,
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
+    planInfo: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        gap: Spacing.s,
+        marginTop: 'auto',
+    },
+    backButton: {
+        flex: 1,
+        backgroundColor: colors.glassSurface,
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    backButtonText: {
+        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    nextButtonContainer: {
+        flex: 2,
+    },
+    nextButton: {
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        alignItems: 'center',
+        ...shadows.small,
+    },
+    nextButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    buttonDisabled: {
+        opacity: 0.6,
+    },
+    sliderButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.glassSurface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        ...shadows.small,
+    },
+});
+
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
+    const { colors, gradients, shadows, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const dispatch = useAppDispatch();
     const { user, loading } = useAppSelector((state) => state.auth);
 
@@ -86,9 +395,16 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
     const [generatingPlan, setGeneratingPlan] = useState(false);
 
     const toggleHealthIssue = (issue: string) => {
-        setSelectedHealthIssues(prev =>
-            prev.includes(issue) ? prev.filter(i => i !== issue) : [...prev, issue]
-        );
+        setSelectedHealthIssues(prev => {
+            if (issue === 'none') {
+                return prev.includes('none') ? [] : ['none'];
+            } else {
+                const next = prev.includes(issue)
+                    ? prev.filter(i => i !== issue)
+                    : [...prev, issue];
+                return next.filter(i => i !== 'none');
+            }
+        });
     };
 
     const toggleEquipment = (equipment: string) => {
@@ -162,9 +478,9 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
     const getBMIStatus = (bmi: number) => {
         if (bmi < 18.5) return { label: 'Underweight', color: '#3498db' };
-        if (bmi < 25) return { label: 'Healthy', color: Colors.accentSuccess };
+        if (bmi < 25) return { label: 'Healthy', color: colors.accentSuccess };
         if (bmi < 30) return { label: 'Overweight', color: '#f1c40f' };
-        return { label: 'Obese', color: Colors.accentError };
+        return { label: 'Obese', color: colors.accentError };
     };
 
     const estimateMetrics = () => {
@@ -267,8 +583,8 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                     availableEquipment: selectedEquipment as any[],
                     experienceLevel: workoutExperience,
                     fitnessGoals: [fitnessGoal],
-                    healthIssues: allHealthIssues,
-                    availableDays: workoutExperience === 'beginner' ? 3 : workoutExperience === 'intermediate' ? 4 : 5
+                    healthIssues: allHealthIssues.filter(i => i !== 'none'),
+                    availableDays: 7
                 },
                 progressSystem: {
                     currentLevel: 1,
@@ -283,26 +599,21 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 }
             };
 
-            // Update profile in auth slice (updates Local state and Firestore via authService)
-            await dispatch(updateProfile(profileUpdate)).unwrap();
-
-            // Generate workout plan
+            // compiled full profile for regeneration
             const fullProfile: UserProfile = {
                 ...user,
                 ...profileUpdate,
+                uid: user.uid,
                 createdAt: user.createdAt || new Date(),
                 updatedAt: new Date(),
                 transformationPhotos: user.transformationPhotos || [],
             };
 
-            const workoutPlan = workoutPlanService.generateWorkoutPlan(fullProfile);
-            const planId = await workoutPlanService.saveWorkoutPlan(workoutPlan);
+            // 1. Update Profile in Firestore & Local State
+            await dispatch(updateProfile(profileUpdate)).unwrap();
 
-            // Update user profile with plan ID in Firestore
-            if (planId && user.uid) {
-                const userRef = doc(db, 'users', user.uid);
-                await updateDoc(userRef, { workoutPlanId: planId });
-            }
+            // 2. Centralized Plan Generation & Saving
+            await dispatch(regenerateUserPlan(fullProfile)).unwrap();
 
             setGeneratingPlan(false);
             Alert.alert(
@@ -361,7 +672,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                         style={styles.sliderButton}
                         onPress={handleDecrement}
                     >
-                        <MaterialCommunityIcons name="minus" size={24} color={Colors.primaryStart} />
+                        <MaterialCommunityIcons name="minus" size={24} color={colors.primaryStart} />
                     </TouchableOpacity>
 
                     <TypedSlider
@@ -371,16 +682,16 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                         step={step}
                         value={value}
                         onValueChange={setValue}
-                        minimumTrackTintColor={Colors.primaryStart}
-                        maximumTrackTintColor={Colors.glassBorder}
-                        thumbTintColor={Colors.primaryStart}
+                        minimumTrackTintColor={colors.primaryStart}
+                        maximumTrackTintColor={colors.glassBorder}
+                        thumbTintColor={colors.primaryStart}
                     />
 
                     <TouchableOpacity
                         style={styles.sliderButton}
                         onPress={handleIncrement}
                     >
-                        <MaterialCommunityIcons name="plus" size={24} color={Colors.primaryStart} />
+                        <MaterialCommunityIcons name="plus" size={24} color={colors.primaryStart} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -403,14 +714,14 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                     style={[styles.genderButton, gender === 'male' && styles.genderButtonActive]}
                                     onPress={() => setGender('male')}
                                 >
-                                    <MaterialCommunityIcons name="gender-male" size={24} color={gender === 'male' ? '#FFF' : Colors.textSecondary} />
+                                    <MaterialCommunityIcons name="gender-male" size={24} color={gender === 'male' ? '#FFF' : colors.textSecondary} />
                                     <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>Male</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.genderButton, gender === 'female' && styles.genderButtonActive]}
                                     onPress={() => setGender('female')}
                                 >
-                                    <MaterialCommunityIcons name="gender-female" size={24} color={gender === 'female' ? '#FFF' : Colors.textSecondary} />
+                                    <MaterialCommunityIcons name="gender-female" size={24} color={gender === 'female' ? '#FFF' : colors.textSecondary} />
                                     <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>Female</Text>
                                 </TouchableOpacity>
                             </View>
@@ -421,7 +732,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             <TextInput
                                 style={styles.input}
                                 placeholder="Enter your age"
-                                placeholderTextColor={Colors.textTertiary}
+                                placeholderTextColor={colors.textTertiary}
                                 value={age}
                                 onChangeText={setAge}
                                 keyboardType="number-pad"
@@ -434,7 +745,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             <TextInput
                                 style={styles.input}
                                 placeholder="Enter your weight"
-                                placeholderTextColor={Colors.textTertiary}
+                                placeholderTextColor={colors.textTertiary}
                                 value={weight}
                                 onChangeText={setWeight}
                                 keyboardType="decimal-pad"
@@ -447,7 +758,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             <TextInput
                                 style={styles.input}
                                 placeholder="Enter your height"
-                                placeholderTextColor={Colors.textTertiary}
+                                placeholderTextColor={colors.textTertiary}
                                 value={height}
                                 onChangeText={setHeight}
                                 keyboardType="decimal-pad"
@@ -614,7 +925,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             <TextInput
                                 style={styles.input}
                                 placeholder="e.g., asthma, diabetes, etc."
-                                placeholderTextColor={Colors.textTertiary}
+                                placeholderTextColor={colors.textTertiary}
                                 value={customHealthIssue}
                                 onChangeText={setCustomHealthIssue}
                                 multiline
@@ -732,7 +1043,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         {gender === 'male' ? '10-20%' : '18-28%'}
                                     </Text>
                                 </View>
@@ -745,7 +1056,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         {'<10%'}
                                     </Text>
                                 </View>
@@ -758,7 +1069,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         Varies by weight
                                     </Text>
                                 </View>
@@ -771,7 +1082,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         {gender === 'male' ? '>40% body wt' : '>30% body wt'}
                                     </Text>
                                 </View>
@@ -784,7 +1095,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 </View>
                                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                                     <Text style={[styles.summaryLabel, { fontSize: 11 }]}>Target</Text>
-                                    <Text style={[styles.summaryValue, { fontSize: 12, color: Colors.accentSuccess }]}>
+                                    <Text style={[styles.summaryValue, { fontSize: 12, color: colors.accentSuccess }]}>
                                         Equal to age ({age})
                                     </Text>
                                 </View>
@@ -860,7 +1171,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 disabled={loading || generatingPlan}
                             >
                                 <LinearGradient
-                                    colors={Gradients.primary}
+                                    colors={gradients.primary}
                                     style={styles.nextButton}
                                 >
                                     {generatingPlan ? (
@@ -880,302 +1191,4 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.backgroundDark,
-    },
-    scrollContent: {
-        flexGrow: 1,
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: Spacing.l,
-        paddingVertical: Spacing.xxl,
-    },
-    header: {
-        marginBottom: Spacing.l,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.s,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: Colors.textSecondary,
-    },
-    progressContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: Spacing.s,
-        marginBottom: Spacing.xl,
-    },
-    progressDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    progressDotActive: {
-        backgroundColor: Colors.primaryStart,
-        width: 24,
-    },
-    progressDotCompleted: {
-        backgroundColor: Colors.accentSuccess,
-    },
-    stepContainer: {
-        marginBottom: Spacing.xl,
-    },
-    stepTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.s,
-    },
-    stepSubtitle: {
-        fontSize: 14,
-        color: Colors.textSecondary,
-        marginBottom: Spacing.l,
-    },
-    inputContainer: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.s,
-    },
-    input: {
-        backgroundColor: Colors.glassSurface,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        fontSize: 16,
-        color: Colors.textPrimary,
-    },
-    optionsContainer: {
-        gap: Spacing.s,
-    },
-    optionButton: {
-        backgroundColor: Colors.glassSurface,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    optionButtonActive: {
-        backgroundColor: Colors.primaryStart,
-        borderColor: Colors.primaryStart,
-    },
-    optionEmoji: {
-        fontSize: 24,
-        marginRight: Spacing.s,
-    },
-    optionButtonText: {
-        color: Colors.textSecondary,
-        fontSize: 16,
-        fontWeight: '600',
-        flex: 1,
-    },
-    optionButtonTextActive: {
-        color: Colors.textPrimary,
-    },
-    optionDesc: {
-        color: Colors.textTertiary,
-        fontSize: 12,
-    },
-    sliderSection: {
-        marginBottom: Spacing.l,
-    },
-    sliderHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.s,
-    },
-    sliderValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.primaryStart,
-    },
-    slider: {
-        width: '100%',
-        height: 40,
-    },
-    healthIssuesGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: Spacing.s,
-    },
-    healthIssueChip: {
-        backgroundColor: Colors.glassSurface,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        borderRadius: Layout.borderRadius.round,
-        paddingVertical: Spacing.s,
-        paddingHorizontal: Spacing.m,
-    },
-    healthIssueChipActive: {
-        backgroundColor: Colors.primaryStart,
-        borderColor: Colors.primaryStart,
-    },
-    healthIssueText: {
-        color: Colors.textSecondary,
-        fontSize: 14,
-        textTransform: 'capitalize',
-    },
-    healthIssueTextActive: {
-        color: Colors.textPrimary,
-    },
-    summaryCard: {
-        backgroundColor: Colors.glassSurface,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        marginBottom: Spacing.m,
-    },
-    summaryTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.m,
-    },
-    summaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: Spacing.s,
-    },
-    summaryLabel: {
-        color: Colors.textSecondary,
-        fontSize: 14,
-    },
-    summaryValue: {
-        color: Colors.textPrimary,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    genderContainer: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    genderButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        padding: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    genderButtonActive: {
-        backgroundColor: Colors.primaryStart,
-        borderColor: Colors.primaryStart,
-    },
-    genderText: {
-        color: Colors.textSecondary,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    genderTextActive: {
-        color: '#FFF',
-    },
-    metricsGrid: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    bmiDisplay: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        marginBottom: 16,
-        paddingVertical: 8,
-    },
-    bmiLabel: {
-        color: Colors.textSecondary,
-        fontSize: 12,
-        textAlign: 'center',
-        marginBottom: 4,
-    },
-    bmiValue: {
-        color: Colors.textPrimary,
-        fontSize: 32,
-        fontWeight: '800',
-        textAlign: 'center',
-    },
-    bmiStatus: {
-        fontSize: 12,
-        fontWeight: '600',
-        textAlign: 'center',
-        marginTop: 4,
-    },
-    divider: {
-        width: 1,
-        height: '80%',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    },
-    summaryInfo: {
-        color: Colors.textTertiary,
-        fontSize: 12,
-        textAlign: 'center',
-        fontStyle: 'italic',
-    },
-    planInfo: {
-        color: Colors.textSecondary,
-        fontSize: 14,
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        gap: Spacing.s,
-        marginTop: 'auto',
-    },
-    backButton: {
-        flex: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        alignItems: 'center',
-    },
-    backButtonText: {
-        color: Colors.textPrimary,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    nextButtonContainer: {
-        flex: 2,
-    },
-    nextButton: {
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        alignItems: 'center',
-    },
-    nextButtonText: {
-        color: Colors.textPrimary,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    buttonDisabled: {
-        opacity: 0.6,
-    },
-    sliderButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: Colors.glassSurface,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-    },
-});
+

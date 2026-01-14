@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Colors, Gradients, Spacing, Layout } from '../theme/Theme';
+import { Spacing, Layout, ThemeColorsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface AboutUsScreenProps {
@@ -10,18 +11,20 @@ interface AboutUsScreenProps {
 }
 
 export default function AboutUsScreen({ navigation }: AboutUsScreenProps) {
+    const { colors, gradients, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     return (
-        <LinearGradient colors={Gradients.background} style={styles.container}>
+        <LinearGradient colors={gradients.background} style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>About Us</Text>
                 <View style={{ width: 24 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <BlurView intensity={20} tint="dark" style={styles.card}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.card}>
                     <View style={styles.logoContainer}>
                         <Text style={styles.appName}>FIZI</Text>
                         <Text style={styles.appTagline}>Your Personal AI Fitness Trainer</Text>
@@ -66,7 +69,7 @@ export default function AboutUsScreen({ navigation }: AboutUsScreenProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -81,12 +84,12 @@ const styles = StyleSheet.create({
     backButton: {
         padding: 8,
         borderRadius: 20,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     scrollContent: {
         padding: Spacing.m,
@@ -95,7 +98,7 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         backgroundColor: 'rgba(0,0,0,0.3)',
     },
     logoContainer: {
@@ -106,32 +109,32 @@ const styles = StyleSheet.create({
     appName: {
         fontSize: 32,
         fontWeight: '900',
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         letterSpacing: 2,
     },
     appTagline: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         marginTop: 4,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         marginTop: Spacing.l,
         marginBottom: Spacing.s,
     },
     text: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 22,
     },
     bold: {
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     link: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         textDecorationLine: 'underline',
     },
     versionContainer: {
@@ -142,12 +145,12 @@ const styles = StyleSheet.create({
         borderTopColor: 'rgba(255,255,255,0.1)',
     },
     versionText: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 12,
         marginBottom: 4,
     },
     copyrightText: {
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         fontSize: 12,
     },
 });

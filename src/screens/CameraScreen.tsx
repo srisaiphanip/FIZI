@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     StyleSheet,
     Text,
@@ -16,7 +16,8 @@ import CountdownOverlay from '../components/CountdownOverlay';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useKeepAwake } from 'expo-keep-awake';
-import { Colors, Gradients, Spacing, Shadows, Layout } from '../theme/Theme';
+import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 
 import AppConfig from '../config/appConfig';
 import { Pose, FormValidation } from '../types';
@@ -46,7 +47,268 @@ const AVAILABLE_EXERCISES = [
 ] as const;
 type ExerciseId = typeof AVAILABLE_EXERCISES[number];
 
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: colors.backgroundDark,
+    },
+    camera: {
+        flex: 1,
+    },
+
+    // Permission Screen
+    permissionContainer: {
+        flex: 1,
+        backgroundColor: colors.backgroundDark,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: Spacing.xl,
+    },
+    permissionTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: Spacing.m,
+        textAlign: 'center',
+    },
+    permissionText: {
+        fontSize: 16,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        marginBottom: Spacing.xl,
+        lineHeight: 24,
+    },
+    permissionButton: {
+        backgroundColor: colors.primaryStart,
+        paddingVertical: Spacing.m,
+        paddingHorizontal: Spacing.xl,
+        borderRadius: Layout.borderRadius.l,
+        marginBottom: Spacing.m,
+        ...shadows.glow,
+    },
+    permissionButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    backButton: {
+        padding: Spacing.m,
+    },
+    backButtonText: {
+        color: colors.primaryStart,
+        fontSize: 16,
+    },
+
+    // HUD
+    hud: {
+        position: 'absolute',
+        top: 60,
+        left: 20,
+        borderRadius: Layout.borderRadius.l,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        width: 140, // Fixed width
+        backgroundColor: 'transparent',
+        ...shadows.card,
+    },
+    hudBlur: {
+        padding: Spacing.m,
+        backgroundColor: colors.glassSurface,
+    },
+    hudExercise: {
+        color: colors.accentCyan,
+        fontSize: 14,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        marginBottom: 8,
+    },
+    hudRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        gap: 6,
+    },
+    hudIcon: {
+        fontSize: 16,
+        color: colors.textSecondary,
+    },
+    hudTimer: {
+        color: colors.textPrimary,
+        fontSize: 20,
+        fontWeight: '600',
+        fontVariant: ['tabular-nums'],
+    },
+    hudDivider: {
+        height: 1,
+        backgroundColor: colors.glassBorder,
+        marginVertical: 12,
+    },
+    hudLabel: {
+        color: colors.textTertiary,
+        fontSize: 10,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        marginBottom: 4,
+    },
+    hudReps: {
+        color: colors.textPrimary,
+        fontSize: 48,
+        fontWeight: 'bold',
+        marginTop: -4,
+        textShadowColor: colors.primaryStart + '40', // 25% opacity
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    },
+    hudSetProgress: {
+        color: colors.primaryStart,
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 4,
+        textAlign: 'center',
+    },
+    hudTarget: {
+        color: colors.textTertiary,
+        fontSize: 11,
+        marginTop: 4,
+        textAlign: 'center',
+    },
+
+    // Status Banners
+    statusBanner: {
+        position: 'absolute',
+        top: 60,
+        right: 100, // Adjusted to not overlap exercise selector
+        backgroundColor: colors.accentWarning,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: Layout.borderRadius.m,
+        borderWidth: 1,
+        borderColor: colors.accentWarningBorder,
+        ...shadows.small,
+    },
+    statusText: {
+        color: '#000000',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    mockBanner: {
+        position: 'absolute',
+        top: 150, // Moved up slightly
+        right: 20,
+        backgroundColor: colors.accentPurple,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: Layout.borderRadius.m,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        ...shadows.small,
+    },
+    mockText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+
+    // Control Bar
+    controlBar: {
+        position: 'absolute',
+        bottom: 50,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.xl,
+    },
+    controlButton: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.glassSurface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        ...shadows.small,
+    },
+    controlIcon: {
+        fontSize: 24,
+        color: colors.textPrimary,
+    },
+    controlText: {
+        display: 'none',
+    },
+    mainButton: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.primaryStart,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...shadows.glow,
+        borderWidth: 4,
+        borderColor: colors.glassBorder,
+    },
+    stopButton: {
+        backgroundColor: colors.accentError,
+        shadowColor: colors.accentError,
+        borderColor: colors.glassBorder,
+    },
+    mainButtonIcon: {
+        fontSize: 32,
+        color: '#FFFFFF',
+        marginLeft: 4,
+    },
+    stopIconAdjustment: { // Used in render logic
+        marginLeft: 0,
+    },
+    mainButtonText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+        marginTop: -4,
+    },
+
+    // Exercise Selection
+    exerciseSelectContainer: {
+        position: 'absolute',
+        top: 60,
+        right: 20,
+    },
+    exerciseSelectButton: {
+        borderRadius: Layout.borderRadius.m,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        ...shadows.card,
+    },
+    exerciseSelectBlur: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        backgroundColor: colors.glassSurface,
+        alignItems: 'flex-end',
+    },
+    exerciseSelectLabel: {
+        color: colors.textTertiary,
+        fontSize: 10,
+        textTransform: 'uppercase',
+    },
+    exerciseSelectName: {
+        color: colors.accentCyan,
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    exerciseSelectHint: {
+        color: colors.textTertiary,
+        fontSize: 8,
+        marginTop: 2,
+    }
+});
+
 export default function CameraScreen({ navigation }: CameraScreenProps) {
+    const { colors, shadows, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     useKeepAwake(); // Keep screen awake while this screen is active
     const dispatch = useAppDispatch();
 
@@ -478,7 +740,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                 {/* HUD - Exercise Info */}
                 {isWorkoutActive && (
                     <View style={styles.hud}>
-                        <BlurView intensity={30} tint="dark" style={styles.hudBlur}>
+                        <BlurView intensity={30} tint={isDark ? "light" : "dark"} style={styles.hudBlur}>
                             <TouchableOpacity onPress={cycleExercise} activeOpacity={0.7}>
                                 <Text style={styles.hudExercise}>
                                     {navigation.params?.exerciseName || getExerciseById(exerciseId)?.name || exerciseId}
@@ -568,7 +830,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                         onPress={() => setShowExerciseSelector(true)}
                         activeOpacity={0.8}
                     >
-                        <BlurView intensity={20} tint="dark" style={styles.exerciseSelectBlur}>
+                        <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.exerciseSelectBlur}>
                             <Text style={styles.exerciseSelectLabel}>Selected Exercise</Text>
                             <Text style={styles.exerciseSelectName}>
                                 {getExerciseById(exerciseId)?.name || exerciseId}
@@ -586,263 +848,5 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.backgroundDark,
-    },
-    camera: {
-        flex: 1,
-    },
 
-    // Permission Screen
-    permissionContainer: {
-        flex: 1,
-        backgroundColor: Colors.backgroundDark,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: Spacing.xl,
-    },
-    permissionTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-        marginBottom: Spacing.m,
-        textAlign: 'center',
-    },
-    permissionText: {
-        fontSize: 16,
-        color: Colors.textSecondary,
-        textAlign: 'center',
-        marginBottom: Spacing.xl,
-        lineHeight: 24,
-    },
-    permissionButton: {
-        backgroundColor: Colors.primaryStart,
-        paddingVertical: Spacing.m,
-        paddingHorizontal: Spacing.xl,
-        borderRadius: Layout.borderRadius.l,
-        marginBottom: Spacing.m,
-        ...Shadows.glow,
-    },
-    permissionButtonText: {
-        color: Colors.textPrimary,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    backButton: {
-        padding: Spacing.m,
-    },
-    backButtonText: {
-        color: Colors.primaryStart,
-        fontSize: 16,
-    },
-
-    // HUD
-    hud: {
-        position: 'absolute',
-        top: 60,
-        left: 20,
-        borderRadius: Layout.borderRadius.l,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        width: 140, // Fixed width
-        backgroundColor: 'transparent',
-    },
-    hudBlur: {
-        padding: Spacing.m,
-        backgroundColor: Colors.glassSurface,
-    },
-    hudExercise: {
-        color: Colors.accentCyan,
-        fontSize: 14,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        marginBottom: 8,
-    },
-    hudRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-        gap: 6,
-    },
-    hudIcon: {
-        fontSize: 16,
-        color: Colors.textSecondary,
-    },
-    hudTimer: {
-        color: Colors.textPrimary,
-        fontSize: 20,
-        fontWeight: '600',
-        fontVariant: ['tabular-nums'],
-    },
-    hudDivider: {
-        height: 1,
-        backgroundColor: Colors.glassBorder,
-        marginVertical: 12,
-    },
-    hudLabel: {
-        color: Colors.textTertiary,
-        fontSize: 10,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        marginBottom: 4,
-    },
-    hudReps: {
-        color: Colors.textPrimary,
-        fontSize: 48,
-        fontWeight: 'bold',
-        marginTop: -4,
-        textShadowColor: Colors.primaryStart,
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-    },
-    hudSetProgress: {
-        color: Colors.primaryStart,
-        fontSize: 12,
-        fontWeight: '600',
-        marginTop: 4,
-        textAlign: 'center',
-    },
-    hudTarget: {
-        color: Colors.textTertiary,
-        fontSize: 11,
-        marginTop: 4,
-        textAlign: 'center',
-    },
-
-    // Status Banners
-    statusBanner: {
-        position: 'absolute',
-        top: 60,
-        right: 100, // Adjusted to not overlap exercise selector
-        backgroundColor: 'rgba(250, 204, 21, 0.9)',
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: Layout.borderRadius.m,
-        borderWidth: 1,
-        borderColor: 'rgba(250, 204, 21, 0.3)',
-    },
-    statusText: {
-        color: '#000',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    mockBanner: {
-        position: 'absolute',
-        top: 150, // Moved up slightly
-        right: 20,
-        backgroundColor: 'rgba(108, 99, 255, 0.8)',
-        paddingVertical: 6,
-        paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.m,
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-    },
-    mockText: {
-        color: '#FFF',
-        fontSize: 11,
-        fontWeight: '600',
-    },
-
-    // Control Bar
-    controlBar: {
-        position: 'absolute',
-        bottom: 50,
-        left: 0,
-        right: 0,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.xl,
-    },
-    controlButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: Colors.glassSurface,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-    },
-    controlIcon: {
-        fontSize: 24,
-        color: Colors.textPrimary,
-    },
-    controlText: {
-        display: 'none',
-    },
-    mainButton: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: Colors.primaryStart,
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...Shadows.glow,
-        borderWidth: 4,
-        borderColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    stopButton: {
-        backgroundColor: Colors.accentError,
-        shadowColor: Colors.accentError,
-        borderColor: 'rgba(255, 68, 68, 0.3)',
-    },
-    mainButtonIcon: {
-        fontSize: 32,
-        color: Colors.textPrimary,
-        marginLeft: 4,
-    },
-    stopIconAdjustment: { // Used in render logic
-        marginLeft: 0,
-    },
-    mainButtonText: {
-        position: 'absolute',
-        bottom: -25,
-        color: Colors.textSecondary,
-        fontSize: 12,
-        fontWeight: '600',
-        letterSpacing: 1,
-    },
-
-    // Exercise Selector Button (Floating)
-    exerciseSelectContainer: {
-        position: 'absolute',
-        top: 60,
-        right: 20,
-        left: undefined,
-        width: 160,
-    },
-    exerciseSelectButton: {
-        borderRadius: Layout.borderRadius.l,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: 'transparent',
-    },
-    exerciseSelectBlur: {
-        padding: Spacing.m,
-        backgroundColor: Colors.glassSurface,
-        alignItems: 'center',
-    },
-    exerciseSelectLabel: {
-        color: Colors.textTertiary,
-        fontSize: 10,
-        marginBottom: 4,
-        textTransform: 'uppercase',
-    },
-    exerciseSelectName: {
-        color: Colors.textPrimary,
-        fontSize: 14,
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
-    exerciseSelectHint: {
-        color: Colors.accentCyan,
-        fontSize: 10,
-        marginTop: 4,
-    },
-});
 

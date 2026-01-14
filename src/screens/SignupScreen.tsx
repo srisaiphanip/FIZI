@@ -12,6 +12,7 @@ import {
     ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { signUp, clearError } from '../store/slices/authSlice';
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
@@ -25,6 +26,9 @@ export default function SignupScreen({ navigation }: SignupScreenProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     const passwordInputRef = React.useRef<TextInput>(null);
     const dispatch = useAppDispatch();
     const { loading, error } = useAppSelector((state) => state.auth);
@@ -120,29 +124,55 @@ export default function SignupScreen({ navigation }: SignupScreenProps) {
 
                             <View style={styles.inputContainer}>
                                 <Text style={styles.label}>Password</Text>
-                                <TextInput
-                                    ref={passwordInputRef}
-                                    style={styles.input}
-                                    placeholder="Create a password"
-                                    placeholderTextColor={Colors.textTertiary}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry={true}
-                                    editable={!loading}
-                                />
+                                <View style={styles.passwordWrapper}>
+                                    <TextInput
+                                        ref={passwordInputRef}
+                                        style={styles.passwordInput}
+                                        placeholder="Create a password"
+                                        placeholderTextColor={Colors.textTertiary}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry={!showPassword}
+                                        editable={!loading}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setShowPassword(!showPassword)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name={showPassword ? "eye-off" : "eye"}
+                                            size={24}
+                                            color={Colors.textSecondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             <View style={styles.inputContainer}>
                                 <Text style={styles.label}>Confirm Password</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Confirm your password"
-                                    placeholderTextColor={Colors.textTertiary}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    secureTextEntry={true}
-                                    editable={!loading}
-                                />
+                                <View style={styles.passwordWrapper}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        placeholder="Confirm your password"
+                                        placeholderTextColor={Colors.textTertiary}
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        secureTextEntry={!showConfirmPassword}
+                                        editable={!loading}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name={showConfirmPassword ? "eye-off" : "eye"}
+                                            size={24}
+                                            color={Colors.textSecondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
 
                             <TouchableOpacity
@@ -218,9 +248,33 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.glassBorder,
         borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
+        height: 72, // Increased for a more spacious feel
+        paddingHorizontal: Spacing.m,
         fontSize: 16,
         color: Colors.textPrimary,
+    },
+    passwordWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.glassSurface,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        borderRadius: Layout.borderRadius.m,
+        height: 72, // Increased for a more spacious feel
+        overflow: 'hidden',
+    },
+    passwordInput: {
+        flex: 1,
+        paddingHorizontal: Spacing.m,
+        height: '100%',
+        fontSize: 16,
+        color: Colors.textPrimary,
+        backgroundColor: 'transparent',
+    },
+    eyeIcon: {
+        paddingHorizontal: Spacing.s, // Balanced with input padding (12px)
+        height: '100%',
+        justifyContent: 'center',
     },
     button: {
         borderRadius: Layout.borderRadius.m,

@@ -4,7 +4,7 @@
  * Displays workout history and performance stats.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     View,
     Text,
@@ -23,13 +23,16 @@ import {
     fetchWorkoutStats,
     fetchPersonalBests
 } from '../store/slices/workoutSlice';
-import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
+import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface HistoryScreenProps {
     navigation: any;
 }
 
 export default function HistoryScreen({ navigation }: HistoryScreenProps) {
+    const { colors, gradients, shadows, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const dispatch = useAppDispatch();
     const { history, stats, personalBests, loading, error } = useAppSelector(
         (state) => state.workout
@@ -79,11 +82,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     };
 
     return (
-        <LinearGradient colors={Gradients.background} style={styles.container}>
+        <LinearGradient colors={gradients.background} style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
-                    <MaterialCommunityIcons name="chevron-left" size={32} color={Colors.primaryStart} />
+                    <MaterialCommunityIcons name="chevron-left" size={32} color={colors.primaryStart} />
                 </TouchableOpacity>
                 <Text style={styles.title}>History & Stats</Text>
             </View>
@@ -91,11 +94,11 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             <ScrollView
                 style={styles.content}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primaryStart} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryStart} />
                 }
             >
                 {/* Stats Overview */}
-                <BlurView intensity={20} tint="dark" style={styles.statsCard}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.statsCard}>
                     <Text style={styles.sectionTitle}>Performance Overview</Text>
 
                     {/* Period Selector */}
@@ -154,7 +157,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
                 {/* Personal Bests */}
                 {(personalBests.maxReps || personalBests.longestWorkout || personalBests.bestFormScore) && (
-                    <BlurView intensity={20} tint="dark" style={styles.bestsCard}>
+                    <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.bestsCard}>
                         <Text style={styles.sectionTitle}>🏆 Personal Bests</Text>
 
                         {personalBests.maxReps && (
@@ -202,7 +205,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     <Text style={styles.sectionTitle}>Recent Activities</Text>
 
                     {error && (
-                        <BlurView intensity={10} tint="dark" style={styles.errorState}>
+                        <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.errorState}>
                             <Text style={styles.errorIcon}>⚠️</Text>
                             <Text style={styles.errorText}>Failed to load history</Text>
                             <Text style={styles.errorSubtext}>{error}</Text>
@@ -213,16 +216,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     )}
 
                     {!error && loading && history.length === 0 ? (
-                        <ActivityIndicator color={Colors.primaryStart} size="large" style={{ marginTop: 20 }} />
+                        <ActivityIndicator color={colors.primaryStart} size="large" style={{ marginTop: 20 }} />
                     ) : !error && history.length === 0 ? (
-                        <BlurView intensity={10} tint="dark" style={styles.emptyState}>
+                        <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.emptyState}>
                             <Text style={styles.emptyIcon}>🏋️</Text>
                             <Text style={styles.emptyText}>No workouts yet</Text>
                             <Text style={styles.emptySubtext}>Complete a workout to see it here</Text>
                         </BlurView>
                     ) : !error && (
                         history.map((workout) => (
-                            <BlurView key={workout.id} intensity={15} tint="dark" style={styles.workoutItem}>
+                            <BlurView key={workout.id} intensity={15} tint={isDark ? "light" : "dark"} style={styles.workoutItem}>
                                 <View style={styles.workoutHeaderRow}>
                                     <View>
                                         <Text style={styles.workoutExercise}>{workout.exerciseName}</Text>
@@ -238,15 +241,15 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                                 </View>
                                 <View style={styles.workoutDetails}>
                                     <View style={styles.detailPill}>
-                                        <MaterialCommunityIcons name="repeat" size={14} color={Colors.textSecondary} />
+                                        <MaterialCommunityIcons name="repeat" size={14} color={colors.textSecondary} />
                                         <Text style={styles.workoutStat}>{workout.reps} reps</Text>
                                     </View>
                                     <View style={styles.detailPill}>
-                                        <MaterialCommunityIcons name="clock-outline" size={14} color={Colors.textSecondary} />
+                                        <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
                                         <Text style={styles.workoutStat}>{formatDuration(workout.duration)}</Text>
                                     </View>
                                     <View style={styles.detailPill}>
-                                        <MaterialCommunityIcons name="fire" size={14} color={Colors.textSecondary} />
+                                        <MaterialCommunityIcons name="fire" size={14} color={colors.textSecondary} />
                                         <Text style={styles.workoutStat}>{workout.caloriesBurned || 0} kcal</Text>
                                     </View>
                                 </View>
@@ -260,7 +263,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -278,7 +281,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     content: {
         flex: 1,
@@ -287,19 +290,20 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: 16,
     },
 
     // Stats Card
     statsCard: {
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         borderRadius: Layout.borderRadius.m,
         padding: 20,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         overflow: 'hidden',
+        ...shadows.card,
     },
     periodSelector: {
         flexDirection: 'row',
@@ -310,18 +314,22 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 10,
         borderRadius: Layout.borderRadius.s,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.glassSurface,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
         alignItems: 'center',
     },
     periodButtonActive: {
-        backgroundColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart,
+        borderColor: colors.primaryStart,
     },
     periodButtonText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
+        fontWeight: '600',
     },
     periodButtonTextActive: {
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         fontWeight: 'bold',
     },
     statsGrid: {
@@ -331,19 +339,22 @@ const styles = StyleSheet.create({
     },
     statItem: {
         width: '47%',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.glassSurface,
         borderRadius: Layout.borderRadius.s,
         padding: 16,
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        ...shadows.small,
     },
     statValue: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     statLabel: {
         fontSize: 12,
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         marginTop: 4,
     },
     avgScoreContainer: {
@@ -351,10 +362,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: Colors.glassBorder,
+        borderTopColor: colors.glassBorder,
     },
     avgScoreLabel: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
         marginBottom: 4,
     },
@@ -363,38 +374,41 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     scoreGood: {
-        color: Colors.accentSuccess,
+        color: colors.accentSuccess,
     },
     scoreWarning: {
-        color: Colors.accentYellow,
+        color: colors.accentYellow,
     },
     scoreBad: {
-        color: Colors.accentError,
+        color: colors.accentError,
     },
 
     // Personal Bests Card
     bestsCard: {
-        backgroundColor: 'rgba(250, 204, 21, 0.05)',
+        backgroundColor: colors.accentYellow + '1A', // ~10% opacity for better visibility
         borderRadius: Layout.borderRadius.m,
         padding: 20,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: 'rgba(250, 204, 21, 0.2)',
+        borderColor: colors.accentYellow + '4D', // ~30% opacity
         overflow: 'hidden',
+        ...shadows.card,
     },
     bestItem: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 16,
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        backgroundColor: colors.glassSurface,
         padding: 12,
         borderRadius: Layout.borderRadius.s,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
     },
     bestIconContainer: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(250, 204, 21, 0.1)',
+        backgroundColor: colors.accentYellow + '1A',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -408,11 +422,11 @@ const styles = StyleSheet.create({
     bestValue: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     bestLabel: {
         fontSize: 12,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
 
     // History Card
@@ -424,8 +438,10 @@ const styles = StyleSheet.create({
         padding: 16,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
         overflow: 'hidden',
+        ...shadows.small,
     },
     workoutHeaderRow: {
         flexDirection: 'row',
@@ -436,11 +452,11 @@ const styles = StyleSheet.create({
     workoutExercise: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     workoutDate: {
         fontSize: 13,
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         marginTop: 2,
     },
     scoreBadge: {
@@ -448,13 +464,13 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderRadius: 8,
     },
-    scoreBadgeGood: { backgroundColor: 'rgba(74, 222, 128, 0.2)' },
-    scoreBadgeWarning: { backgroundColor: 'rgba(250, 204, 21, 0.2)' },
-    scoreBadgeBad: { backgroundColor: 'rgba(248, 113, 113, 0.2)' },
+    scoreBadgeGood: { backgroundColor: colors.accentSuccess + '33' },
+    scoreBadgeWarning: { backgroundColor: colors.accentWarning + '33' },
+    scoreBadgeBad: { backgroundColor: colors.accentError + '33' },
     scoreBadgeText: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     workoutDetails: {
         flexDirection: 'row',
@@ -464,15 +480,17 @@ const styles = StyleSheet.create({
     detailPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.glassSurface,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 6,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
         gap: 4,
     },
     workoutStat: {
         fontSize: 13,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
 
     // Empty State
@@ -480,8 +498,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 60,
         borderRadius: Layout.borderRadius.m,
+        backgroundColor: colors.glassSurface,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         borderStyle: 'dashed',
     },
     emptyIcon: {
@@ -492,11 +511,11 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     emptySubtext: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         marginTop: 8,
         textAlign: 'center',
         paddingHorizontal: 40,
@@ -508,8 +527,8 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
         borderRadius: Layout.borderRadius.m,
         borderWidth: 1,
-        borderColor: Colors.accentError,
-        backgroundColor: 'rgba(248, 113, 113, 0.1)',
+        borderColor: colors.accentError,
+        backgroundColor: colors.accentError + '1A',
     },
     errorIcon: {
         fontSize: 48,
@@ -518,24 +537,25 @@ const styles = StyleSheet.create({
     errorText: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.accentError,
+        color: colors.accentError,
         marginBottom: 4,
     },
     errorSubtext: {
         fontSize: 13,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
         paddingHorizontal: 32,
         marginBottom: 16,
     },
     retryButton: {
-        backgroundColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart,
         paddingHorizontal: 24,
         paddingVertical: 10,
         borderRadius: Layout.borderRadius.m,
+        ...shadows.small,
     },
     retryButtonText: {
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         fontSize: 14,
         fontWeight: 'bold',
     },

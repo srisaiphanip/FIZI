@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, Shadows, Layout, Gradients } from '../theme/Theme';
-import { AVATAR_LEVELS, AvatarState } from '../services/AvatarService';
+import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
+import { AVATAR_LEVELS } from '../services/AvatarService';
 
 interface LevelXPCardProps {
     level: number;
@@ -12,6 +13,8 @@ interface LevelXPCardProps {
 }
 
 export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardProps) {
+    const { colors, gradients, shadows, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     // Helper to calculate progress
     const getLevelProgress = () => {
         const currentLevelInfo = AVATAR_LEVELS.find(l => l.level === level) || AVATAR_LEVELS[0];
@@ -45,7 +48,7 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
 
     return (
         <View style={styles.cardContainer}>
-            <BlurView intensity={20} tint="dark" style={styles.content}>
+            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.content}>
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.label}>Current Level</Text>
@@ -59,7 +62,7 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
                 <View style={[styles.barContainer, { marginBottom: 8 }]}>
                     <View style={styles.barBg}>
                         <LinearGradient
-                            colors={Gradients.primary}
+                            colors={gradients.primary}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 0 }}
                             style={[
@@ -80,18 +83,18 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
     cardContainer: {
         borderRadius: Layout.borderRadius.l,
         overflow: 'hidden',
         marginBottom: Spacing.l,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        ...Shadows.card,
+        borderColor: colors.glassBorder,
+        ...shadows.card,
     },
     content: {
         padding: Spacing.m,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        backgroundColor: colors.glassSurface,
     },
     header: {
         flexDirection: 'row',
@@ -101,7 +104,7 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textTransform: 'uppercase',
         letterSpacing: 1,
         fontWeight: '600',
@@ -109,8 +112,8 @@ const styles = StyleSheet.create({
     levelValue: {
         fontSize: 36,
         fontWeight: '900',
-        color: Colors.textPrimary,
-        textShadowColor: Colors.primaryStart,
+        color: colors.textPrimary,
+        textShadowColor: colors.primaryStart + '40', // 25% opacity
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: 10,
     },
@@ -118,11 +121,12 @@ const styles = StyleSheet.create({
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: Colors.glassHighlight,
+        backgroundColor: colors.glassHighlight,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
+        ...shadows.glow,
     },
     emoji: {
         fontSize: 24,
@@ -136,9 +140,11 @@ const styles = StyleSheet.create({
     barBg: {
         flex: 1,
         height: 12,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.backgroundDarker,
         borderRadius: 6,
         overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
     },
     barFill: {
         height: '100%',
@@ -147,7 +153,7 @@ const styles = StyleSheet.create({
     percentage: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         textAlign: 'right',
         minWidth: 100,
     },
@@ -158,16 +164,16 @@ const styles = StyleSheet.create({
         marginTop: Spacing.s,
         paddingTop: Spacing.s,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
+        borderTopColor: colors.glassBorder,
     },
     statLabel: {
         fontSize: 12,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontWeight: '600',
     },
     statValue: {
         fontSize: 14,
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: 'bold',
     },
 });

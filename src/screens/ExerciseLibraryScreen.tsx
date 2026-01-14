@@ -13,13 +13,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { RootState } from '../store';
 import { exercises } from '../models/exercises';
-import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
+import { Spacing, Layout, Shadows, ThemeColorsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface ExerciseLibraryScreenProps {
     navigation: any;
 }
 
 export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScreenProps) {
+    const { colors, gradients, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const { user } = useSelector((state: RootState) => state.auth);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<'all' | 'chest' | 'legs' | 'back' | 'abs' | 'arms'>('all');
@@ -44,7 +47,7 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
     ];
 
     return (
-        <LinearGradient colors={Gradients.background} style={styles.container}>
+        <LinearGradient colors={gradients.background} style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
                     <Text style={styles.backButtonText}>← Back</Text>
@@ -54,7 +57,7 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
-                <BlurView intensity={20} tint="light" style={styles.searchBar}>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.searchBar}>
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
@@ -127,7 +130,7 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -142,13 +145,13 @@ const styles = StyleSheet.create({
         marginRight: Spacing.m,
     },
     backButtonText: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontSize: 16,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     searchContainer: {
         paddingHorizontal: Spacing.l,
@@ -158,11 +161,11 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.m,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
     },
     searchInput: {
         padding: 12,
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 16,
     },
     categoryScroll: {
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
     categoryItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.glassSurface,
         paddingVertical: 8,
         paddingHorizontal: 16,
         borderRadius: 20,
@@ -182,19 +185,19 @@ const styles = StyleSheet.create({
         borderColor: 'transparent',
     },
     categoryItemActive: {
-        backgroundColor: 'rgba(108, 99, 255, 0.2)',
-        borderColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart + '33', // 20% opacity
+        borderColor: colors.primaryStart,
     },
     categoryIcon: {
         fontSize: 16,
         marginRight: 6,
     },
     categoryLabel: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 14,
     },
     categoryLabelActive: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: 'bold',
     },
     content: {
@@ -208,12 +211,12 @@ const styles = StyleSheet.create({
     },
     exerciseCard: {
         width: '48%',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        backgroundColor: colors.glassSurface,
         borderRadius: Layout.borderRadius.m,
         marginBottom: Spacing.l,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         ...Shadows.card,
     },
     exerciseCardLocked: {
@@ -238,10 +241,10 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     unlockLevel: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 12,
         fontWeight: 'bold',
-        backgroundColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart,
         paddingVertical: 2,
         paddingHorizontal: 8,
         borderRadius: 10,
@@ -250,13 +253,13 @@ const styles = StyleSheet.create({
         padding: 12,
     },
     exerciseName: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 16,
         fontWeight: 'bold',
         marginBottom: 2,
     },
     exerciseMuscle: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 12,
         marginBottom: 8,
     },
@@ -271,14 +274,14 @@ const styles = StyleSheet.create({
         borderRadius: 4,
     },
     difficultyTag: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: colors.glassSurface,
     },
     equipmentTag: {
-        backgroundColor: 'rgba(108, 99, 255, 0.1)',
+        backgroundColor: colors.primaryStart + '1A', // 10% opacity
     },
     tagText: {
         fontSize: 10,
-        color: Colors.textTertiary,
+        color: colors.textTertiary,
         textTransform: 'capitalize',
     },
 });

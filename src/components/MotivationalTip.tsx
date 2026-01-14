@@ -4,13 +4,15 @@
  * Rotating motivational quotes and fitness tips.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     Animated,
 } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
+import { ThemeColorsType } from '../theme/Theme';
 
 const TIPS = [
     { icon: '💪', text: 'Consistency beats intensity. Show up every day!' },
@@ -34,6 +36,8 @@ export default function MotivationalTip({
     autoRotate = true,
     rotateInterval = 8000
 }: MotivationalTipProps) {
+    const { colors } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const [currentIndex, setCurrentIndex] = useState(
         Math.floor(Math.random() * TIPS.length)
     );
@@ -73,15 +77,15 @@ export default function MotivationalTip({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
     container: {
-        backgroundColor: 'rgba(108, 99, 255, 0.1)',
+        backgroundColor: colors.primaryStart + '1A', // 10% opacity
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(108, 99, 255, 0.2)',
+        borderColor: colors.primaryStart + '33', // 20% opacity
     },
     icon: {
         fontSize: 28,
@@ -89,7 +93,7 @@ const styles = StyleSheet.create({
     },
     text: {
         flex: 1,
-        color: '#FFFFFF',
+        color: colors.textPrimary,
         fontSize: 14,
         lineHeight: 20,
     },

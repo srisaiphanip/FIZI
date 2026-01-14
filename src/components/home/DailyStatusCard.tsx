@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Colors, Spacing, Layout, Shadows } from '../../theme/Theme';
+import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../../theme/Theme';
+import { useTheme } from '../../hooks/useTheme';
 
 interface DailyStatusCardProps {
     isRestDay: boolean;
 }
 
 export const DailyStatusCard: React.FC<DailyStatusCardProps> = ({ isRestDay }) => {
+    const { colors, shadows, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
+
     return (
         <BlurView intensity={30} tint="dark" style={styles.todayStatusCard}>
             <View style={styles.statusRow}>
@@ -35,14 +39,14 @@ export const DailyStatusCard: React.FC<DailyStatusCardProps> = ({ isRestDay }) =
     );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
     todayStatusCard: {
         marginBottom: Spacing.l,
-        borderRadius: Layout.borderRadius.l,
+        borderRadius: Layout.borderRadius.m,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        ...Shadows.card,
+        borderColor: colors.glassBorder,
+        ...shadows.card,
     },
     statusRow: {
         flexDirection: 'row',
@@ -52,7 +56,7 @@ const styles = StyleSheet.create({
     },
     statusLabel: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         marginBottom: 4,
         textTransform: 'uppercase',
         letterSpacing: 1,
@@ -61,7 +65,7 @@ const styles = StyleSheet.create({
     statusDate: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     statusBadgeContainer: {
         flexDirection: 'row',
@@ -70,25 +74,25 @@ const styles = StyleSheet.create({
     statusBadgeWorkout: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(74, 222, 128, 0.1)', // Cyan tint
+        backgroundColor: colors.accentSuccess + '1A',
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.round, // Pill shape
+        borderRadius: Layout.borderRadius.round,
         borderWidth: 1,
-        borderColor: Colors.accentSuccess,
+        borderColor: colors.accentSuccess,
     },
     statusBadgeRest: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: colors.textSecondary + '1A',
         paddingVertical: 6,
         paddingHorizontal: 12,
-        borderRadius: Layout.borderRadius.round, // Pill shape
+        borderRadius: Layout.borderRadius.round,
         borderWidth: 1,
-        borderColor: Colors.textSecondary,
+        borderColor: colors.textSecondary,
     },
     statusBadgeText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: 'bold',
         fontSize: 12,
         marginLeft: 6,

@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Alert } from 'react-native';
 
 import { getExerciseImage } from '../config/imageMap';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Colors, Gradients, Spacing, Shadows, Layout } from '../theme/Theme';
+import { Spacing, Shadows, Layout, ThemeColorsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 import { getExerciseById } from '../models/exercises';
 import { useAppDispatch } from '../hooks/reduxHooks';
 import { saveWorkout } from '../store/slices/workoutSlice';
@@ -18,6 +19,8 @@ interface ExerciseInstructionsScreenProps {
 const { width, height } = Dimensions.get('window');
 
 export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstructionsScreenProps) {
+    const { colors, gradients, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const dispatch = useAppDispatch();
     const params = navigation.params || {};
     const exerciseId = params.exerciseId || 'push-ups';
@@ -25,7 +28,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
     if (!exercise) {
         return (
-            <LinearGradient colors={Gradients.background} style={styles.container}>
+            <LinearGradient colors={gradients.background} style={styles.container}>
                 <View style={styles.centerContent}>
                     <Text style={styles.errorText}>Exercise data not found.</Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
@@ -105,11 +108,11 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
     };
 
     return (
-        <LinearGradient colors={Gradients.background} style={styles.container}>
+        <LinearGradient colors={gradients.background} style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                 {/* Back Button */}
                 <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.headerBackButton}>
-                    <MaterialCommunityIcons name="chevron-left" size={32} color={Colors.textPrimary} />
+                    <MaterialCommunityIcons name="chevron-left" size={32} color={colors.textPrimary} />
                 </TouchableOpacity>
 
                 {/* Hero Section */}
@@ -117,7 +120,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     <MaterialCommunityIcons
                         name="dumbbell"
                         size={80}
-                        color={Colors.primaryStart}
+                        color={colors.primaryStart}
                         style={styles.heroIcon}
                     />
                     <Text style={styles.exerciseName}>{exercise.name}</Text>
@@ -127,9 +130,9 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 </View>
 
                 {/* Description */}
-                <BlurView intensity={20} tint="dark" style={styles.card}>
+                <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.card}>
                     <View style={styles.cardHeader}>
-                        <MaterialCommunityIcons name="information-outline" size={24} color={Colors.accentCyan} />
+                        <MaterialCommunityIcons name="information-outline" size={24} color={colors.accentCyan} />
                         <Text style={styles.cardTitle}>About Exercise</Text>
                     </View>
                     <Text style={styles.descriptionText}>{exercise.description || "Perfect your form with AI-powered correction."}</Text>
@@ -137,9 +140,9 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
                 {/* Form Reference Image */}
                 {getExerciseImage(exerciseId) && (
-                    <BlurView intensity={20} tint="dark" style={styles.referenceImageCard}>
+                    <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.referenceImageCard}>
                         <View style={styles.cardHeader}>
-                            <MaterialCommunityIcons name="image-outline" size={24} color={Colors.accentCyan} />
+                            <MaterialCommunityIcons name="image-outline" size={24} color={colors.accentCyan} />
                             <Text style={styles.cardTitle}>Form Reference</Text>
                         </View>
                         <View style={styles.imageContainer}>
@@ -174,15 +177,15 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 {/* Tips */}
                 {exercise.tips && exercise.tips.length > 0 && (
                     <View style={styles.section}>
-                        <BlurView intensity={20} tint="dark" style={styles.tipsCard}>
+                        <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.tipsCard}>
                             <View style={styles.cardHeader}>
-                                <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={Colors.accentYellow} />
+                                <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={colors.accentYellow} />
                                 <Text style={styles.cardTitle}>Pro Tips</Text>
                             </View>
                             <View style={styles.tipsList}>
                                 {exercise.tips.map((tip, index) => (
                                     <View key={index} style={styles.tipRow}>
-                                        <MaterialCommunityIcons name="check-circle-outline" size={18} color={Colors.accentSuccess} style={{ marginTop: 2 }} />
+                                        <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.accentSuccess} style={{ marginTop: 2 }} />
                                         <Text style={styles.tipText}>{tip}</Text>
                                     </View>
                                 ))}
@@ -196,12 +199,12 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
             {/* Footer with Actions */}
             <View style={styles.footer}>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     onPress={handleStart}
                     activeOpacity={0.8}
                 >
                     <LinearGradient
-                        colors={Gradients.primary}
+                        colors={gradients.primary}
                         style={styles.startButton}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
@@ -209,7 +212,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                         <MaterialCommunityIcons name="play-circle-outline" size={28} color="white" />
                         <Text style={styles.startButtonText}>Start Exercise</Text>
                     </LinearGradient>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity
                     onPress={handleSkipDetection}
@@ -217,14 +220,14 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     style={styles.skipButtonContainer}
                 >
                     <LinearGradient
-                        colors={['#FFFFFF', '#F5F5F7']}
+                        colors={isDark ? ['#FFFFFF', '#F5F5F7'] : [colors.backgroundDark, colors.backgroundDarker]}
                         style={styles.skipButtonGradient}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 0, y: 1 }}
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <MaterialCommunityIcons name="check-circle-outline" size={20} color={Colors.primaryStart} />
-                            <Text style={styles.skipButtonText}>Skip Live Detection</Text>
+                            <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primaryStart} />
+                            <Text style={[styles.skipButtonText, !isDark && { color: colors.textPrimary }]}>Complete Steps</Text>
                         </View>
                     </LinearGradient>
                 </TouchableOpacity>
@@ -238,7 +241,7 @@ function getIconForExercise(id: string): any {
     return 'dumbbell';
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -250,7 +253,7 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: Spacing.m,
@@ -263,24 +266,25 @@ const styles = StyleSheet.create({
     heroIcon: {
         marginBottom: Spacing.m,
         ...Shadows.glow,
+        shadowColor: colors.primaryStart,
     },
     exerciseName: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         textAlign: 'center',
         marginBottom: Spacing.s,
     },
     categoryBadge: {
-        backgroundColor: 'rgba(0, 210, 211, 0.2)',
+        backgroundColor: colors.accentCyan + '33', // 20% opacity
         paddingHorizontal: Spacing.m,
         paddingVertical: 4,
         borderRadius: Layout.borderRadius.round,
         borderWidth: 1,
-        borderColor: Colors.accentCyan,
+        borderColor: colors.accentCyan,
     },
     categoryText: {
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -288,7 +292,7 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         marginBottom: Spacing.xl,
         overflow: 'hidden',
     },
@@ -301,11 +305,11 @@ const styles = StyleSheet.create({
     cardTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     descriptionText: {
         fontSize: 16,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 24,
     },
     section: {
@@ -314,7 +318,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: Spacing.m,
     },
     stepsTextContainer: {
@@ -326,7 +330,7 @@ const styles = StyleSheet.create({
         marginBottom: Spacing.s,
     },
     bulletPoint: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontSize: 20,
         fontWeight: 'bold',
         marginRight: Spacing.m,
@@ -335,7 +339,7 @@ const styles = StyleSheet.create({
     stepTextSimple: {
         flex: 1,
         fontSize: 16,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 22,
     },
     stepCard: {
@@ -344,34 +348,34 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.m,
         padding: Spacing.m,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         marginBottom: Spacing.m,
     },
     stepNumberContainer: {
         width: 32,
         height: 32,
         borderRadius: 16,
-        backgroundColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: Spacing.m,
     },
     stepNumber: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontWeight: 'bold',
         fontSize: 16,
     },
     stepText: {
         flex: 1,
         fontSize: 16,
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         lineHeight: 22,
     },
     tipsCard: {
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         overflow: 'hidden',
     },
     tipsList: {
@@ -384,7 +388,7 @@ const styles = StyleSheet.create({
     },
     tipText: {
         fontSize: 15,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         flex: 1,
         lineHeight: 22,
     },
@@ -394,7 +398,7 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         marginBottom: Spacing.xl,
         overflow: 'hidden',
         alignItems: 'center',
@@ -438,9 +442,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: Spacing.m,
         ...Shadows.glow,
+        shadowColor: colors.primaryStart,
     },
     startButtonText: {
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         fontSize: 20,
         fontWeight: 'bold',
     },
@@ -450,17 +455,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     errorText: {
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         fontSize: 18,
         marginBottom: Spacing.m,
     },
     backButton: {
         padding: Spacing.m,
-        backgroundColor: Colors.primaryStart,
+        backgroundColor: colors.primaryStart,
         borderRadius: Layout.borderRadius.m,
     },
     backButtonText: {
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         fontWeight: 'bold',
     },
     // Skip Button Styles
@@ -469,7 +474,7 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.m,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.5)',
+        borderColor: colors.glassBorder,
         ...Shadows.small,
     },
     skipButtonGradient: {
@@ -479,7 +484,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     skipButtonText: {
-        color: Colors.primaryStart,
+        color: colors.primaryStart,
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 0.5,

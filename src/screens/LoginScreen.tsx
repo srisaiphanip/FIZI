@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { signIn, clearError } from '../store/slices/authSlice';
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
@@ -22,6 +23,7 @@ interface LoginScreenProps {
 export default function LoginScreen({ navigation }: LoginScreenProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [alertVisible, setAlertVisible] = useState(false);
     const [alertConfig, setAlertConfig] = useState<{
         title: string;
@@ -117,15 +119,28 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
 
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your password"
-                            placeholderTextColor={Colors.textTertiary}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={true}
-                            editable={!loading}
-                        />
+                        <View style={styles.passwordWrapper}>
+                            <TextInput
+                                style={styles.passwordInput}
+                                placeholder="Enter your password"
+                                placeholderTextColor={Colors.textTertiary}
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!showPassword}
+                                editable={!loading}
+                            />
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setShowPassword(!showPassword)}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialCommunityIcons
+                                    name={showPassword ? "eye-off" : "eye"}
+                                    size={24}
+                                    color={Colors.textSecondary}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <TouchableOpacity
@@ -206,9 +221,33 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.glassBorder,
         borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
+        height: 73, // Increased for a more spacious feel
+        paddingHorizontal: Spacing.m,
         fontSize: 16,
         color: Colors.textPrimary,
+    },
+    passwordWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.glassSurface,
+        borderWidth: 1,
+        borderColor: Colors.glassBorder,
+        borderRadius: Layout.borderRadius.m,
+        height: 73, // Increased for a more spacious feel
+        overflow: 'hidden',
+    },
+    passwordInput: {
+        flex: 1,
+        paddingHorizontal: Spacing.m,
+        height: '100%',
+        fontSize: 16,
+        color: Colors.textPrimary,
+        backgroundColor: 'transparent',
+    },
+    eyeIcon: {
+        paddingHorizontal: Spacing.s, // Balanced with input padding (12px)
+        height: '100%',
+        justifyContent: 'center',
     },
     button: {
         borderRadius: Layout.borderRadius.m,

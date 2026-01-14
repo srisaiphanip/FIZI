@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { WorkoutPlan, DailyWorkout, UserProfile } from '../../types';
 import { workoutPlanService } from '../../services/WorkoutPlanService';
+import { db } from '../../services/firebaseConfig';
+import { doc, updateDoc } from 'firebase/firestore';
 
 interface WorkoutPlanState {
     currentPlan: WorkoutPlan | null;
@@ -105,10 +107,15 @@ export const regenerateUserPlan = createAsyncThunk(
             console.log('Regenerating plan for:', profile.displayName, 'Days:', profile.fitnessProfile.availableDays);
             const newPlan = workoutPlanService.generateWorkoutPlan(profile);
             console.log('--- REGENERATED PLAN ---');
-            console.log('Frequency:', newPlan.frequency);
-            console.log('Split:', newPlan.sessions.slice(0, 7).map(s => s.focus).join(', '));
-            await workoutPlanService.saveWorkoutPlan(newPlan);
-            return newPlan;
+            const planId = await workoutPlanService.saveWorkoutPlan(newPlan);
+
+            // Update user profile with new plan ID in Firestore
+            if (profile.uid) {
+                const userRef = doc(db, 'users', profile.uid);
+                await updateDoc(userRef, { workoutPlanId: planId });
+            }
+
+            return { ...newPlan, id: planId };
         } catch (error: any) {
             return rejectWithValue(error.message || 'Failed to regenerate plan');
         }

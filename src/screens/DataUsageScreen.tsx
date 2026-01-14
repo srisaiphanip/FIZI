@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Colors, Gradients, Spacing, Layout } from '../theme/Theme';
+import { Spacing, Layout, ThemeColorsType } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface DataUsageScreenProps {
@@ -10,19 +11,21 @@ interface DataUsageScreenProps {
 }
 
 export default function DataUsageScreen({ navigation }: DataUsageScreenProps) {
+    const { colors, gradients, isDark } = useTheme();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     return (
-        <LinearGradient colors={Gradients.background} style={styles.container}>
+        <LinearGradient colors={gradients.background} style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
+                    <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Camera & Data Usage</Text>
                 <View style={{ width: 24 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <BlurView intensity={20} tint="dark" style={styles.card}>
-                    <MaterialCommunityIcons name="shield-check" size={48} color={Colors.accentCyan} style={styles.icon} />
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.card}>
+                    <MaterialCommunityIcons name="shield-check" size={48} color={colors.accentCyan} style={styles.icon} />
 
                     <Text style={styles.introText}>
                         We value your privacy and believe in full transparency regarding how FIZI uses your device's capabilities and data.
@@ -55,7 +58,7 @@ export default function DataUsageScreen({ navigation }: DataUsageScreenProps) {
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
     container: {
         flex: 1,
     },
@@ -70,12 +73,12 @@ const styles = StyleSheet.create({
     backButton: {
         padding: 8,
         borderRadius: 20,
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     },
     scrollContent: {
         padding: Spacing.m,
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
         backgroundColor: 'rgba(0,0,0,0.3)',
     },
     icon: {
@@ -93,7 +96,7 @@ const styles = StyleSheet.create({
     },
     introText: {
         fontSize: 14,
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         marginBottom: Spacing.m,
         textAlign: 'center',
         lineHeight: 20,
@@ -101,17 +104,17 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: Colors.accentCyan,
+        color: colors.accentCyan,
         marginTop: Spacing.l,
         marginBottom: Spacing.s,
     },
     text: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         lineHeight: 22,
     },
     bold: {
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
     }
 });
