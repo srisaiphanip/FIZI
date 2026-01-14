@@ -277,24 +277,43 @@ export class PlanGeneratorService {
         const cooldownExercises = this.selectCooldownExercises(pool, 1);
         selected.push(...cooldownExercises);
 
-        // Convert to PlannedExercise with progressive overload
+        // Convert to PlannedExercise with progressive overload and goal-based scaling
         return selected.map(ex => {
             const levelBonus = currentLevel - ex.unlockLevel;
-            const baseReps = ex.baseReps;
-            const baseSets = ex.baseSets;
+            let reps = ex.baseReps;
+            let sets = ex.baseSets;
 
-            // Apply deload reduction (70% volume)
+            // 1. Goal-based Scaling
+            if (profile.fitnessGoal === 'weight_loss' || profile.fitnessGoal === 'endurance') {
+                reps = Math.floor(reps * 1.2); // Higher volume for calorie burn / endurance
+            } else if (profile.fitnessGoal === 'muscle_gain') {
+                sets = sets + 1; // More sets for hypertrophy
+                reps = Math.min(reps, 12); // Focus on hypertrophy range
+            }
+
+            // 2. Age-based moderation (joint safety for older users)
+            if (profile.age && profile.age > 50) {
+                if (ex.category === 'plyometric') {
+                    sets = Math.max(1, sets - 1);
+                }
+            }
+
+            // 3. Weight-based scaling (for bodyweight exercises)
+            if (ex.equipmentRequired === 'bodyweight' && profile.weight && profile.weight > 100) {
+                reps = Math.max(5, Math.floor(reps * 0.8)); // Harder to move more mass
+            }
+
+            // Apply Level Bonus & Deload
             const deloadFactor = isDeload ? 0.7 : 1.0;
-
-            const reps = Math.max(1, Math.floor((baseReps + (levelBonus * ex.repIncrement)) * deloadFactor));
-            const sets = Math.max(1, Math.floor((baseSets + Math.floor(levelBonus / 5) * ex.setIncrement) * deloadFactor));
+            const finalReps = Math.max(1, Math.floor((reps + (levelBonus * ex.repIncrement)) * deloadFactor));
+            const finalSets = Math.max(1, Math.floor((sets + Math.floor(levelBonus / 5) * ex.setIncrement) * deloadFactor));
 
             return {
                 ...ex,
                 exerciseId: ex.id,
-                reps,
-                sets,
-                rest: this.calculateRestTime(ex.category, profile.fitnessProfile.experienceLevel),
+                reps: finalReps,
+                sets: finalSets,
+                rest: this.calculateRestTime(ex.category, profile.fitnessProfile.experienceLevel, profile.age || 30),
                 completed: false
             };
         });
@@ -442,9 +461,9 @@ export class PlanGeneratorService {
     }
 
     /**
-     * Calculate rest time based on exercise type and user level
+     * Calculate rest time based on exercise type, user level, and age
      */
-    private static calculateRestTime(category: Exercise['category'], level: string): number {
+    private static calculateRestTime(category: Exercise['category'], level: string, age: number): number {
         const baseTimes: Record<Exercise['category'], number> = {
             strength: 90,
             cardio: 45,
@@ -458,7 +477,10 @@ export class PlanGeneratorService {
             advanced: 0.8
         };
 
-        return Math.floor(baseTimes[category] * (levelMultipliers[level] || 1.0));
+        // Age factor: slightly longer rest for older adults
+        const ageMultiplier = age > 50 ? 1.2 : 1.0;
+
+        return Math.floor(baseTimes[category] * (levelMultipliers[level] || 1.0) * ageMultiplier);
     }
 
     /**
@@ -482,15 +504,21 @@ export class PlanGeneratorService {
             });
         });
 
-        // Calculate estimated calories (using MET values)
+        // Calculate estimated calories (using MET values and user weight)
         let estimatedCalories = 0;
+        const userWeight = profile.weight || 70;
+
         workoutSessions.forEach(session => {
-            session.exercises.forEach(ex => {
-                const reps = typeof ex.reps === 'number' ? ex.reps : 10;
-                const totalReps = ex.sets * reps;
-                const caloriesPerRep = ex.caloriesPerRep || 0.3;
-                estimatedCalories += totalReps * caloriesPerRep;
-            });
+            // Estimate duration in hours (avg 45 mins per session if not specified)
+            const durationHours = (session.duration || 45) / 60;
+
+            // Average MET for various workout types
+            let avgMET = 5.0; // Moderate resistance
+            if (session.focus === 'fullbody') avgMET = 6.0;
+            if (session.type === 'cardio') avgMET = 8.0;
+
+            // Calories = MET * weight(kg) * duration(hr)
+            estimatedCalories += avgMET * userWeight * durationHours;
         });
 
         return {

@@ -188,17 +188,19 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 workoutExperience: editExperienceLevel,
                 fitnessProfile: {
                     ...(user?.fitnessProfile || {
-                        availableDays: 4, // Default value if fitnessProfile doesn't exist
-                        fitnessGoals: [editFitnessGoal],
+                        availableDays: 7,
+                        fitnessGoals: [editFitnessGoal || 'weight_loss'],
                         healthIssues: [],
                         availableEquipment: [],
-                        experienceLevel: editExperienceLevel,
-                        equipmentAccess: editEquipmentAccess
+                        experienceLevel: editExperienceLevel || 'beginner',
+                        equipmentAccess: editEquipmentAccess || 'bodyweight'
                     }),
                     experienceLevel: editExperienceLevel,
                     equipmentAccess: editEquipmentAccess,
                     healthIssues: editHealthIssues,
                     availableEquipment: editAvailableEquipment as any[],
+                    availableDays: 7, // Enforce 7-day split
+                    fitnessGoals: [editFitnessGoal], // Sync inner goal
                 }
             };
 
