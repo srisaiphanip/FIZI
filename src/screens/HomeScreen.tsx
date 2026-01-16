@@ -325,9 +325,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                             </View>
                         </View>
 
-                        <Text style={styles.workoutDuration}>
-                            ⏱️ {todaysWorkout.duration} min  •  {todaysWorkout.exercises.length} exercises
-                        </Text>
+                        <View style={styles.workoutMetaContainer}>
+                            <Text style={styles.workoutDuration}>
+                                ⏱️ {todaysWorkout.duration} min  •  {todaysWorkout.exercises.length} exercises
+                            </Text>
+                            {todaysWorkout.exercises.length > 0 && (
+                                <View style={styles.progressBadge}>
+                                    <Text style={styles.progressText}>
+                                        {todaysWorkout.exercises.filter(e => e.completed).length}/{todaysWorkout.exercises.length} ✓
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                     </BlurView>
                 )}
 
@@ -640,6 +649,24 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         fontSize: 14,
         color: colors.textSecondary,
         fontWeight: '500',
+    },
+    workoutMetaContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    progressBadge: {
+        backgroundColor: colors.accentSuccess + '26',
+        paddingHorizontal: Spacing.m,
+        paddingVertical: 4,
+        borderRadius: Layout.borderRadius.round,
+        borderWidth: 1,
+        borderColor: colors.accentSuccess + '4D',
+    },
+    progressText: {
+        fontSize: 12,
+        color: colors.accentSuccess,
+        fontWeight: '700',
     },
 
     // Exercise List

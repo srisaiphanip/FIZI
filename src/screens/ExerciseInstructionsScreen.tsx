@@ -8,8 +8,9 @@ import { BlurView } from 'expo-blur';
 import { Spacing, Shadows, Layout, ThemeColorsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
 import { getExerciseById } from '../models/exercises';
-import { useAppDispatch } from '../hooks/reduxHooks';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { saveWorkout } from '../store/slices/workoutSlice';
+import { updateExerciseCompletion } from '../store/slices/workoutPlanSlice';
 import { avatarService } from '../services/AvatarService';
 
 interface ExerciseInstructionsScreenProps {
@@ -22,6 +23,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
     const { colors, gradients, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const dispatch = useAppDispatch();
+    const { currentPlan } = useAppSelector((state) => state.workoutPlan);
     const params = navigation.params || {};
     const exerciseId = params.exerciseId || 'push-ups';
     const exercise = getExerciseById(exerciseId);
@@ -89,6 +91,17 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 formScore: 80, // Reduced from 100 to 80 for skipped
                 isSkipped: true
             });
+
+            // Mark exercise as completed in workout plan
+            if (currentPlan && params.fromPlan) {
+                const today = new Date().getDay();
+                await dispatch(updateExerciseCompletion({
+                    planId: currentPlan.id,
+                    dayOfWeek: today,
+                    exerciseId: exercise.id,
+                    completed: true
+                })).unwrap();
+            }
 
             Alert.alert(
                 'Workout Logged!',
