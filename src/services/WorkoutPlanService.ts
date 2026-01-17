@@ -77,7 +77,7 @@ class WorkoutPlanService {
             await setDoc(planRef, plainPlan);
             return planRef.id;
         } catch (error) {
-            console.error('Error saving workout plan:', error);
+
             throw error;
         }
     }
@@ -96,7 +96,7 @@ class WorkoutPlanService {
                 updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
             } as WorkoutPlan;
         } catch (error) {
-            console.error('Error getting user workout plan:', error);
+
             return null;
         }
     }
@@ -118,7 +118,7 @@ class WorkoutPlanService {
             }
             return false;
         } catch (error) {
-            console.error('Error updating exercise completion:', error);
+
             return false;
         }
     }
@@ -135,7 +135,7 @@ class WorkoutPlanService {
             }
             return null;
         } catch (error) {
-            console.error('Error getting exercise instructions:', error);
+
             return null;
         }
     }
@@ -155,7 +155,7 @@ class WorkoutPlanService {
             });
             await batch.commit();
         } catch (error) {
-            console.error('Error seeding instructions:', error);
+
             throw error;
         }
     }

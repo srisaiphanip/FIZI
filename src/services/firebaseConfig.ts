@@ -35,7 +35,7 @@ if (typeof window !== 'undefined') {
     try {
         analytics = getAnalytics(app);
     } catch (error) {
-        console.log('Analytics not available on this platform');
+
     }
 }
 

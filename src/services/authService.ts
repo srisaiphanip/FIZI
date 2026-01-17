@@ -94,12 +94,6 @@ class AuthService {
 
             return userProfile;
         } catch (error: any) {
-            // Debug logging
-            console.log('Firebase signIn error:', {
-                code: error.code,
-                message: error.message,
-                fullError: error
-            });
             throw new Error(this.handleAuthError(error.code));
         }
     }
@@ -172,7 +166,6 @@ class AuthService {
 
             return null;
         } catch (error) {
-            console.error('Error fetching user profile:', error);
             return null;
         }
     }
@@ -234,7 +227,6 @@ class AuthService {
 
             return downloadURL;
         } catch (error: any) {
-            console.error('Upload Error:', error);
             throw new Error('Failed to upload photo: ' + error.message);
         }
     }

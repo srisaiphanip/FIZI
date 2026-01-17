@@ -46,10 +46,10 @@ class PoseDetectionService {
      */
     async initialize(): Promise<boolean> {
         try {
-            console.log(`[PoseDetection] Connecting to Python backend at ${POSE_API_URL}...`);
+
             const response = await fetch(`${POSE_API_URL}/health`);
             if (response.ok) {
-                console.log('[PoseDetection] ✅ Connected to backend!');
+
                 this.isInitialized = true;
                 this.initializationError = null;
                 return true;
@@ -178,7 +178,7 @@ class PoseDetectionService {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ exerciseId }),
             });
-            console.log(`[PoseDetection] Stats reset for ${exerciseId}`);
+
             return true;
         } catch (error) {
             console.warn('[PoseDetection] Reset failed:', error);

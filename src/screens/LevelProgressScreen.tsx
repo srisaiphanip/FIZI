@@ -6,12 +6,14 @@ import {
     ScrollView,
     TouchableOpacity,
     Dimensions,
+    ActivityIndicator,
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { RootState } from '../store';
 import { ProgressionService } from '../services/ProgressionService';
+import { avatarService, AVATAR_LEVELS, AvatarState } from '../services/AvatarService';
 import { Spacing, Layout, Shadows, ThemeColorsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -28,19 +30,27 @@ export default function LevelProgressScreen({ navigation }: LevelProgressScreenP
     const styles = useMemo(() => createStyles(colors), [colors]);
     const { user } = useSelector((state: RootState) => state.auth);
 
-    const progress = user?.progressSystem || {
-        currentLevel: 1,
-        currentXP: 0,
-        xpToNextLevel: 1000,
-        totalWorkoutsCompleted: 0,
-        unlockedExercises: []
-    };
+    const [avatarState, setAvatarState] = React.useState<AvatarState | null>(null);
+    const [loading, setLoading] = React.useState(true);
 
-    const currentLevel = progress.currentLevel;
-    const currentXP = progress.currentXP;
+    React.useEffect(() => {
+        const loadData = async () => {
+            const state = await avatarService.getAvatarState();
+            setAvatarState(state);
+            setLoading(false);
+        };
+        loadData();
+    }, []);
 
-    const levelThreshold = ProgressionService.getXPThresholdForLevel(currentLevel);
-    const nextLevelThreshold = ProgressionService.getXPThresholdForLevel(currentLevel + 1);
+    const currentLevel = avatarState?.level || user?.level || 1;
+    const currentXP = avatarState?.xp || user?.xp || 0;
+
+    const currentLevelInfo = AVATAR_LEVELS.find(l => l.level === currentLevel) || AVATAR_LEVELS[0];
+    const nextLevelInfo = AVATAR_LEVELS.find(l => l.level === currentLevel + 1);
+
+    const levelThreshold = currentLevelInfo.minXP;
+    const nextLevelThreshold = nextLevelInfo ? nextLevelInfo.minXP : currentLevelInfo.minXP + 1000;
+
     const xpInCurrentLevel = currentXP - levelThreshold;
     const xpRequiredForLevel = nextLevelThreshold - levelThreshold;
     const progressPercent = Math.min(100, Math.round((xpInCurrentLevel / xpRequiredForLevel) * 100));
@@ -48,6 +58,15 @@ export default function LevelProgressScreen({ navigation }: LevelProgressScreenP
     const unlockedExercises = ProgressionService.getExercisesUnlockedAtLevel(currentLevel);
     const upNext = ProgressionService.getExercisesUnlockedAtLevel(currentLevel + 1);
 
+    if (loading) {
+        return (
+            <LinearGradient colors={gradients.background} style={styles.container}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.accentCyan} />
+                </View>
+            </LinearGradient>
+        );
+    }
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <View style={styles.header}>
@@ -139,7 +158,7 @@ export default function LevelProgressScreen({ navigation }: LevelProgressScreenP
                         <View style={styles.statIcon}>
                             <MaterialCommunityIcons name="dumbbell" size={24} color={colors.primaryStart} />
                         </View>
-                        <Text style={styles.statValue}>{progress.totalWorkoutsCompleted}</Text>
+                        <Text style={styles.statValue}>{avatarState?.totalWorkouts || user?.totalWorkouts || 0}</Text>
                         <Text style={styles.statLabel}>Workouts</Text>
                     </BlurView>
 
@@ -232,6 +251,11 @@ export default function LevelProgressScreen({ navigation }: LevelProgressScreenP
 const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
     container: {
         flex: 1,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         paddingTop: 60,

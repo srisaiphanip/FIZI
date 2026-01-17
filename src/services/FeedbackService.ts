@@ -45,7 +45,7 @@ class FeedbackService {
     async speak(message: string, priority: number = 1): Promise<void> {
         if (!AppConfig.features.enableAudioFeedback) return;
         if (Platform.OS === 'web') {
-            console.log('[Feedback] Audio (web):', message);
+
             return;
         }
 

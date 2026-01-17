@@ -50,7 +50,7 @@ class WorkoutService {
     }): Promise<string | null> {
         const user = auth.currentUser;
         if (!user) {
-            console.error('[WorkoutService] No authenticated user');
+
             return null;
         }
 
@@ -64,14 +64,14 @@ class WorkoutService {
                 createdAt: serverTimestamp(),
             });
 
-            console.log('[WorkoutService] Workout saved:', workoutId);
+
 
             // Update daily stats
             await this.updateDailyStats(session);
 
             return workoutId;
         } catch (error) {
-            console.error('[WorkoutService] Failed to save workout:', error);
+
             return null;
         }
     }
@@ -82,12 +82,12 @@ class WorkoutService {
     async getWorkoutHistory(limitCount: number = 20): Promise<WorkoutSessionData[]> {
         const user = auth.currentUser;
         if (!user) {
-            console.log('[WorkoutService] No authenticated user for history fetch');
+
             return [];
         }
 
         try {
-            console.log('[WorkoutService] Fetching workout history for user:', user.uid);
+
 
             // Try with orderBy first (requires composite index)
             let workoutsQuery = query(
@@ -100,7 +100,7 @@ class WorkoutService {
             let snapshot;
             try {
                 snapshot = await getDocs(workoutsQuery);
-                console.log('[WorkoutService] Fetched', snapshot.size, 'workouts with compound query');
+
             } catch (indexError: any) {
                 // If compound query fails (missing index), try without orderBy
                 console.warn('[WorkoutService] Compound query failed, trying fallback:', indexError.message);
@@ -110,7 +110,7 @@ class WorkoutService {
                     limit(limitCount)
                 );
                 snapshot = await getDocs(workoutsQuery);
-                console.log('[WorkoutService] Fetched', snapshot.size, 'workouts with simple query');
+
             }
 
             const workouts: WorkoutSessionData[] = [];
@@ -137,11 +137,11 @@ class WorkoutService {
             // Sort by date client-side (in case we used fallback query)
             workouts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-            console.log('[WorkoutService] Successfully parsed', workouts.length, 'workouts');
+
             return workouts;
         } catch (error: any) {
-            console.error('[WorkoutService] Failed to get history:', error);
-            console.error('[WorkoutService] Error details:', error.message, error.code);
+
+
             return [];
         }
     }
@@ -159,7 +159,7 @@ class WorkoutService {
     }> {
         const user = auth.currentUser;
         if (!user) {
-            console.log('[WorkoutService] No authenticated user for stats fetch');
+
             return {
                 totalWorkouts: 0,
                 totalReps: 0,
@@ -171,7 +171,7 @@ class WorkoutService {
         }
 
         try {
-            console.log('[WorkoutService] Fetching stats for period:', period);
+
 
             // Calculate date range
             const now = new Date();
@@ -185,7 +185,7 @@ class WorkoutService {
                 startDate = new Date(0); // All time
             }
 
-            console.log('[WorkoutService] Date range:', startDate.toISOString(), 'to', now.toISOString());
+
 
             let snapshot;
             try {
@@ -197,7 +197,7 @@ class WorkoutService {
                     orderBy('createdAt', 'desc')
                 );
                 snapshot = await getDocs(workoutsQuery);
-                console.log('[WorkoutService] Stats fetched with compound query:', snapshot.size, 'docs');
+
             } catch (indexError: any) {
                 // Fallback: get all user workouts and filter client-side
                 console.warn('[WorkoutService] Compound stats query failed, using fallback:', indexError.message);
@@ -206,7 +206,7 @@ class WorkoutService {
                     where('userId', '==', user.uid)
                 );
                 snapshot = await getDocs(fallbackQuery);
-                console.log('[WorkoutService] Stats fetched with fallback:', snapshot.size, 'docs (will filter client-side)');
+
             }
 
             let totalWorkouts = 0;
@@ -260,8 +260,8 @@ class WorkoutService {
                 exerciseBreakdown,
             };
         } catch (error: any) {
-            console.error('[WorkoutService] Failed to get stats:', error);
-            console.error('[WorkoutService] Error details:', error.message, error.code);
+
+
             return {
                 totalWorkouts: 0,
                 totalReps: 0,
@@ -319,7 +319,7 @@ class WorkoutService {
                 });
             }
         } catch (error) {
-            console.error('[WorkoutService] Failed to update daily stats:', error);
+
         }
     }
 
@@ -357,7 +357,7 @@ class WorkoutService {
 
             return { maxReps, longestWorkout, bestFormScore };
         } catch (error) {
-            console.error('[WorkoutService] Failed to get personal bests:', error);
+
             return { maxReps: null, longestWorkout: null, bestFormScore: null };
         }
     }

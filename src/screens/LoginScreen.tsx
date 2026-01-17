@@ -37,7 +37,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     React.useEffect(() => {
         if (error) {
             // Debug: Log the actual error to console
-            console.log('Login error received:', error);
+
 
             // Check if it's a "user not found" or "invalid credential" error
             // auth/invalid-credential means either user doesn't exist OR wrong password (Firebase doesn't distinguish for security)

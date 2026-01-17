@@ -57,7 +57,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     };
 
     const onRefresh = async () => {
-        console.log('[HistoryScreen] Manual refresh triggered');
+
         setRefreshing(true);
         await loadData();
         setRefreshing(false);

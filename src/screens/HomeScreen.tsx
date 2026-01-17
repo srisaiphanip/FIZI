@@ -76,7 +76,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             const isIncomplete = uniqueDays.size < 7;
 
             if (hasRestOrRecovery || isIncomplete) {
-                console.log('[HomeScreen] Invalid plan (Rest detected or Incomplete days). Enforcing 7-day split...');
                 const forcedProfile = JSON.parse(JSON.stringify(user));
                 if (!forcedProfile.fitnessProfile) {
                     forcedProfile.fitnessProfile = { availableDays: 7 };

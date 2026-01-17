@@ -104,9 +104,9 @@ export const regenerateUserPlan = createAsyncThunk(
     'workoutPlan/regenerate',
     async (profile: UserProfile, { rejectWithValue }) => {
         try {
-            console.log('Regenerating plan for:', profile.displayName, 'Days:', profile.fitnessProfile.availableDays);
+
             const newPlan = workoutPlanService.generateWorkoutPlan(profile);
-            console.log('--- REGENERATED PLAN ---');
+
             const planId = await workoutPlanService.saveWorkoutPlan(newPlan);
 
             // Update user profile with new plan ID in Firestore

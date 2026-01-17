@@ -68,12 +68,12 @@ function InstructionImage({ uri, exerciseId }: { uri: string, exerciseId: string
                     style={styles.guideImage}
                     resizeMode="contain"
                     onLoad={() => {
-                        console.log('[DEBUG] Image Loaded Successfuly');
+
                         setImageLoaded(true);
                     }}
                     onError={(e) => {
                         const err = 'Local Error: ' + (e.nativeEvent as any).error;
-                        console.error('[DEBUG]', err);
+
                         setImageError(err);
                     }}
                 />

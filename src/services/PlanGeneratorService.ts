@@ -122,7 +122,7 @@ export class PlanGeneratorService {
 
         // Determine session split pattern based on frequency
         const targetSplit = this.determineSplitPattern(availableDays, profile.fitnessProfile.experienceLevel);
-        console.log('[PlanGen] Using Split Pattern:', targetSplit.join(', '));
+
         let patternIndex = 0;
 
         // Simple 28-day schedule based on frequency
@@ -169,7 +169,7 @@ export class PlanGeneratorService {
      * Determine optimal split pattern based on weekly frequency
      */
     private static determineSplitPattern(frequency: number, experienceLevel: string = 'intermediate'): SessionFocus[] {
-        console.log(`[PlanGen] Unified Split Pattern: Freq=${frequency}, Level=${experienceLevel}`);
+
         // Return consistent 7-day split sequence for all users
         // 0=Sun (Full), 1=Mon (Upper), 2=Tue (Upper), 3=Wed (Lower), 4=Thu (Upper), 5=Fri (Upper), 6=Sat (Lower)
         return ['fullbody', 'upper', 'upper', 'lower', 'upper', 'upper', 'lower'];

@@ -51,29 +51,6 @@ export class ProgressionService {
         return totalXP;
     }
 
-    /**
-     * Process completed exercises and update user profile
-     */
-    static updateProgress(profile: UserProfile, xpEarned: number): UserProfile {
-        const newXP = profile.progressSystem.currentXP + xpEarned;
-        const newLevel = this.calculateLevelFromXP(newXP);
-        const nextLevelThreshold = this.getXPThresholdForLevel(newLevel + 1);
-
-        return {
-            ...profile,
-            progressSystem: {
-                ...profile.progressSystem,
-                currentXP: newXP,
-                currentLevel: newLevel,
-                xpToNextLevel: nextLevelThreshold - newXP,
-                totalWorkoutsCompleted: profile.progressSystem.totalWorkoutsCompleted + 1
-            },
-            // Update legacy fields
-            xp: newXP,
-            level: newLevel,
-            totalWorkouts: profile.totalWorkouts + 1
-        };
-    }
 
     /**
      * Scale exercise volume (sets/reps) based on user level
