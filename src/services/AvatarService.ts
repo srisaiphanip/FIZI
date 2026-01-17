@@ -154,7 +154,8 @@ class AvatarService {
             const liveBonus = workoutData.isSkipped ? 0 : 150;
             const formBonus = Math.round(workoutData.formScore);
 
-            const xpGained = baseXP + repXP + timeXP + liveBonus + formBonus;
+            const isFirstTime = !currentState.exercisesTried.includes(workoutData.exerciseId);
+            const xpGained = isFirstTime ? (baseXP + repXP + timeXP + liveBonus + formBonus) : 0;
 
             // Calculate new totals
             const newTotalWorkouts = currentState.totalWorkouts + 1;
