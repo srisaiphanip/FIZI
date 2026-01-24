@@ -3,6 +3,7 @@ import {
     signInWithEmailAndPassword,
     signOut as firebaseSignOut,
     updateProfile as firebaseUpdateProfile,
+    sendPasswordResetEmail,
     User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -106,6 +107,17 @@ class AuthService {
             await firebaseSignOut(auth);
         } catch (error: any) {
             throw new Error('Failed to sign out');
+        }
+    }
+
+    /**
+     * Send password reset email
+     */
+    async sendPasswordResetEmail(email: string): Promise<void> {
+        try {
+            await sendPasswordResetEmail(auth, email);
+        } catch (error: any) {
+            throw new Error(this.handleAuthError(error.code));
         }
     }
 

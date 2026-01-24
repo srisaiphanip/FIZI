@@ -12,6 +12,7 @@ import { useAppDispatch } from './src/hooks/reduxHooks';
 
 // Import screens
 import LoginScreen from './src/screens/LoginScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -27,7 +28,7 @@ import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
 
-export type ScreenType = 'Login' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage';
+export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -201,6 +202,8 @@ function AppContent() {
     switch (currentScreen) {
       case 'Login':
         return <LoginScreen navigation={navigation} />;
+      case 'ForgotPassword':
+        return <ForgotPasswordScreen navigation={navigation} />;
       case 'Signup':
         return <SignupScreen navigation={navigation} />;
       case 'ProfileSetup':
