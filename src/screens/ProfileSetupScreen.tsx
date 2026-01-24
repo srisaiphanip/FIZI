@@ -22,6 +22,8 @@ import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../
 import { useTheme } from '../hooks/useTheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { feetToCm, metersToCm, cmToFeet, cmToMeters } from '../utils/unitConversion';
 
 interface ProfileSetupScreenProps {
     navigation: any;
@@ -347,6 +349,89 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         borderColor: colors.glassBorder,
         ...shadows.small,
     },
+    unitSelector: {
+        flexDirection: 'row',
+        backgroundColor: colors.glassSurface,
+        borderRadius: 8,
+        padding: 2,
+        marginLeft: 12,
+        marginRight: 'auto',
+    },
+    unitButton: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    unitButtonActive: {
+        backgroundColor: colors.primaryStart,
+    },
+    unitText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        fontWeight: '600',
+    },
+    unitTextActive: {
+        color: '#FFFFFF',
+    },
+    // Success Modal Styles
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    successModal: {
+        backgroundColor: colors.backgroundLight,
+        borderRadius: 24,
+        padding: 32,
+        width: '90%',
+        maxWidth: 400,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        alignItems: 'center',
+        ...shadows.card,
+    },
+    successIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.primaryStart + '20',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    successIcon: {
+        fontSize: 48,
+    },
+    successTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    successMessage: {
+        fontSize: 16,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    successButton: {
+        width: '100%',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        ...shadows.small,
+    },
+    successButtonText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
 });
 
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
@@ -364,6 +449,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
     const [age, setAge] = useState('');
     const [weight, setWeight] = useState('');
     const [height, setHeight] = useState('');
+    const [heightUnit, setHeightUnit] = useState<'cm' | 'ft' | 'm'>('cm');
 
     // Step 2: Advanced Body Metrics
     const [bodyFat, setBodyFat] = useState('');
@@ -393,6 +479,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
     // Step 7: Plan preview
     const [generatingPlan, setGeneratingPlan] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const toggleHealthIssue = (issue: string) => {
         setSelectedHealthIssues(prev => {
@@ -413,6 +500,13 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
         );
     };
 
+    const getHeightInCm = (): number => {
+        if (!height) return 0;
+        if (heightUnit === 'cm') return parseFloat(height) || 0;
+        if (heightUnit === 'ft') return feetToCm(height);
+        return metersToCm(parseFloat(height));
+    };
+
     const handleNext = () => {
         // Validation for each step
         if (currentStep === 1) {
@@ -422,7 +516,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             }
             const ageNum = parseInt(age);
             const weightNum = parseFloat(weight);
-            const heightNum = parseFloat(height);
+            const heightNum = getHeightInCm(); // Use converted value
             if (ageNum <= 0 || weightNum <= 0 || heightNum <= 0) {
                 Alert.alert('Error', 'Please enter valid numbers');
                 return;
@@ -439,7 +533,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
     const calculateBMI = () => {
         const w = parseFloat(weight);
-        const h = parseFloat(height) / 100;
+        const h = getHeightInCm() / 100; // Use converted value
         if (!w || !h) return 0;
         return w / (h * h);
     };
@@ -464,7 +558,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
 
     const calculateBMR = () => {
         const w = parseFloat(weight);
-        const h = parseFloat(height);
+        const h = getHeightInCm(); // Use converted value
         const a = parseInt(age);
         if (!w || !h || !a) return 0;
 
@@ -488,7 +582,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
         const bmr = calculateBMR();
         const a = parseInt(age);
         const w = parseFloat(weight);
-        const h = parseFloat(height);
+        const h = getHeightInCm(); // Use converted value
 
         if (!bmi || !a || !w || !h) return;
 
@@ -566,7 +660,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 gender,
                 age: parseInt(age),
                 weight: parseFloat(weight),
-                height: parseFloat(height),
+                height: getHeightInCm(), // Use converted value
                 fitnessGoal,
                 workoutExperience,
                 bodyComposition: {
@@ -616,11 +710,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             await dispatch(regenerateUserPlan(fullProfile)).unwrap();
 
             setGeneratingPlan(false);
-            Alert.alert(
-                'Success!',
-                'Your personalized workout plan is ready!',
-                [{ text: 'Start Training', onPress: () => navigation.navigate('Home') }]
-            );
+            setShowSuccessModal(true);
         } catch (error: any) {
             setGeneratingPlan(false);
             Alert.alert('Error', error.message || 'Failed to complete setup');
@@ -754,14 +844,41 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                         </View>
 
                         <View style={styles.inputContainer}>
-                            <Text style={styles.label}>Height (cm)</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                <Text style={[styles.label, { marginBottom: 0, marginRight: 8 }]}>Height</Text>
+                                <View style={styles.unitSelector}>
+                                    {(['cm', 'ft', 'm'] as const).map((unit) => (
+                                        <TouchableOpacity
+                                            key={unit}
+                                            style={[styles.unitButton, heightUnit === unit && styles.unitButtonActive]}
+                                            onPress={() => {
+                                                let newHeight = height;
+                                                let cmVal = 0;
+                                                if (heightUnit === 'cm') cmVal = parseFloat(height) || 0;
+                                                else if (heightUnit === 'ft') cmVal = feetToCm(height);
+                                                else cmVal = metersToCm(parseFloat(height));
+
+                                                setHeightUnit(unit);
+
+                                                if (unit === 'cm') newHeight = cmVal.toString();
+                                                else if (unit === 'ft') newHeight = cmToFeet(cmVal);
+                                                else newHeight = cmToMeters(cmVal).toString();
+
+                                                setHeight(newHeight);
+                                            }}
+                                        >
+                                            <Text style={[styles.unitText, heightUnit === unit && styles.unitTextActive]}>{unit}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
                             <TextInput
                                 style={styles.input}
-                                placeholder="Enter your height"
+                                placeholder={`Enter your height (${heightUnit})`}
                                 placeholderTextColor={colors.textTertiary}
                                 value={height}
                                 onChangeText={setHeight}
-                                keyboardType="decimal-pad"
+                                keyboardType={heightUnit === 'ft' ? 'default' : 'numeric'}
                                 editable={!loading}
                             />
                         </View>
@@ -1111,7 +1228,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Weight / Height:</Text>
-                                <Text style={styles.summaryValue}>{weight}kg / {height}cm</Text>
+                                <Text style={styles.summaryValue}>{weight}kg / {height} {heightUnit}</Text>
                             </View>
                             <View style={styles.summaryRow}>
                                 <Text style={styles.summaryLabel}>Goal:</Text>
@@ -1187,6 +1304,36 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
+                    <View style={styles.successModal}>
+                        <View style={styles.successIconContainer}>
+                            <Text style={styles.successIcon}>🎉</Text>
+                        </View>
+                        <Text style={styles.successTitle}>Success!</Text>
+                        <Text style={styles.successMessage}>
+                            Your personalized workout plan is ready!
+                        </Text>
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => {
+                                setShowSuccessModal(false);
+                                navigation.navigate('Home');
+                            }}
+                            style={{ width: '100%', marginTop: 24 }}
+                        >
+                            <LinearGradient
+                                colors={gradients.primary}
+                                style={styles.successButton}
+                            >
+                                <Text style={styles.successButtonText}>Start Training</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+                </BlurView>
+            )}
         </View>
     );
 }

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Alert } from 'react-native';
 
 import { getExerciseImage } from '../config/imageMap';
@@ -27,6 +27,8 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
     const params = navigation.params || {};
     const exerciseId = params.exerciseId || 'push-ups';
     const exercise = getExerciseById(exerciseId);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [completionStats, setCompletionStats] = useState({ totalReps: 0, calories: 0 });
 
     if (!exercise) {
         return (
@@ -103,16 +105,8 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 })).unwrap();
             }
 
-            Alert.alert(
-                'Workout Logged!',
-                `Marked ${totalReps} reps of ${exercise.name} as complete.\nEarned ${caloriesBurned} cal!`,
-                [
-                    {
-                        text: 'Great!',
-                        onPress: () => navigation.navigate('Home')
-                    }
-                ]
-            );
+            setCompletionStats({ totalReps, calories: caloriesBurned });
+            setShowSuccessModal(true);
 
         } catch (error) {
             console.error('Failed to log skipped workout:', error);
@@ -245,6 +239,39 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
+                    <View style={styles.successModal}>
+                        <View style={styles.successIconContainer}>
+                            <Text style={styles.successIcon}>💪</Text>
+                        </View>
+                        <Text style={styles.successTitle}>Workout Logged!</Text>
+                        <Text style={styles.successMessage}>
+                            Marked {completionStats.totalReps} reps of {exercise.name} as complete.
+                        </Text>
+                        <Text style={styles.successStats}>
+                            🔥 Earned {completionStats.calories} cal!
+                        </Text>
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => {
+                                setShowSuccessModal(false);
+                                navigation.navigate('Home');
+                            }}
+                            style={{ width: '100%', marginTop: 24 }}
+                        >
+                            <LinearGradient
+                                colors={gradients.primary}
+                                style={styles.successButton}
+                            >
+                                <Text style={styles.successButtonText}>Great!</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+                </BlurView>
+            )}
         </LinearGradient>
     );
 }
@@ -501,5 +528,71 @@ const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 0.5,
+    },
+    // Success Modal Styles
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    successModal: {
+        backgroundColor: colors.backgroundLight,
+        borderRadius: 24,
+        padding: 32,
+        width: '90%',
+        maxWidth: 400,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        alignItems: 'center',
+        ...Shadows.card,
+    },
+    successIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.primaryStart + '20',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    successIcon: {
+        fontSize: 48,
+    },
+    successTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    successMessage: {
+        fontSize: 16,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    successStats: {
+        fontSize: 18,
+        color: colors.primaryStart,
+        textAlign: 'center',
+        marginTop: 12,
+        fontWeight: '700',
+    },
+    successButton: {
+        width: '100%',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        ...Shadows.small,
+    },
+    successButtonText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
     },
 });

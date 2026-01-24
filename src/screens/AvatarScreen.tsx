@@ -32,6 +32,7 @@ import {
     AVATAR_LEVELS,
     ACHIEVEMENTS
 } from '../services/AvatarService';
+import { feetToCm, metersToCm, cmToFeet, cmToMeters, formatHeight } from '../utils/unitConversion';
 import { exercises } from '../models/exercises'; // Import exercises data
 import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
@@ -74,12 +75,14 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const [editAge, setEditAge] = useState('');
     const [editWeight, setEditWeight] = useState('');
     const [editHeight, setEditHeight] = useState('');
+    const [heightUnit, setHeightUnit] = useState<'cm' | 'ft' | 'm'>('cm');
     const [editGender, setEditGender] = useState('');
     const [editFitnessGoal, setEditFitnessGoal] = useState<UserProfile['fitnessGoal']>('muscle_gain');
     const [editExperienceLevel, setEditExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
     const [editEquipmentAccess, setEditEquipmentAccess] = useState<'bodyweight' | 'home' | 'gym'>('bodyweight');
     const [editHealthIssues, setEditHealthIssues] = useState<string[]>([]);
     const [editAvailableEquipment, setEditAvailableEquipment] = useState<string[]>([]);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // Change Password State
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -209,7 +212,9 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const startEditingProfile = () => {
         setEditName(user?.displayName || '');
         setEditWeight(user?.weight?.toString() || '');
+        // Initial set based on current unit (default cm)
         setEditHeight(user?.height?.toString() || '');
+        // Note: For now we default to cm when opening, but we could persist preference if needed
         setEditAge(user?.age?.toString() || '');
         setEditFitnessGoal(user?.fitnessGoal || 'muscle_gain');
         setEditExperienceLevel(user?.workoutExperience || (user?.fitnessProfile?.experienceLevel as any) || 'beginner');
@@ -224,7 +229,11 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             const updates: Partial<UserProfile> = {
                 displayName: editName,
                 weight: parseFloat(editWeight) || 0,
-                height: parseFloat(editHeight) || 0,
+                height: heightUnit === 'cm'
+                    ? parseFloat(editHeight)
+                    : heightUnit === 'ft'
+                        ? feetToCm(editHeight)
+                        : metersToCm(parseFloat(editHeight)),
                 age: parseInt(editAge) || 0,
                 fitnessGoal: editFitnessGoal,
                 workoutExperience: editExperienceLevel,
@@ -252,7 +261,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             await dispatch(regenerateUserPlan(updatedProfile)).unwrap();
 
             setIsEditingProfile(false);
-            Alert.alert('Success', 'Profile and Workout Plan updated successfully');
+            setShowSuccessModal(true);
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to update profile');
         }
@@ -969,18 +978,52 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                 )}
                             </View>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Height</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                    <Text style={[styles.infoLabel, { flex: 0, marginRight: 8 }]}>Height</Text>
+
+                                    {isEditingProfile && (
+                                        <View style={styles.unitSelector}>
+                                            {(['cm', 'ft', 'm'] as const).map((unit) => (
+                                                <TouchableOpacity
+                                                    key={unit}
+                                                    style={[styles.unitButton, heightUnit === unit && styles.unitButtonActive]}
+                                                    onPress={() => {
+                                                        // Convert current value to new unit when switching
+                                                        let newHeight = editHeight;
+                                                        // First convert to cm
+                                                        let cmVal = 0;
+                                                        if (heightUnit === 'cm') cmVal = parseFloat(editHeight) || 0;
+                                                        else if (heightUnit === 'ft') cmVal = feetToCm(editHeight);
+                                                        else cmVal = metersToCm(parseFloat(editHeight));
+
+                                                        setHeightUnit(unit);
+
+                                                        // Then convert to new unit
+                                                        if (unit === 'cm') newHeight = cmVal.toString();
+                                                        else if (unit === 'ft') newHeight = cmToFeet(cmVal);
+                                                        else newHeight = cmToMeters(cmVal).toString();
+
+                                                        setEditHeight(newHeight);
+                                                    }}
+                                                >
+                                                    <Text style={[styles.unitText, heightUnit === unit && styles.unitTextActive]}>{unit}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+
                                 {isEditingProfile ? (
                                     <TextInput
                                         style={styles.editInput}
                                         value={editHeight}
                                         onChangeText={setEditHeight}
-                                        keyboardType="decimal-pad"
-                                        placeholder="cm"
+                                        keyboardType={heightUnit === 'ft' ? 'default' : 'numeric'}
+                                        placeholder={heightUnit}
                                         placeholderTextColor={colors.textTertiary}
                                     />
                                 ) : (
-                                    <Text style={styles.infoValue}>{user?.height || '--'} cm</Text>
+                                    <Text style={styles.infoValue}>{formatHeight(user?.height || 0, heightUnit)}</Text>
                                 )}
                             </View>
 
@@ -1351,6 +1394,33 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </BlurView>
                 )
             }
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
+                    <View style={styles.successModal}>
+                        <View style={styles.successIconContainer}>
+                            <Text style={styles.successIcon}>✨</Text>
+                        </View>
+                        <Text style={styles.successTitle}>Profile Updated!</Text>
+                        <Text style={styles.successMessage}>
+                            Your profile and workout plan have been updated successfully.
+                        </Text>
+                        <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setShowSuccessModal(false)}
+                            style={{ width: '100%', marginTop: 24 }}
+                        >
+                            <LinearGradient
+                                colors={gradients.primary}
+                                style={styles.successButton}
+                            >
+                                <Text style={styles.successButtonText}>Awesome!</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+                </BlurView>
+            )}
         </LinearGradient >
     );
 }
@@ -1785,6 +1855,32 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         marginBottom: 1,
     },
 
+    // Unit Selector Styles
+    unitSelector: {
+        flexDirection: 'row',
+        backgroundColor: colors.glassSurface,
+        borderRadius: 8,
+        padding: 2,
+        marginLeft: 12,
+        marginRight: 'auto',
+    },
+    unitButton: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    unitButtonActive: {
+        backgroundColor: colors.primaryStart,
+    },
+    unitText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        fontWeight: '600',
+    },
+    unitTextActive: {
+        color: '#FFFFFF',
+    },
+
     showMoreButton: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -2067,5 +2163,54 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     },
     editOptionTextActive: {
         color: colors.textPrimary,
+    },
+    // Success Modal Styles
+    successModal: {
+        backgroundColor: colors.backgroundLight,
+        borderRadius: 24,
+        padding: 32,
+        width: '90%',
+        maxWidth: 400,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        alignItems: 'center',
+        ...shadows.card,
+    },
+    successIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: colors.primaryStart + '20',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    successIcon: {
+        fontSize: 48,
+    },
+    successTitle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    successMessage: {
+        fontSize: 16,
+        color: colors.textSecondary,
+        textAlign: 'center',
+        lineHeight: 24,
+    },
+    successButton: {
+        width: '100%',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        ...shadows.small,
+    },
+    successButtonText: {
+        color: '#FFFFFF',
+        fontSize: 18,
+        fontWeight: 'bold',
     },
 });
