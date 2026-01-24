@@ -76,6 +76,17 @@ export const uploadPhoto = createAsyncThunk(
     }
 );
 
+export const changePassword = createAsyncThunk(
+    'auth/changePassword',
+    async (credentials: { current: string; new: string }, { rejectWithValue }) => {
+        try {
+            await authService.changePassword(credentials.current, credentials.new);
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 const authSlice = createSlice({
     name: 'auth',
     initialState,
@@ -164,6 +175,18 @@ const authSlice = createSlice({
                 }
             })
             .addCase(uploadPhoto.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+            // Change Password
+            .addCase(changePassword.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(changePassword.fulfilled, (state) => {
+                state.loading = false;
+            })
+            .addCase(changePassword.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             });

@@ -23,7 +23,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
-import { uploadPhoto, signOut, updateProfile } from '../store/slices/authSlice';
+import { uploadPhoto, signOut, updateProfile, changePassword } from '../store/slices/authSlice';
 import { regenerateUserPlan } from '../store/slices/workoutPlanSlice';
 import { UserProfile } from '../types';
 import {
@@ -80,6 +80,12 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const [editEquipmentAccess, setEditEquipmentAccess] = useState<'bodyweight' | 'home' | 'gym'>('bodyweight');
     const [editHealthIssues, setEditHealthIssues] = useState<string[]>([]);
     const [editAvailableEquipment, setEditAvailableEquipment] = useState<string[]>([]);
+
+    // Change Password State
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
 
     useEffect(() => {
         loadAvatarState();
@@ -162,6 +168,42 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 }
             ]
         );
+    };
+
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            Alert.alert('Error', 'New passwords do not match');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            Alert.alert('Error', 'Password must be at least 6 characters');
+            return;
+        }
+
+        try {
+            await dispatch(changePassword({ current: currentPassword, new: newPassword })).unwrap();
+            Alert.alert('Success', 'Password changed successfully');
+            setShowChangePasswordModal(false);
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (error: any) {
+            let message = error.message || 'Failed to change password';
+            if (message.includes('wrong-password') || message.includes('auth/invalid-credential')) {
+                message = 'Incorrect current password';
+            } else if (message.includes('weak-password')) {
+                message = 'Password must be at least 6 characters';
+            } else if (message.includes('requires-recent-login')) {
+                message = 'Please sign out and sign in again to change your password';
+            }
+            Alert.alert('Error', message);
+        }
     };
 
     const startEditingProfile = () => {
@@ -786,6 +828,18 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
                     <Text style={styles.sectionTitle}>Account</Text>
 
+                    {/* Change Password */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => setShowChangePasswordModal(true)}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="lock-reset" size={22} color={colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Change Password</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                    </TouchableOpacity>
+
                     {/* Sign Out */}
                     <TouchableOpacity
                         style={styles.menuItem}
@@ -1220,6 +1274,76 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         style={styles.saveButton}
                                     >
                                         <Text style={styles.saveButtonText}>Save</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </BlurView>
+                )
+            }
+
+            {/* Change Password Modal */}
+            {
+                showChangePasswordModal && (
+                    <BlurView intensity={50} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
+                        <View style={styles.modal}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Change Password</Text>
+                                <TouchableOpacity
+                                    style={styles.closeModalButton}
+                                    onPress={() => setShowChangePasswordModal(false)}
+                                >
+                                    <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Current Password</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={currentPassword}
+                                    onChangeText={setCurrentPassword}
+                                    secureTextEntry
+                                    placeholder="Enter current password"
+                                    placeholderTextColor="#666"
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>New Password</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={newPassword}
+                                    onChangeText={setNewPassword}
+                                    secureTextEntry
+                                    placeholder="Enter new password (min 6 chars)"
+                                    placeholderTextColor="#666"
+                                />
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Confirm New Password</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry
+                                    placeholder="Confirm new password"
+                                    placeholderTextColor="#666"
+                                />
+                            </View>
+
+                            <View style={styles.modalButtons}>
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    onPress={handleChangePassword}
+                                    style={{ flex: 1 }}
+                                >
+                                    <LinearGradient
+                                        colors={gradients.primary}
+                                        style={styles.saveButton}
+                                    >
+                                        <Text style={styles.saveButtonText}>Update Password</Text>
                                     </LinearGradient>
                                 </TouchableOpacity>
                             </View>

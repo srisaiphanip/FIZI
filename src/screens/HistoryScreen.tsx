@@ -1,9 +1,3 @@
-/**
- * HistoryScreen
- * 
- * Displays workout history and performance stats.
- */
-
 import React, { useEffect, useState, useMemo } from 'react';
 import {
     View,
@@ -13,7 +7,9 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
+    Dimensions,
 } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,6 +19,7 @@ import {
     fetchWorkoutStats,
     fetchPersonalBests
 } from '../store/slices/workoutSlice';
+import { workoutService } from '../services/WorkoutService';
 import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
 
@@ -39,10 +36,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     );
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
+    const [weeklyStats, setWeeklyStats] = useState<{ date: string; calories: number; duration: number }[]>([]);
+    const [graphMetric, setGraphMetric] = useState<'calories' | 'duration'>('calories');
+    const [graphPeriod, setGraphPeriod] = useState<'week' | 'month' | 'all'>('week');
 
     useEffect(() => {
         loadData();
-    }, [selectedPeriod]);
+    }, [selectedPeriod, graphPeriod]);
 
     const loadData = async () => {
         try {
@@ -51,6 +51,17 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 dispatch(fetchWorkoutStats(selectedPeriod)),
                 dispatch(fetchPersonalBests())
             ]);
+
+            // Fetch graph data based on period
+            let graphData;
+            if (graphPeriod === 'week') {
+                graphData = await workoutService.getWeeklyStats();
+            } else if (graphPeriod === 'month') {
+                graphData = await workoutService.getMonthlyStats();
+            } else {
+                graphData = await workoutService.getAllTimeStats();
+            }
+            setWeeklyStats(graphData);
         } catch (err) {
             console.error('[HistoryScreen] Error loading data:', err);
         }
@@ -97,6 +108,110 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryStart} />
                 }
             >
+                {/* Weekly Activity Graph */}
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.graphCard}>
+                    <View style={styles.graphHeader}>
+                        <Text style={styles.sectionTitle}>Activity Trends</Text>
+                        <View style={styles.graphToggle}>
+                            <TouchableOpacity
+                                style={[styles.toggleButton, graphMetric === 'calories' && styles.toggleButtonActive]}
+                                onPress={() => setGraphMetric('calories')}
+                            >
+                                <Text style={[styles.toggleText, graphMetric === 'calories' && styles.toggleTextActive]}>Calories</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.toggleButton, graphMetric === 'duration' && styles.toggleButtonActive]}
+                                onPress={() => setGraphMetric('duration')}
+                            >
+                                <Text style={[styles.toggleText, graphMetric === 'duration' && styles.toggleTextActive]}>Duration</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Period Selector */}
+                    <View style={styles.periodSelector}>
+                        {(['week', 'month', 'all'] as const).map((period) => (
+                            <TouchableOpacity
+                                key={period}
+                                style={[
+                                    styles.periodButton,
+                                    graphPeriod === period && styles.periodButtonActive,
+                                ]}
+                                onPress={() => setGraphPeriod(period)}
+                            >
+                                <Text
+                                    style={[
+                                        styles.periodButtonText,
+                                        graphPeriod === period && styles.periodButtonTextActive,
+                                    ]}
+                                >
+                                    {period === 'all' ? 'All Time' : period.charAt(0).toUpperCase() + period.slice(1)}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    {weeklyStats.length > 0 ? (
+                        <LineChart
+                            data={{
+                                labels: weeklyStats.map(d => d.date),
+                                datasets: [{
+                                    data: weeklyStats.map(d => graphMetric === 'calories' ? d.calories : d.duration),
+                                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.9})`,
+                                    strokeWidth: 3
+                                }]
+                            }}
+                            width={Dimensions.get('window').width - 104}
+                            height={180}
+                            segments={4}
+                            yAxisSuffix={graphMetric === 'calories' ? '' : 'm'}
+                            yAxisInterval={1}
+                            withInnerLines={true}
+                            withOuterLines={false}
+                            withVerticalLines={false}
+                            withHorizontalLines={true}
+                            withShadow={false}
+                            withDots={false}
+                            chartConfig={{
+                                backgroundColor: colors.primaryStart,
+                                backgroundGradientFrom: colors.primaryStart,
+                                backgroundGradientFromOpacity: 1,
+                                backgroundGradientTo: colors.primaryEnd || colors.accentCyan,
+                                backgroundGradientToOpacity: 1,
+                                decimalPlaces: 0,
+                                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.85})`,
+                                style: {
+                                    borderRadius: 16
+                                },
+                                propsForDots: {
+                                    r: "5",
+                                    strokeWidth: "2",
+                                    stroke: "#FFFFFF",
+                                    fill: colors.accentCyan
+                                },
+                                propsForBackgroundLines: {
+                                    strokeDasharray: "",
+                                    stroke: "rgba(255,255,255,0.1)",
+                                    strokeWidth: 1
+                                },
+                                fillShadowGradient: colors.accentCyan,
+                                fillShadowGradientOpacity: 0.2,
+                            }}
+                            bezier
+                            style={{
+                                marginVertical: 8,
+                                borderRadius: 16,
+                                ...shadows.small
+                            }}
+                        />
+                    ) : (
+                        <View style={styles.noGraphData}>
+                            <Text style={styles.noGraphText}>No activity data for this week</Text>
+                        </View>
+                    )}
+                </BlurView>
+
                 {/* Stats Overview */}
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.statsCard}>
                     <Text style={styles.sectionTitle}>Performance Overview</Text>
@@ -292,6 +407,56 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         fontWeight: 'bold',
         color: colors.textPrimary,
         marginBottom: 16,
+    },
+
+    // Graph Card
+    graphCard: {
+        backgroundColor: colors.glassSurface,
+        borderRadius: Layout.borderRadius.m,
+        padding: 20,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        overflow: 'hidden',
+        ...shadows.card,
+    },
+    graphHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    graphToggle: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        borderRadius: 8,
+        padding: 2,
+    },
+    toggleButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+    },
+    toggleButtonActive: {
+        backgroundColor: colors.glassSurface,
+        ...shadows.small,
+    },
+    toggleText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        fontWeight: '600',
+    },
+    toggleTextActive: {
+        color: colors.textPrimary,
+    },
+    noGraphData: {
+        height: 200,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    noGraphText: {
+        color: colors.textTertiary,
+        fontSize: 14,
     },
 
     // Stats Card

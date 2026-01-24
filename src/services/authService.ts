@@ -4,6 +4,9 @@ import {
     signOut as firebaseSignOut,
     updateProfile as firebaseUpdateProfile,
     sendPasswordResetEmail,
+    updatePassword,
+    EmailAuthProvider,
+    reauthenticateWithCredential,
     User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -116,6 +119,25 @@ class AuthService {
     async sendPasswordResetEmail(email: string): Promise<void> {
         try {
             await sendPasswordResetEmail(auth, email);
+        } catch (error: any) {
+            throw new Error(this.handleAuthError(error.code));
+        }
+    }
+
+    /**
+     * Change password for currently logged in user
+     */
+    async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+        try {
+            const user = auth.currentUser;
+            if (!user || !user.email) throw new Error('No user logged in');
+
+            // 1. Re-authenticate
+            const credential = EmailAuthProvider.credential(user.email, currentPassword);
+            await reauthenticateWithCredential(user, credential);
+
+            // 2. Update password
+            await updatePassword(user, newPassword);
         } catch (error: any) {
             throw new Error(this.handleAuthError(error.code));
         }

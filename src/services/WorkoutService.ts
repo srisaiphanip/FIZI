@@ -274,6 +274,264 @@ class WorkoutService {
     }
 
     /**
+     * Get weekly stats for graph
+     */
+    async getWeeklyStats(): Promise<{ date: string; calories: number; duration: number }[]> {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        try {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 6); // Last 7 days including today
+
+            // Query last 7 days
+            const workoutsQuery = query(
+                collection(db, WORKOUTS_COLLECTION),
+                where('userId', '==', user.uid),
+                where('createdAt', '>=', Timestamp.fromDate(startDate)),
+                orderBy('createdAt', 'asc')
+            );
+
+            let snapshot;
+            try {
+                snapshot = await getDocs(workoutsQuery);
+            } catch (e) {
+                // Fallback if index missing
+                const fallbackQuery = query(
+                    collection(db, WORKOUTS_COLLECTION),
+                    where('userId', '==', user.uid)
+                );
+                snapshot = await getDocs(fallbackQuery);
+            }
+
+            // Initialize map with empty days
+            const dailyMap = new Map<string, { calories: number; duration: number }>();
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(startDate);
+                d.setDate(startDate.getDate() + i);
+                // Format: Mon, Tue, etc.
+                const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
+                dailyMap.set(dayLabel, { calories: 0, duration: 0 });
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+
+                // Filter if using fallback
+                if (date >= startDate && date <= new Date(endDate.getTime() + 86400000)) {
+                    const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
+
+                    if (dailyMap.has(dayLabel)) {
+                        const current = dailyMap.get(dayLabel)!;
+                        dailyMap.set(dayLabel, {
+                            calories: current.calories + (data.caloriesBurned || 0),
+                            duration: current.duration + (data.duration || 0)
+                        });
+                    }
+                }
+            });
+
+            return Array.from(dailyMap.entries()).map(([date, stats]) => ({
+                date,
+                calories: stats.calories,
+                duration: Math.round(stats.duration / 60) // Convert to minutes
+            }));
+
+        } catch (error) {
+            console.error('[WorkoutService] Error getting weekly graph stats:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get monthly stats for graph (30 days)
+     */
+    async getMonthlyStats(): Promise<{ date: string; calories: number; duration: number }[]> {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        try {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 29); // Last 30 days including today
+
+            const workoutsQuery = query(
+                collection(db, WORKOUTS_COLLECTION),
+                where('userId', '==', user.uid),
+                where('createdAt', '>=', Timestamp.fromDate(startDate)),
+                orderBy('createdAt', 'asc')
+            );
+
+            let snapshot;
+            try {
+                snapshot = await getDocs(workoutsQuery);
+            } catch (e) {
+                const fallbackQuery = query(
+                    collection(db, WORKOUTS_COLLECTION),
+                    where('userId', '==', user.uid)
+                );
+                snapshot = await getDocs(fallbackQuery);
+            }
+
+            // Initialize map with empty days (show every 5th day for readability)
+            const dailyMap = new Map<string, { calories: number; duration: number }>();
+            for (let i = 0; i < 30; i++) {
+                const d = new Date(startDate);
+                d.setDate(startDate.getDate() + i);
+                const dayNum = d.getDate();
+                dailyMap.set(dayNum.toString(), { calories: 0, duration: 0 });
+            }
+
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+
+                if (date >= startDate && date <= new Date(endDate.getTime() + 86400000)) {
+                    const dayNum = date.getDate().toString();
+
+                    if (dailyMap.has(dayNum)) {
+                        const current = dailyMap.get(dayNum)!;
+                        dailyMap.set(dayNum, {
+                            calories: current.calories + (data.caloriesBurned || 0),
+                            duration: current.duration + (data.duration || 0)
+                        });
+                    }
+                }
+            });
+
+            // Return every 5th day for cleaner X-axis
+            const allDays = Array.from(dailyMap.entries());
+            return allDays.filter((_, index) => index % 5 === 0 || index === allDays.length - 1).map(([date, stats]) => ({
+                date,
+                calories: stats.calories,
+                duration: Math.round(stats.duration / 60)
+            }));
+
+        } catch (error) {
+            console.error('[WorkoutService] Error getting monthly graph stats:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get all-time stats for graph (smart grouping)
+     */
+    async getAllTimeStats(): Promise<{ date: string; calories: number; duration: number }[]> {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        try {
+            const workoutsQuery = query(
+                collection(db, WORKOUTS_COLLECTION),
+                where('userId', '==', user.uid),
+                orderBy('createdAt', 'asc')
+            );
+
+            let snapshot;
+            try {
+                snapshot = await getDocs(workoutsQuery);
+            } catch (e) {
+                const fallbackQuery = query(
+                    collection(db, WORKOUTS_COLLECTION),
+                    where('userId', '==', user.uid)
+                );
+                snapshot = await getDocs(fallbackQuery);
+            }
+
+            if (snapshot.empty) return [];
+
+            const workouts: Array<{ date: Date; calories: number; duration: number }> = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+                workouts.push({
+                    date,
+                    calories: data.caloriesBurned || 0,
+                    duration: data.duration || 0
+                });
+            });
+
+            if (workouts.length === 0) return [];
+
+            // For All Time, always group by month
+            return this.groupByMonth(workouts, 12);
+
+        } catch (error) {
+            console.error('[WorkoutService] Error getting all-time graph stats:', error);
+            return [];
+        }
+    }
+
+    private groupByDay(workouts: Array<{ date: Date; calories: number; duration: number }>, lastNDays: number) {
+        const grouped = new Map<string, { calories: number; duration: number }>();
+
+        // For All Time with few days, show all days without filtering
+        workouts.forEach(w => {
+            const key = w.date.toLocaleDateString('en-US', { weekday: 'short' });
+            const existing = grouped.get(key) || { calories: 0, duration: 0 };
+            grouped.set(key, {
+                calories: existing.calories + w.calories,
+                duration: existing.duration + w.duration
+            });
+        });
+
+        return Array.from(grouped.entries()).map(([date, stats]) => ({
+            date,
+            calories: stats.calories,
+            duration: Math.round(stats.duration / 60)
+        }));
+    }
+
+    private groupByWeek(workouts: Array<{ date: Date; calories: number; duration: number }>, lastNWeeks: number) {
+        const grouped = new Map<string, { calories: number; duration: number }>();
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - (lastNWeeks * 7));
+
+        workouts.forEach(w => {
+            if (w.date >= cutoffDate) {
+                const weekNum = Math.floor((w.date.getTime() - cutoffDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
+                const key = `W${weekNum + 1}`;
+                const existing = grouped.get(key) || { calories: 0, duration: 0 };
+                grouped.set(key, {
+                    calories: existing.calories + w.calories,
+                    duration: existing.duration + w.duration
+                });
+            }
+        });
+
+        return Array.from(grouped.entries()).map(([date, stats]) => ({
+            date,
+            calories: stats.calories,
+            duration: Math.round(stats.duration / 60)
+        }));
+    }
+
+    private groupByMonth(workouts: Array<{ date: Date; calories: number; duration: number }>, lastNMonths: number) {
+        const grouped = new Map<string, { calories: number; duration: number }>();
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - lastNMonths);
+
+        workouts.forEach(w => {
+            if (w.date >= cutoffDate) {
+                const key = w.date.toLocaleDateString('en-US', { month: 'short' });
+                const existing = grouped.get(key) || { calories: 0, duration: 0 };
+                grouped.set(key, {
+                    calories: existing.calories + w.calories,
+                    duration: existing.duration + w.duration
+                });
+            }
+        });
+
+        return Array.from(grouped.entries()).map(([date, stats]) => ({
+            date,
+            calories: stats.calories,
+            duration: Math.round(stats.duration / 60)
+        }));
+    }
+
+    /**
      * Update daily stats (for quick access)
      */
     private async updateDailyStats(session: {
