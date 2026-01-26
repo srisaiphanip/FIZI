@@ -1,75 +1,65 @@
-# 🏋️ FIZI-Fitness and Workouts
-
-> **Your Personal AI-Powered Gym Companion**  
-> *Real-time form correction, intelligent rep counting, and personalized workout plans.*
+# 🏋️ FIZI - AI Fitness Trainer
 
 ![FIZI Banner](https://res.cloudinary.com/ddtslpjdf/image/upload/v1767885071/ChatGPT_Image_Jan_1_2026_02_00_59_PM_gqwae7.png)
 
-[![React Native](https://img.shields.io/badge/React_Native-0.81.5-61DAFB?style=flat&logo=react)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-~54.0-000020?style=flat&logo=expo)](https://expo.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=flat&logo=python)](https://www.python.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-12.6-FFCA28?style=flat&logo=firebase)](https://firebase.google.com/)
-
-## 🚀 Overview
-
-FIZI is a mobile fitness application combining **AI computer vision** with **personalized planning**. Built with React Native (Expo) and a Python Flask backend (MediaPipe), it provides real-time form feedback and automated workout management.
-
-### ✨ Key Features
-- **AI Form Analysis**: Real-time pose detection and validation for 50+ exercises.
-- **Smart Rep Counting**: Automated tracking with state management.
-- **Personalized Plans**: Dynamic generation based on goals and equipment.
-- **Progress Tracking**: Comprehensive analytics, XP level system, and body metrics.
-- **Modern UI**: Premium glassmorphism design with dark mode support.
+**FIZI** is a cutting-edge, AI-powered mobile fitness companion designed to revolutionize your home workout experience. By combining real-time pose detection, personalized plan generation, and gamified progress tracking, FIZI brings a professional trainer's expertise directly to your smartphone.
 
 ---
 
-## 🏗️ System Architecture
+## 🌟 Features
+
+### 🤖 AI Real-Time Coaching
+- **Pose Detection**: Analyzes your movements in real-time using your device's camera.
+- **Form Feedback**: Provides instant corrective feedback to ensure safety and maximize efficiency.
+- **Automatic Rep Counting**: High-precision counting for exercises like push-ups, squats, and jumping jacks without manual input.
+
+### 📅 Hyper-Personalized Planning
+- **Dynamic Plan Generation**: Tailors workout schedules based on your age, weight, height, fitness goals, and available equipment (Bodyweight/Home/Gym).
+- **Adaptive Splits**: Automatically organizes your week into Upper Body, Lower Body, Full Body, and Recovery sessions.
+
+### 🎮 Gamified Experience
+- **Interactive Avatar**: Your digital self levels up as you complete workouts and earn XP.
+- **Achievements & Streaks**: Earn badges for consistency, form perfection, and milestone rep counts.
+- **Level Progression**: Unlock higher intensity workouts and advanced exercises as you grow stronger.
+
+### 📊 Deep Analytics
+- **Workout History**: Track every session with detailed stats on reps, duration, and calories burned.
+- **Progress Visualization**: View your growth over weeks and months with intuitive charts.
+- **Personal Bests**: Celebrate your highest rep counts and best form scores.
+
+---
+
+## 🛠️ How It Works
+
+FIZI operates through a seamless interaction between a high-performance mobile frontend and a specialized AI backend.
+
+- **Mobile App (React Native/Expo)**: The primary user interface where athletes manage their profile, view interactive plans, and track their daily progress.
+- **AI Analysis (Python/MediaPipe)**: Real-time pose detection and workout analysis running on **Render**. It processes camera frames using **OpenCV** and **MediaPipe** to provide instant feedback.
+- **Data Persistence (Firebase)**: Secure storage for user profiles, workout history, and real-time synchronization between devices.
+- **Media Management (Cloudinary)**: High-speed delivery and storage for user avatars and body transformation photos.
+
+---
+
+## 🏗️ Architecture Diagram
 
 ```mermaid
 graph TD
-    User[📱 Mobile App] -->|Frame Feed| Backend[🐍 Flask AI Engine]
-    Backend -->|Pose Analysis| User
-    User -->|Auth/Data| Firebase[🔥 Firebase]
-    User -->|Assets| Cloudinary[🖼️ Cloudinary]
-```
+    User([Athlete]) <--> MobileApp[Mobile App - React Native/Expo]
+    
+    subgraph "On-Device Execution"
+        MobileApp <--> Store[Redux Store]
+        MobileApp <--> Camera[Camera Feed]
+    end
 
----
+    subgraph "Cloud Infrastructure"
+        MobileApp <--> RenderServer[AI Engine - Render/Python]
+        MobileApp <--> Firebase[Firestore & Auth - Firebase]
+        MobileApp <--> Cloudinary[Media CDN - Cloudinary]
+    end
 
-## 🛠️ Tech Stack
-
-| Frontend | Backend | Services |
-|----------|---------|----------|
-| React Native (Expo SDK 54) | Python Flask | Firebase (Auth/Store) |
-| Redux Toolkit | MediaPipe Pose | Cloudinary (CDN) |
-| TypeScript | OpenCV | Render (Hosting) |
-
----
-
-## 🚀 Getting Started
-
-### 1. Setup
-```bash
-git clone https://github.com/MaheshChalla2701/FIZI.git
-cd FIZI
-npm install
-```
-
-### 2. Environment Variables
-Create a `.env` file with your **Firebase Credentials** (see [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)).
-
-### 3. Run
-```bash
-npm start # Scan QR code with Expo Go
-```
-
----
-
-## 📦 Building for Production
-
-```bash
-npm install -g eas-cli
-eas build --platform android --profile production
+    RenderServer -- "Live Feedback & Reps" --> MobileApp
+    Firebase -- "User Data & History" --> MobileApp
+    Cloudinary -- "Avatar Assets" --> MobileApp
 ```
 
 ---
@@ -81,5 +71,5 @@ GitHub: [@MaheshChalla2701](https://github.com/MaheshChalla2701) | Email: mahesh
 
 ---
 <div align="center">
-**Built with ❤️ and 🏋️ by Mahesh Challa**
+**Built by Mahesh Challa**
 </div>
