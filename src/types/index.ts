@@ -294,6 +294,15 @@ export interface WorkoutPlan {
     createdAt?: Date;
     updatedAt?: Date;
     isActive?: boolean;
+
+    // Custom Plan Support
+    planType?: 'ai-generated' | 'custom';
+    customizationMetadata?: {
+        createdFrom?: string | null; // planId if duplicated from AI plan
+        lastModified: Date;
+        customExerciseCount: number;
+    };
+    isTemplate?: boolean;
 }
 
 // Legacy aliases for backward compatibility where possible

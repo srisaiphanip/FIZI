@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { fetchWorkoutStats } from '../store/slices/workoutSlice';
-import { fetchWorkoutPlan } from '../store/slices/workoutPlanSlice';
+import { fetchWorkoutPlan, fetchCustomPlans, switchActivePlan } from '../store/slices/workoutPlanSlice';
 import MotivationalTip from '../components/MotivationalTip';
 import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
@@ -32,7 +32,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const { user } = useAppSelector((state) => state.auth);
     const { stats } = useAppSelector((state) => state.workout);
-    const { currentPlan, todaysWorkout, recoveryStatus, loading: planLoading } = useAppSelector((state) => state.workoutPlan);
+    const { currentPlan, customPlans, todaysWorkout, recoveryStatus, loading: planLoading } = useAppSelector((state) => state.workoutPlan);
     const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
     const scrollViewRef = React.useRef<ScrollView>(null);
     const scheduleLayoutY = React.useRef<number>(0);
@@ -51,6 +51,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         dispatch(fetchWorkoutStats('week'));
         if (user?.uid) {
             dispatch(fetchWorkoutPlan(user.uid));
+            dispatch(fetchCustomPlans(user.uid));
         }
 
         const today = new Date().getDay();
@@ -62,9 +63,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         }
     }, [dispatch, user?.uid]); // Removed todaysWorkout.id to prevent loops during regen
 
-    // Auto-Enforce 7-Day Active Split
+    // Auto-Enforce 7-Day Active Split (AI Plans Only)
     useEffect(() => {
         if (currentPlan && user && !planLoading) {
+            // Skip auto-regeneration for custom plans - users control their own schedule
+            if (currentPlan.planType === 'custom') {
+                return;
+            }
+
             const uniqueDays = new Set(currentPlan.sessions.map(s => s.dayOfWeek));
             const hasRestOrRecovery = currentPlan.sessions.some(
                 s => s.type === 'rest' ||
@@ -309,6 +315,76 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {/* Motivational Tip */}
                 <View style={styles.section}>
                     <MotivationalTip />
+                </View>
+
+                {/* Custom Plan Management */}
+                <View style={styles.section}>
+                    <BlurView intensity={20} tint="dark" style={styles.customPlanCard}>
+                        <View style={styles.customPlanHeader}>
+                            <View style={styles.planTypeContainer}>
+                                <MaterialCommunityIcons
+                                    name={currentPlan?.planType === 'custom' ? 'clipboard-edit' : 'robot'}
+                                    size={20}
+                                    color={currentPlan?.planType === 'custom' ? colors.accentCyan : colors.accentPink}
+                                />
+                                <Text style={[styles.planTypeText, { color: colors.textPrimary }]}>
+                                    {currentPlan?.planType === 'custom' ? 'Custom Plan' : 'AI-Generated Plan'}
+                                </Text>
+                            </View>
+                            {currentPlan?.planType === 'custom' && (
+                                <TouchableOpacity onPress={() => navigation.navigate('CustomPlanBuilder', { plan: currentPlan })}>
+                                    <MaterialCommunityIcons name="pencil" size={20} color={colors.accentCyan} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        <View style={styles.customPlanActions}>
+                            {currentPlan?.planType === 'custom' ? (
+                                <>
+                                    <TouchableOpacity
+                                        style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
+                                        onPress={() => {
+                                            if (user?.workoutPlanId) {
+                                                dispatch(switchActivePlan({ userId: user.uid, planId: user.workoutPlanId, planType: 'ai-generated' }));
+                                            }
+                                        }}
+                                    >
+                                        <MaterialCommunityIcons name="robot" size={16} color={colors.accentPink} />
+                                        <Text style={[styles.planActionText, { color: colors.textPrimary }]}>Switch to AI Plan</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
+                                        onPress={() => navigation.navigate('CustomPlanBuilder')}
+                                    >
+                                        <MaterialCommunityIcons name="plus" size={16} color={colors.accentCyan} />
+                                        <Text style={[styles.planActionText, { color: colors.textPrimary }]}>New Plan</Text>
+                                    </TouchableOpacity>
+                                </>
+                            ) : (
+                                <>
+                                    <TouchableOpacity
+                                        style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
+                                        onPress={() => navigation.navigate('CustomPlanBuilder')}
+                                    >
+                                        <MaterialCommunityIcons name="clipboard-edit" size={16} color={colors.accentCyan} />
+                                        <Text style={[styles.planActionText, { color: colors.textPrimary }]}>Create Custom Plan</Text>
+                                    </TouchableOpacity>
+                                    {customPlans.length > 0 && (
+                                        <TouchableOpacity
+                                            style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
+                                            onPress={() => {
+                                                const latestCustomPlan = customPlans[0];
+                                                dispatch(switchActivePlan({ userId: user?.uid || '', planId: latestCustomPlan.id, planType: 'custom' }));
+                                            }}
+                                        >
+                                            <MaterialCommunityIcons name="swap-horizontal" size={16} color={colors.accentCyan} />
+                                            <Text style={[styles.planActionText, { color: colors.textPrimary }]}>Switch to Custom</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </>
+                            )}
+                        </View>
+                    </BlurView>
                 </View>
 
                 {/* Dynamic Status Card */}
@@ -1135,5 +1211,51 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         color: colors.textTertiary,
         flex: 1,
         fontStyle: 'italic',
+    },
+
+    // Custom Plan Management
+    customPlanCard: {
+        borderRadius: Layout.borderRadius.m,
+        padding: Spacing.m,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
+        ...shadows.card,
+    },
+    customPlanHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.m,
+    },
+    planTypeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.s,
+    },
+    planTypeText: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    customPlanActions: {
+        flexDirection: 'row',
+        gap: Spacing.s,
+    },
+    planActionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: Spacing.xs,
+        paddingVertical: Spacing.s,
+        paddingHorizontal: Spacing.m,
+        borderRadius: Layout.borderRadius.s,
+        borderWidth: 1,
+        backgroundColor: colors.glassSurface,
+    },
+    planActionText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
 });

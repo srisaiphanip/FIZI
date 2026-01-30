@@ -24,7 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { uploadPhoto, signOut, updateProfile, changePassword } from '../store/slices/authSlice';
-import { regenerateUserPlan } from '../store/slices/workoutPlanSlice';
+import { regenerateUserPlan, fetchCustomPlans, deleteCustomPlan, duplicatePlan } from '../store/slices/workoutPlanSlice';
 import { UserProfile } from '../types';
 import {
     avatarService,
@@ -61,6 +61,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const { colors, gradients, shadows, isDark, toggleTheme } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const { user, loading: authLoading } = useAppSelector((state) => state.auth);
+    const { currentPlan, customPlans } = useAppSelector((state) => state.workoutPlan);
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMetricsModal, setShowMetricsModal] = useState(false);
@@ -83,6 +84,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
     const [editHealthIssues, setEditHealthIssues] = useState<string[]>([]);
     const [editAvailableEquipment, setEditAvailableEquipment] = useState<string[]>([]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successType, setSuccessType] = useState<'profile' | 'metrics'>('profile');
 
     // Change Password State
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -92,6 +94,9 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
     useEffect(() => {
         loadAvatarState();
+        if (user?.uid) {
+            dispatch(fetchCustomPlans(user.uid));
+        }
     }, []);
 
     const loadAvatarState = async () => {
@@ -148,7 +153,8 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
         setShowMetricsModal(false);
         loadAvatarState();
-        Alert.alert('Success', 'Body metrics updated!');
+        setSuccessType('metrics');
+        setShowSuccessModal(true);
     };
 
     const handleSignOut = () => {
@@ -261,6 +267,8 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             await dispatch(regenerateUserPlan(updatedProfile)).unwrap();
 
             setIsEditingProfile(false);
+            setShowUserInfoModal(false);
+            setSuccessType('profile');
             setShowSuccessModal(true);
         } catch (error: any) {
             Alert.alert('Error', error.message || 'Failed to update profile');
@@ -565,6 +573,98 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </BlurView>
+
+                {/* Custom Workout Plans */}
+                <View style={styles.customPlansSection}>
+                    <View style={styles.customPlansHeader}>
+                        <View>
+                            <Text style={styles.sectionTitle}>CUSTOM WORKOUT PLANS</Text>
+                            <Text style={styles.customPlansSubtitle}>
+                                {customPlans.length} custom {customPlans.length === 1 ? 'plan' : 'plans'}
+                            </Text>
+                        </View>
+                        <TouchableOpacity
+                            style={styles.createPlanButton}
+                            onPress={() => navigation.navigate('CustomPlanBuilder')}
+                        >
+                            <MaterialCommunityIcons name="plus" size={24} color="#000" />
+                        </TouchableOpacity>
+                    </View>
+
+                    {customPlans.length > 0 ? (
+                        <View style={styles.customPlansList}>
+                            {customPlans.map((plan, index) => (
+                                <BlurView
+                                    key={plan.id}
+                                    intensity={20}
+                                    tint={isDark ? "light" : "dark"}
+                                    style={styles.customPlanCard}
+                                >
+                                    <View style={styles.customPlanInfo}>
+                                        <Text style={styles.customPlanName}>{plan.name}</Text>
+                                        <Text style={styles.customPlanMeta}>
+                                            {plan.frequency} days/week • {plan.sessions.filter(s => !s.isRestDay).length} sessions
+                                        </Text>
+                                        {currentPlan?.id === plan.id && (
+                                            <View style={styles.activePlanBadge}>
+                                                <Text style={styles.activePlanText}>Active</Text>
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    <View style={styles.customPlanActions}>
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={() => navigation.navigate('CustomPlanBuilder', { plan })}
+                                        >
+                                            <MaterialCommunityIcons name="pencil" size={18} color={colors.accentCyan} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={async () => {
+                                                if (user?.uid) {
+                                                    await dispatch(duplicatePlan({ sourcePlan: plan, userId: user.uid }));
+                                                }
+                                            }}
+                                        >
+                                            <MaterialCommunityIcons name="content-copy" size={18} color={colors.textSecondary} />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={() => {
+                                                Alert.alert(
+                                                    'Delete Plan',
+                                                    `Are you sure you want to delete "${plan.name}"?`,
+                                                    [
+                                                        { text: 'Cancel', style: 'cancel' },
+                                                        {
+                                                            text: 'Delete',
+                                                            style: 'destructive',
+                                                            onPress: () => dispatch(deleteCustomPlan(plan.id))
+                                                        }
+                                                    ]
+                                                );
+                                            }}
+                                        >
+                                            <MaterialCommunityIcons name="delete" size={18} color={colors.accentPink} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </BlurView>
+                            ))}
+                        </View>
+                    ) : (
+                        <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.emptyCustomPlansCard}>
+                            <TouchableOpacity
+                                style={styles.emptyCustomPlansContent}
+                                onPress={() => navigation.navigate('CustomPlanBuilder')}
+                            >
+                                <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={colors.textTertiary} />
+                                <Text style={styles.emptyCustomPlansText}>No custom plans yet</Text>
+                                <Text style={styles.emptyCustomPlansSubtext}>Create your first custom workout plan</Text>
+                            </TouchableOpacity>
+                        </BlurView>
+                    )}
+                </View>
 
                 {/* Lifetime Stats */}
                 <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.statsCard}>
@@ -1255,14 +1355,22 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
                         <TouchableOpacity
                             activeOpacity={0.8}
-                            onPress={() => setShowUserInfoModal(false)}
+                            onPress={() => {
+                                if (isEditingProfile) {
+                                    handleSaveProfile();
+                                } else {
+                                    setShowUserInfoModal(false);
+                                }
+                            }}
                             style={{ marginTop: 20 }}
                         >
                             <LinearGradient
                                 colors={gradients.primary}
                                 style={styles.saveButton}
                             >
-                                <Text style={styles.saveButtonText}>Back to Profile</Text>
+                                <Text style={styles.saveButtonText}>
+                                    {isEditingProfile ? 'Save & Return to Profile' : 'Back to Profile'}
+                                </Text>
                             </LinearGradient>
                         </TouchableOpacity>
                     </View>
@@ -1402,9 +1510,13 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         <View style={styles.successIconContainer}>
                             <Text style={styles.successIcon}>✨</Text>
                         </View>
-                        <Text style={styles.successTitle}>Profile Updated!</Text>
+                        <Text style={styles.successTitle}>
+                            {successType === 'profile' ? 'Profile Updated!' : 'Metrics Updated!'}
+                        </Text>
                         <Text style={styles.successMessage}>
-                            Your profile and workout plan have been updated successfully.
+                            {successType === 'profile'
+                                ? 'Your profile and workout plan have been updated successfully.'
+                                : 'Your body stats have been logged successfully. Keep up the good work!'}
                         </Text>
                         <TouchableOpacity
                             activeOpacity={0.8}
@@ -2212,5 +2324,108 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         color: '#FFFFFF',
         fontSize: 18,
         fontWeight: 'bold',
+    },
+
+    // Custom Plans
+    customPlansSection: {
+        marginBottom: Spacing.l,
+    },
+    customPlansHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: Spacing.m,
+        paddingHorizontal: 4,
+    },
+    customPlansSubtitle: {
+        fontSize: 13,
+        color: colors.textTertiary,
+        marginTop: 2,
+        marginLeft: 16,
+        fontWeight: '500',
+    },
+    createPlanButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: colors.accentCyan,
+        justifyContent: 'center',
+        alignItems: 'center',
+        ...shadows.glow,
+    },
+    customPlansList: {
+        gap: Spacing.m,
+    },
+    customPlanCard: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 20,
+        borderRadius: Layout.borderRadius.l,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    customPlanInfo: {
+        flex: 1,
+        marginRight: 16,
+    },
+    customPlanName: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: colors.textPrimary,
+        marginBottom: 6,
+        letterSpacing: 0.5,
+    },
+    customPlanMeta: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        fontWeight: '500',
+        marginBottom: 8,
+    },
+    activePlanBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        backgroundColor: 'rgba(46, 204, 113, 0.2)', // Green tint
+    },
+    activePlanText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#2ecc71', // Standard green
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    customPlanActions: {
+        flexDirection: 'row',
+        gap: 16,
+        alignItems: 'center',
+    },
+    actionButton: {
+        padding: 8,
+    },
+    emptyCustomPlansCard: {
+        borderRadius: Layout.borderRadius.l,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.glassSurface,
+    },
+    emptyCustomPlansContent: {
+        alignItems: 'center',
+        paddingVertical: Spacing.xl,
+    },
+    emptyCustomPlansText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.textSecondary,
+        marginTop: Spacing.m,
+    },
+    emptyCustomPlansSubtext: {
+        fontSize: 12,
+        color: colors.textTertiary,
+        marginTop: Spacing.xs,
     },
 });

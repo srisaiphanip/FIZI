@@ -1,11 +1,13 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { WorkoutPlan, DailyWorkout, UserProfile } from '../../types';
 import { workoutPlanService } from '../../services/WorkoutPlanService';
+import CustomPlanService from '../../services/CustomPlanService';
 import { db } from '../../services/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
 
 interface WorkoutPlanState {
     currentPlan: WorkoutPlan | null;
+    customPlans: WorkoutPlan[];
     todaysWorkout: DailyWorkout | null;
     recoveryStatus: 'good' | 'moderate' | 'poor';
     loading: boolean;
@@ -14,6 +16,7 @@ interface WorkoutPlanState {
 
 const initialState: WorkoutPlanState = {
     currentPlan: null,
+    customPlans: [],
     todaysWorkout: null,
     recoveryStatus: 'good',
     loading: false,
@@ -118,6 +121,152 @@ export const regenerateUserPlan = createAsyncThunk(
             return { ...newPlan, id: planId };
         } catch (error: any) {
             return rejectWithValue(error.message || 'Failed to regenerate plan');
+        }
+    }
+);
+
+/**
+ * Fetch user's custom plans
+ */
+export const fetchCustomPlans = createAsyncThunk(
+    'workoutPlan/fetchCustomPlans',
+    async (userId: string, { rejectWithValue }) => {
+        try {
+            const plans = await CustomPlanService.getUserCustomPlans(userId);
+            return plans;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to fetch custom plans');
+        }
+    }
+);
+
+/**
+ * Create a new custom plan
+ */
+export const createCustomPlan = createAsyncThunk(
+    'workoutPlan/createCustom',
+    async (
+        { userId, planData }: { userId: string; planData: Partial<WorkoutPlan> },
+        { rejectWithValue }
+    ) => {
+        try {
+            const planId = await CustomPlanService.createCustomPlan(userId, planData);
+
+            // Fetch the created plan
+            const plans = await CustomPlanService.getUserCustomPlans(userId);
+            const createdPlan = plans.find(p => p.id === planId);
+
+            if (!createdPlan) {
+                return rejectWithValue('Failed to retrieve created plan');
+            }
+
+            return createdPlan;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to create custom plan');
+        }
+    }
+);
+
+/**
+ * Update an existing custom plan
+ */
+export const updateCustomPlan = createAsyncThunk(
+    'workoutPlan/updateCustom',
+    async (
+        { planId, updates }: { planId: string; updates: Partial<WorkoutPlan> },
+        { rejectWithValue, getState }
+    ) => {
+        try {
+            const success = await CustomPlanService.updateCustomPlan(planId, updates);
+
+            if (!success) {
+                return rejectWithValue('Failed to update custom plan');
+            }
+
+            return { planId, updates };
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to update custom plan');
+        }
+    }
+);
+
+/**
+ * Delete a custom plan
+ */
+export const deleteCustomPlan = createAsyncThunk(
+    'workoutPlan/deleteCustom',
+    async (planId: string, { rejectWithValue }) => {
+        try {
+            const success = await CustomPlanService.deleteCustomPlan(planId);
+
+            if (!success) {
+                return rejectWithValue('Failed to delete custom plan');
+            }
+
+            return planId;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to delete custom plan');
+        }
+    }
+);
+
+/**
+ * Duplicate a plan (AI or custom) to create a new custom plan
+ */
+export const duplicatePlan = createAsyncThunk(
+    'workoutPlan/duplicate',
+    async (
+        { sourcePlan, userId, newName }: { sourcePlan: WorkoutPlan; userId: string; newName?: string },
+        { rejectWithValue }
+    ) => {
+        try {
+            const planId = await CustomPlanService.duplicatePlan(sourcePlan, userId, newName);
+
+            // Fetch the duplicated plan
+            const plans = await CustomPlanService.getUserCustomPlans(userId);
+            const duplicatedPlan = plans.find(p => p.id === planId);
+
+            if (!duplicatedPlan) {
+                return rejectWithValue('Failed to retrieve duplicated plan');
+            }
+
+            return duplicatedPlan;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to duplicate plan');
+        }
+    }
+);
+
+/**
+ * Switch the active plan
+ */
+export const switchActivePlan = createAsyncThunk(
+    'workoutPlan/switchActive',
+    async (
+        { userId, planId, planType }: { userId: string; planId: string; planType?: 'ai-generated' | 'custom' },
+        { rejectWithValue, getState }
+    ) => {
+        try {
+            const state = getState() as { workoutPlan: WorkoutPlanState };
+            const allPlans = [state.workoutPlan.currentPlan, ...state.workoutPlan.customPlans].filter(Boolean) as WorkoutPlan[];
+
+            const targetPlan = allPlans.find(p => p.id === planId);
+
+            if (!targetPlan) {
+                return rejectWithValue('Plan not found');
+            }
+
+            // Update user's active plan in Firestore
+            if (targetPlan.planType === 'custom') {
+                await CustomPlanService.setActivePlan(userId, planId);
+            } else {
+                const userRef = doc(db, 'users', userId);
+                await updateDoc(userRef, { workoutPlanId: planId });
+            }
+
+            return targetPlan;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to switch plan');
         }
     }
 );
@@ -304,6 +453,143 @@ const workoutPlanSlice = createSlice({
                 }
             })
             .addCase(regenerateUserPlan.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            // Fetch custom plans
+            .addCase(fetchCustomPlans.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(fetchCustomPlans.fulfilled, (state, action) => {
+                state.loading = false;
+                state.customPlans = action.payload;
+            })
+            .addCase(fetchCustomPlans.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            // Create custom plan
+            .addCase(createCustomPlan.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(createCustomPlan.fulfilled, (state, action) => {
+                state.loading = false;
+                state.customPlans.push(action.payload);
+                state.currentPlan = action.payload;
+
+                // Set today's workout
+                const today = new Date().getDay();
+                const todaysWorkout = action.payload.sessions.find(s => s.dayOfWeek === today);
+                if (todaysWorkout) {
+                    state.todaysWorkout = todaysWorkout;
+                }
+            })
+            .addCase(createCustomPlan.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            // Update custom plan
+            .addCase(updateCustomPlan.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updateCustomPlan.fulfilled, (state, action) => {
+                state.loading = false;
+                const { planId, updates } = action.payload;
+
+                // Update in customPlans array
+                const planIndex = state.customPlans.findIndex(p => p.id === planId);
+                if (planIndex !== -1) {
+                    state.customPlans[planIndex] = {
+                        ...state.customPlans[planIndex],
+                        ...updates
+                    };
+                }
+
+                // Update current plan if it's the one being edited
+                if (state.currentPlan?.id === planId) {
+                    state.currentPlan = {
+                        ...state.currentPlan,
+                        ...updates
+                    };
+
+                    // Update today's workout if sessions changed
+                    if (updates.sessions) {
+                        const today = new Date().getDay();
+                        const todaysWorkout = updates.sessions.find(s => s.dayOfWeek === today);
+                        if (todaysWorkout) {
+                            state.todaysWorkout = todaysWorkout;
+                        }
+                    }
+                }
+            })
+            .addCase(updateCustomPlan.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            // Delete custom plan
+            .addCase(deleteCustomPlan.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(deleteCustomPlan.fulfilled, (state, action) => {
+                state.loading = false;
+                const planId = action.payload;
+
+                // Remove from customPlans array
+                state.customPlans = state.customPlans.filter(p => p.id !== planId);
+
+                // Clear current plan if it was deleted
+                if (state.currentPlan?.id === planId) {
+                    state.currentPlan = null;
+                    state.todaysWorkout = null;
+                }
+            })
+            .addCase(deleteCustomPlan.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            // Duplicate plan
+            .addCase(duplicatePlan.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(duplicatePlan.fulfilled, (state, action) => {
+                state.loading = false;
+                state.customPlans.push(action.payload);
+            })
+            .addCase(duplicatePlan.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            // Switch active plan
+            .addCase(switchActivePlan.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(switchActivePlan.fulfilled, (state, action) => {
+                state.loading = false;
+                state.currentPlan = action.payload;
+
+                // Set today's workout
+                const today = new Date().getDay();
+                const todaysWorkout = action.payload.sessions.find(s => s.dayOfWeek === today);
+                if (todaysWorkout) {
+                    state.todaysWorkout = {
+                        ...todaysWorkout,
+                        isRestDay: todaysWorkout.isRestDay ?? todaysWorkout.type === 'rest'
+                    };
+                } else {
+                    state.todaysWorkout = null;
+                }
+            })
+            .addCase(switchActivePlan.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             });

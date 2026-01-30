@@ -23,12 +23,13 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import ExerciseInstructionsScreen from './src/screens/ExerciseInstructionsScreen';
 import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
+import CustomPlanBuilderScreen from './src/screens/CustomPlanBuilderScreen';
 
 
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
 
-export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage';
+export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -122,7 +123,7 @@ function AppContent() {
 
     // 2. Authenticated State - Manual Navigation Check
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage') {
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage' || currentScreen === 'CustomPlanBuilder') {
       return;
     }
 
@@ -228,6 +229,8 @@ function AppContent() {
         return <AboutUsScreen navigation={navigation} />;
       case 'DataUsage':
         return <DataUsageScreen navigation={navigation} />;
+      case 'CustomPlanBuilder':
+        return <CustomPlanBuilderScreen navigation={navigation} route={{ params: navigation.params }} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }
