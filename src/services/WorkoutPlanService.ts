@@ -96,7 +96,65 @@ class WorkoutPlanService {
                 updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
             } as WorkoutPlan;
         } catch (error) {
+            console.error('Error getting user workout plan:', error);
+            return null;
+        }
+    }
 
+    /**
+     * Get the latest AI-generated plan (active or inactive)
+     */
+    async getLatestAIPlan(userId: string): Promise<WorkoutPlan | null> {
+        try {
+            const plansRef = collection(db, 'workout_plans');
+            // We query for plans where planType is NOT 'custom'.
+            // Note: Firestore doesn't support != queries well mixed with others sometimes,
+            // but we can query for where planType is 'ai-generated' OR try to order by createdAt.
+            // Since we might have legacy plans without planType, we might just fetch recent plans and filter in code if needed,
+            // but assuming new plans have 'ai-generated'.
+            // Let's rely on sorting by createdAt.
+
+            // Correction: Simplest valid query is just get recent plans for user and find first non-custom one.
+            const q = query(
+                plansRef,
+                where('userId', '==', userId),
+                // orderBy('createdAt', 'desc') // Requires composite index usually
+            );
+
+            // To avoid index issues for now if not created, let's fetch active/recent ones.
+            // Actually, let's just try to find where planType == 'ai-generated' if possible, or filtered.
+            // Safer to just get all plans for user (if not too many) or rely on a known field.
+
+            // Better approach: Query for planType == 'ai-generated' specifically if indexed, 
+            // OR just fetch all and sort client side if volume is low. 
+            // Given likely low volume of plans per user, client side sort is safe.
+            const qAll = query(plansRef, where('userId', '==', userId));
+            const querySnapshot = await getDocs(qAll);
+
+            const plans = querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    id: doc.id,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+                } as WorkoutPlan;
+            });
+
+            // Filter for AI plans (explicit 'ai-generated' OR missing planType which implies legacy AI)
+            // AND exclude 'custom'
+            const aiPlans = plans.filter(p => p.planType === 'ai-generated' || !p.planType || p.planType !== 'custom');
+
+            // Sort by createdAt desc
+            aiPlans.sort((a, b) => {
+                const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+                const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+                return dateB - dateA;
+            });
+
+            return aiPlans.length > 0 ? aiPlans[0] : null;
+
+        } catch (error) {
+            console.error('Error getting latest AI plan:', error);
             return null;
         }
     }

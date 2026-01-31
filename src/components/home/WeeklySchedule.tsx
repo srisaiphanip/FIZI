@@ -47,7 +47,7 @@ export const WeeklySchedule: React.FC<WeeklyScheduleProps> = ({
                                 isToday && styles.gridDayLabelToday,
                                 isSelected && styles.gridDayLabelSelected
                             ]}>{day}</Text>
-                            <Text style={styles.gridDayIcon}>💪</Text>
+                            <Text style={styles.gridDayIcon}>{isToday ? '💜' : isRest ? '😌' : '💪'}</Text>
                             <Text style={[
                                 styles.gridDayFocus,
                                 isToday && styles.gridDayFocusToday,
@@ -91,7 +91,8 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: colors.glassBorder,
-        marginHorizontal: 2, // Minimal spacing
+        marginHorizontal: 1, // Minimal spacing
+        paddingVertical: 4,
         ...shadows.small,
     },
     gridDayToday: {

@@ -237,6 +237,35 @@ export const duplicatePlan = createAsyncThunk(
     }
 );
 
+
+
+/**
+ * Switch to AI Plan
+ */
+export const switchToAIPlan = createAsyncThunk(
+    'workoutPlan/switchToAI',
+    async (userId: string, { rejectWithValue, dispatch }) => {
+        try {
+            // 1. Get latest AI plan
+            const aiPlan = await workoutPlanService.getLatestAIPlan(userId);
+
+            if (!aiPlan) {
+                // If no AI plan exists, we might want to regenerate or throw error
+                // For now, let's treat it as an error so UI can handle (e.g., prompt to generate)
+                return rejectWithValue('No AI-generated plan found. Please create a new one.');
+            }
+
+            // 2. Set it as active using CustomPlanService (handles logic for all plan types)
+            await CustomPlanService.setActivePlan(userId, aiPlan.id);
+
+            // 3. Return the plan
+            return aiPlan;
+        } catch (error: any) {
+            return rejectWithValue(error.message || 'Failed to switch to AI plan');
+        }
+    }
+);
+
 /**
  * Switch the active plan
  */
@@ -260,8 +289,9 @@ export const switchActivePlan = createAsyncThunk(
             if (targetPlan.planType === 'custom') {
                 await CustomPlanService.setActivePlan(userId, planId);
             } else {
-                const userRef = doc(db, 'users', userId);
-                await updateDoc(userRef, { workoutPlanId: planId });
+                // Legacy support - but we should prefer using CustomPlanService.setActivePlan for consistency
+                // as it handles marking isActive=false for others.
+                await CustomPlanService.setActivePlan(userId, planId);
             }
 
             return targetPlan;
@@ -590,6 +620,45 @@ const workoutPlanSlice = createSlice({
                 }
             })
             .addCase(switchActivePlan.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload as string;
+            })
+
+            // Switch to AI Plan
+            .addCase(switchToAIPlan.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(switchToAIPlan.fulfilled, (state, action) => {
+                state.loading = false;
+                state.currentPlan = action.payload;
+
+                // Set today's workout
+                const today = new Date().getDay();
+                const todaysWorkout = action.payload.sessions.find(s => s.dayOfWeek === today);
+                if (todaysWorkout) {
+                    state.todaysWorkout = {
+                        ...todaysWorkout,
+                        isRestDay: todaysWorkout.isRestDay ?? todaysWorkout.type === 'rest'
+                    };
+                } else {
+                    // Fallback workout logic
+                    state.todaysWorkout = {
+                        id: `rest_ai_switch_fallback_${today}`,
+                        day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today],
+                        dayOfWeek: today,
+                        focus: 'Rest & Recovery',
+                        exercises: [],
+                        duration: 0,
+                        status: 'completed',
+                        type: 'rest',
+                        intensity: 'low',
+                        isRestDay: true,
+                        notes: 'Welcome back to AI Plan! Prepare for your next session.'
+                    } as any;
+                }
+            })
+            .addCase(switchToAIPlan.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload as string;
             });

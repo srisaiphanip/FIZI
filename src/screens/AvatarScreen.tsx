@@ -24,7 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { uploadPhoto, signOut, updateProfile, changePassword } from '../store/slices/authSlice';
-import { regenerateUserPlan, fetchCustomPlans, deleteCustomPlan, duplicatePlan } from '../store/slices/workoutPlanSlice';
+import { regenerateUserPlan, fetchCustomPlans, deleteCustomPlan, duplicatePlan, switchActivePlan, switchToAIPlan } from '../store/slices/workoutPlanSlice';
 import { UserProfile } from '../types';
 import {
     avatarService,
@@ -576,9 +576,86 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
                 {/* Custom Workout Plans */}
                 <View style={styles.customPlansSection}>
-                    <View style={styles.customPlansHeader}>
+                    {/* Active Plan Management Card */}
+                    <LinearGradient
+                        colors={currentPlan?.planType === 'custom' ? ['rgba(7, 185, 231, 0.15)', 'rgba(7, 185, 231, 0.05)'] : ['rgba(255, 113, 113, 0.15)', 'rgba(255, 113, 113, 0.05)']}
+                        style={[styles.customPlanCard, { marginBottom: Spacing.l, flexDirection: 'column', borderWidth: 1, borderColor: currentPlan?.planType === 'custom' ? colors.accentCyan + '4D' : colors.accentPink + '4D' }]}
+                    >
+                        <View style={[styles.customPlansHeader, { marginBottom: Spacing.s, paddingHorizontal: 0 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.s }}>
+                                <MaterialCommunityIcons
+                                    name={currentPlan?.planType === 'custom' ? 'clipboard-edit' : 'robot'}
+                                    size={24}
+                                    color={currentPlan?.planType === 'custom' ? colors.accentCyan : colors.accentPink}
+                                />
+                                <View>
+                                    <Text style={[styles.sectionTitle, { marginBottom: 2, marginLeft: 0 }]}>Current Strategy</Text>
+                                    <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 18, letterSpacing: 0.5 }}>
+                                        {currentPlan?.planType === 'custom' ? 'Custom Plan Active' : 'AI Plan Active'}
+                                    </Text>
+                                    <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2, fontWeight: '500' }}>
+                                        {currentPlan?.frequency} days/week • {currentPlan?.sessions.filter(s => !s.isRestDay).length} sessions
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={[styles.customPlanActions, { marginTop: Spacing.m }]}>
+                            {currentPlan?.planType === 'custom' ? (
+                                <TouchableOpacity
+                                    style={[styles.actionButton, { flex: 1, backgroundColor: colors.accentPink + '20', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.accentPink + '4D' }]}
+                                    onPress={async () => {
+                                        if (user?.uid) {
+                                            try {
+                                                await dispatch(switchToAIPlan(user.uid)).unwrap();
+                                            } catch (err) {
+                                                navigation.navigate('Assessment');
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <MaterialCommunityIcons name="robot" size={20} color={colors.accentPink} />
+                                    <Text style={{ color: colors.textPrimary, marginLeft: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Switch to AI Strategy</Text>
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={{ gap: Spacing.s, width: '100%' }}>
+                                    <View style={{ paddingVertical: Spacing.s, paddingHorizontal: Spacing.xs, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: Layout.borderRadius.s }}>
+                                        <Text style={{ color: colors.textSecondary, fontStyle: 'italic', fontSize: 13, textAlign: 'center' }}>
+                                            ✨ Your AI plan adapts to your progress automatically.
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, { backgroundColor: colors.accentCyan + '20', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.accentCyan + '4D' }]}
+                                        onPress={() => {
+                                            if (customPlans.length > 0 && user?.uid) {
+                                                const latestPlan = customPlans[0];
+                                                dispatch(switchActivePlan({
+                                                    userId: user.uid,
+                                                    planId: latestPlan.id,
+                                                    planType: 'custom'
+                                                }));
+                                            } else {
+                                                navigation.navigate('CustomPlanBuilder');
+                                            }
+                                        }}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name={customPlans.length > 0 ? "swap-horizontal" : "plus-circle-outline"}
+                                            size={20}
+                                            color={colors.accentCyan}
+                                        />
+                                        <Text style={{ color: colors.textPrimary, marginLeft: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            {customPlans.length > 0 ? 'Switch to Custom Plan' : 'Create Custom Plan'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                    </LinearGradient>
+
+                    <View style={[styles.customPlansHeader, { paddingHorizontal: 0 }]}>
                         <View>
-                            <Text style={styles.sectionTitle}>CUSTOM WORKOUT PLANS</Text>
+                            <Text style={[styles.sectionTitle, { marginLeft: 0 }]}>SAVED PLANS</Text>
                             <Text style={styles.customPlansSubtitle}>
                                 {customPlans.length} custom {customPlans.length === 1 ? 'plan' : 'plans'}
                             </Text>
@@ -601,9 +678,9 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                     style={styles.customPlanCard}
                                 >
                                     <View style={styles.customPlanInfo}>
-                                        <Text style={styles.customPlanName}>{plan.name}</Text>
-                                        <Text style={styles.customPlanMeta}>
-                                            {plan.frequency} days/week • {plan.sessions.filter(s => !s.isRestDay).length} sessions
+                                        <Text style={styles.customPlanName} numberOfLines={1} ellipsizeMode="tail">{plan.name}</Text>
+                                        <Text style={styles.customPlanMeta} numberOfLines={1} ellipsizeMode="tail">
+                                            {plan.frequency} d/w • {plan.sessions.filter(s => !s.isRestDay).length} sess
                                         </Text>
                                         {currentPlan?.id === plan.id && (
                                             <View style={styles.activePlanBadge}>
@@ -612,15 +689,34 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         )}
                                     </View>
 
-                                    <View style={styles.customPlanActions}>
+                                    <View style={[styles.customPlanActions, { gap: 10 }]}>
                                         <TouchableOpacity
-                                            style={styles.actionButton}
+                                            style={[styles.actionButton, { padding: 4 }]}
                                             onPress={() => navigation.navigate('CustomPlanBuilder', { plan })}
                                         >
                                             <MaterialCommunityIcons name="pencil" size={18} color={colors.accentCyan} />
                                         </TouchableOpacity>
+
+                                        {/* Activate Button - Only show if not active */}
+                                        {currentPlan?.id !== plan.id && (
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, { padding: 4 }]}
+                                                onPress={() => {
+                                                    if (user?.uid) {
+                                                        dispatch(switchActivePlan({
+                                                            userId: user.uid,
+                                                            planId: plan.id,
+                                                            planType: 'custom'
+                                                        }));
+                                                    }
+                                                }}
+                                            >
+                                                <MaterialCommunityIcons name="play-circle-outline" size={18} color={colors.accentSuccess} />
+                                            </TouchableOpacity>
+                                        )}
+
                                         <TouchableOpacity
-                                            style={styles.actionButton}
+                                            style={[styles.actionButton, { padding: 4 }]}
                                             onPress={async () => {
                                                 if (user?.uid) {
                                                     await dispatch(duplicatePlan({ sourcePlan: plan, userId: user.uid }));
@@ -630,7 +726,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                             <MaterialCommunityIcons name="content-copy" size={18} color={colors.textSecondary} />
                                         </TouchableOpacity>
                                         <TouchableOpacity
-                                            style={styles.actionButton}
+                                            style={[styles.actionButton, { padding: 4 }]}
                                             onPress={() => {
                                                 Alert.alert(
                                                     'Delete Plan',
@@ -693,45 +789,47 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                         </TouchableOpacity>
                     </View>
 
-                    {avatarState.bodyMetrics.startWeight ? (
-                        <View style={styles.metricsContent}>
-                            <View style={styles.metricItem}>
-                                <Text style={styles.metricLabel}>Start</Text>
-                                <Text style={styles.metricValue}>
-                                    {avatarState.bodyMetrics.startWeight} <Text style={styles.unit}>kg</Text>
-                                </Text>
-                            </View>
-                            <View style={styles.metricArrow}>
-                                <Text style={styles.arrowText}>→</Text>
-                            </View>
-                            <View style={styles.metricItem}>
-                                <Text style={styles.metricLabel}>Current</Text>
-                                <Text style={styles.metricValue}>
-                                    {avatarState.bodyMetrics.currentWeight || '--'} <Text style={styles.unit}>kg</Text>
-                                </Text>
-                            </View>
-                            {avatarState.bodyMetrics.goalWeight && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <View style={styles.metricArrow}>
-                                        <Text style={styles.arrowText}>→</Text>
-                                    </View>
-                                    <View style={styles.metricItem}>
-                                        <Text style={styles.metricLabel}>Goal</Text>
-                                        <Text style={[styles.metricValue, styles.goalValue]}>
-                                            {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
-                                        </Text>
-                                    </View>
+                    {
+                        avatarState.bodyMetrics.startWeight ? (
+                            <View style={styles.metricsContent}>
+                                <View style={styles.metricItem}>
+                                    <Text style={styles.metricLabel}>Start</Text>
+                                    <Text style={styles.metricValue}>
+                                        {avatarState.bodyMetrics.startWeight} <Text style={styles.unit}>kg</Text>
+                                    </Text>
                                 </View>
-                            )}
-                        </View>
-                    ) : (
-                        <TouchableOpacity
-                            style={styles.addMetricsButton}
-                            onPress={() => setShowMetricsModal(true)}
-                        >
-                            <Text style={styles.addMetricsText}>+ Add your body metrics</Text>
-                        </TouchableOpacity>
-                    )}
+                                <View style={styles.metricArrow}>
+                                    <Text style={styles.arrowText}>→</Text>
+                                </View>
+                                <View style={styles.metricItem}>
+                                    <Text style={styles.metricLabel}>Current</Text>
+                                    <Text style={styles.metricValue}>
+                                        {avatarState.bodyMetrics.currentWeight || '--'} <Text style={styles.unit}>kg</Text>
+                                    </Text>
+                                </View>
+                                {avatarState.bodyMetrics.goalWeight && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={styles.metricArrow}>
+                                            <Text style={styles.arrowText}>→</Text>
+                                        </View>
+                                        <View style={styles.metricItem}>
+                                            <Text style={styles.metricLabel}>Goal</Text>
+                                            <Text style={[styles.metricValue, styles.goalValue]}>
+                                                {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.addMetricsButton}
+                                onPress={() => setShowMetricsModal(true)}
+                            >
+                                <Text style={styles.addMetricsText}>+ Add your body metrics</Text>
+                            </TouchableOpacity>
+                        )
+                    }
                 </BlurView>
 
                 {/* Achievements */}
@@ -768,49 +866,51 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 {/* Level Roadmap */}
                 <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.roadmapCard}>
                     <Text style={styles.sectionTitle}>Level Map & Unlocks</Text>
-                    {AVATAR_LEVELS.slice(0, showAllLevels ? undefined : 1).map((level) => {
-                        // Find exercises that unlock at this level
-                        const levelExercises = exercises.filter(ex => ex.unlockLevel === level.level);
+                    {
+                        AVATAR_LEVELS.slice(0, showAllLevels ? undefined : 1).map((level) => {
+                            // Find exercises that unlock at this level
+                            const levelExercises = exercises.filter(ex => ex.unlockLevel === level.level);
 
-                        return (
-                            <View
-                                key={level.level}
-                                style={[
-                                    styles.roadmapItem,
-                                    avatarState.level > level.level && styles.roadmapItemActive, // Past
-                                    avatarState.level === level.level && styles.roadmapItemCurrent // Current
-                                ]}
-                            >
-                                <Text style={styles.roadmapIcon}>{level.icon}</Text>
-                                <View style={styles.roadmapInfo}>
-                                    <Text style={[
-                                        styles.roadmapName,
-                                        avatarState.level >= level.level && styles.roadmapNameActive
-                                    ]}>
-                                        Lv.{level.level} - {level.name}
-                                    </Text>
-                                    <Text style={styles.roadmapReq}>
-                                        {level.minWorkouts} workouts • {level.minReps} reps
-                                    </Text>
+                            return (
+                                <View
+                                    key={level.level}
+                                    style={[
+                                        styles.roadmapItem,
+                                        avatarState.level > level.level && styles.roadmapItemActive, // Past
+                                        avatarState.level === level.level && styles.roadmapItemCurrent // Current
+                                    ]}
+                                >
+                                    <Text style={styles.roadmapIcon}>{level.icon}</Text>
+                                    <View style={styles.roadmapInfo}>
+                                        <Text style={[
+                                            styles.roadmapName,
+                                            avatarState.level >= level.level && styles.roadmapNameActive
+                                        ]}>
+                                            Lv.{level.level} - {level.name}
+                                        </Text>
+                                        <Text style={styles.roadmapReq}>
+                                            {level.minWorkouts} workouts • {level.minReps} reps
+                                        </Text>
 
-                                    {/* Unlocked Exercises List */}
-                                    {levelExercises.length > 0 && (
-                                        <View style={styles.unlockedExercisesContainer}>
-                                            <Text style={styles.unlockedLabel}>Unlocks:</Text>
-                                            <View style={styles.unlockedList}>
-                                                {levelExercises.map(ex => (
-                                                    <Text key={ex.id} style={styles.unlockedItem}>• {ex.displayName}</Text>
-                                                ))}
+                                        {/* Unlocked Exercises List */}
+                                        {levelExercises.length > 0 && (
+                                            <View style={styles.unlockedExercisesContainer}>
+                                                <Text style={styles.unlockedLabel}>Unlocks:</Text>
+                                                <View style={styles.unlockedList}>
+                                                    {levelExercises.map(ex => (
+                                                        <Text key={ex.id} style={styles.unlockedItem}>• {ex.displayName}</Text>
+                                                    ))}
+                                                </View>
                                             </View>
-                                        </View>
+                                        )}
+                                    </View>
+                                    {avatarState.level >= level.level && (
+                                        <Text style={styles.roadmapCheck}>✓</Text>
                                     )}
                                 </View>
-                                {avatarState.level >= level.level && (
-                                    <Text style={styles.roadmapCheck}>✓</Text>
-                                )}
-                            </View>
-                        );
-                    })}
+                            );
+                        })
+                    }
 
                     <TouchableOpacity
                         style={styles.showMoreButton}
@@ -985,397 +1085,399 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             </ScrollView>
 
             {/* User Info Modal */}
-            {showUserInfoModal && (
-                <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
-                    <View style={[styles.modal, { maxHeight: '80%' }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Registration Details</Text>
-                            <TouchableOpacity
-                                style={styles.closeModalButton}
-                                onPress={() => setShowUserInfoModal(false)}
-                            >
-                                <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView showsVerticalScrollIndicator={false}>
-                            {/* Personal Details */}
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Text style={styles.modalSectionTitle}>Personal Details</Text>
-                                <TouchableOpacity onPress={isEditingProfile ? handleSaveProfile : startEditingProfile}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                        <MaterialCommunityIcons
-                                            name={isEditingProfile ? "check" : "pencil"}
-                                            size={16}
-                                            color={colors.primaryStart}
-                                        />
-                                        <Text style={{ color: colors.primaryStart, fontWeight: '600' }}>
-                                            {isEditingProfile ? 'Save' : 'Edit'}
-                                        </Text>
-                                    </View>
+            {
+                showUserInfoModal && (
+                    <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
+                        <View style={[styles.modal, { maxHeight: '80%' }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Registration Details</Text>
+                                <TouchableOpacity
+                                    style={styles.closeModalButton}
+                                    onPress={() => setShowUserInfoModal(false)}
+                                >
+                                    <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
                                 </TouchableOpacity>
                             </View>
 
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Name</Text>
-                                {isEditingProfile ? (
-                                    <TextInput
-                                        style={styles.editInput}
-                                        value={editName}
-                                        onChangeText={setEditName}
-                                        placeholder="Name"
-                                        placeholderTextColor={colors.textTertiary}
-                                    />
-                                ) : (
-                                    <Text style={styles.infoValue}>{user?.displayName || '--'}</Text>
-                                )}
-                            </View>
-
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Age</Text>
-                                {isEditingProfile ? (
-                                    <TextInput
-                                        style={styles.editInput}
-                                        value={editAge}
-                                        onChangeText={setEditAge}
-                                        keyboardType="number-pad"
-                                        placeholder="Age"
-                                        placeholderTextColor={colors.textTertiary}
-                                    />
-                                ) : (
-                                    <Text style={styles.infoValue}>{user?.age || '--'} years</Text>
-                                )}
-                            </View>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Gender</Text>
-                                {isEditingProfile ? (
-                                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                                        <TouchableOpacity onPress={() => setEditGender('male')}>
-                                            <Text style={[styles.infoValue, editGender === 'male' && { color: colors.primaryStart }]}>Male</Text>
-                                        </TouchableOpacity>
-                                        <Text style={styles.infoValue}>|</Text>
-                                        <TouchableOpacity onPress={() => setEditGender('female')}>
-                                            <Text style={[styles.infoValue, editGender === 'female' && { color: colors.primaryStart }]}>Female</Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                ) : (
-                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>{user?.gender || '--'}</Text>
-                                )}
-                            </View>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Weight</Text>
-                                {isEditingProfile ? (
-                                    <TextInput
-                                        style={styles.editInput}
-                                        value={editWeight}
-                                        onChangeText={setEditWeight}
-                                        keyboardType="decimal-pad"
-                                        placeholder="kg"
-                                        placeholderTextColor={colors.textTertiary}
-                                    />
-                                ) : (
-                                    <Text style={styles.infoValue}>{user?.weight || '--'} kg</Text>
-                                )}
-                            </View>
-                            <View style={styles.infoRow}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                    <Text style={[styles.infoLabel, { flex: 0, marginRight: 8 }]}>Height</Text>
-
-                                    {isEditingProfile && (
-                                        <View style={styles.unitSelector}>
-                                            {(['cm', 'ft', 'm'] as const).map((unit) => (
-                                                <TouchableOpacity
-                                                    key={unit}
-                                                    style={[styles.unitButton, heightUnit === unit && styles.unitButtonActive]}
-                                                    onPress={() => {
-                                                        // Convert current value to new unit when switching
-                                                        let newHeight = editHeight;
-                                                        // First convert to cm
-                                                        let cmVal = 0;
-                                                        if (heightUnit === 'cm') cmVal = parseFloat(editHeight) || 0;
-                                                        else if (heightUnit === 'ft') cmVal = feetToCm(editHeight);
-                                                        else cmVal = metersToCm(parseFloat(editHeight));
-
-                                                        setHeightUnit(unit);
-
-                                                        // Then convert to new unit
-                                                        if (unit === 'cm') newHeight = cmVal.toString();
-                                                        else if (unit === 'ft') newHeight = cmToFeet(cmVal);
-                                                        else newHeight = cmToMeters(cmVal).toString();
-
-                                                        setEditHeight(newHeight);
-                                                    }}
-                                                >
-                                                    <Text style={[styles.unitText, heightUnit === unit && styles.unitTextActive]}>{unit}</Text>
-                                                </TouchableOpacity>
-                                            ))}
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {/* Personal Details */}
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <Text style={styles.modalSectionTitle}>Personal Details</Text>
+                                    <TouchableOpacity onPress={isEditingProfile ? handleSaveProfile : startEditingProfile}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                            <MaterialCommunityIcons
+                                                name={isEditingProfile ? "check" : "pencil"}
+                                                size={16}
+                                                color={colors.primaryStart}
+                                            />
+                                            <Text style={{ color: colors.primaryStart, fontWeight: '600' }}>
+                                                {isEditingProfile ? 'Save' : 'Edit'}
+                                            </Text>
                                         </View>
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Name</Text>
+                                    {isEditingProfile ? (
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={editName}
+                                            onChangeText={setEditName}
+                                            placeholder="Name"
+                                            placeholderTextColor={colors.textTertiary}
+                                        />
+                                    ) : (
+                                        <Text style={styles.infoValue}>{user?.displayName || '--'}</Text>
                                     )}
                                 </View>
 
-                                {isEditingProfile ? (
-                                    <TextInput
-                                        style={styles.editInput}
-                                        value={editHeight}
-                                        onChangeText={setEditHeight}
-                                        keyboardType={heightUnit === 'ft' ? 'default' : 'numeric'}
-                                        placeholder={heightUnit}
-                                        placeholderTextColor={colors.textTertiary}
-                                    />
-                                ) : (
-                                    <Text style={styles.infoValue}>{formatHeight(user?.height || 0, heightUnit)}</Text>
-                                )}
-                            </View>
-
-                            {/* Body Composition */}
-                            <Text style={styles.modalSectionTitle}>Body Composition</Text>
-                            <Text style={[styles.summaryInfo, { fontSize: 11, marginBottom: 8, fontStyle: 'italic' }]}>
-                                Your Current vs. Healthy Range
-                            </Text>
-
-                            <View style={styles.infoRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.infoLabel}>Current BMI</Text>
-                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('bmi', bodyComp?.bmi || 0) }]}>{bodyComp?.bmi?.toFixed(1) || '--'}</Text>
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Age</Text>
+                                    {isEditingProfile ? (
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={editAge}
+                                            onChangeText={setEditAge}
+                                            keyboardType="number-pad"
+                                            placeholder="Age"
+                                            placeholderTextColor={colors.textTertiary}
+                                        />
+                                    ) : (
+                                        <Text style={styles.infoValue}>{user?.age || '--'} years</Text>
+                                    )}
                                 </View>
-                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>18.5 - 24.9</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.infoRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.infoLabel}>Body Fat</Text>
-                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('bodyFat', bodyComp?.bodyFat || 0) }]}>{bodyComp?.bodyFat || '--'} kg</Text>
-                                </View>
-                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
-                                        {user?.gender === 'male' ? '10-20%' : '18-28%'}
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.infoRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.infoLabel}>BMR</Text>
-                                    <Text style={styles.infoValue}>{bodyComp?.bmr || '--'} kcal</Text>
-                                </View>
-                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Daily Calories</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.textSecondary }]}>Base metabolism</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.infoRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.infoLabel}>Visceral Fat</Text>
-                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('visceralFat', bodyComp?.visceralFat || 0) }]}>{bodyComp?.visceralFat || '--'}%</Text>
-                                </View>
-                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>{'<10%'}</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.infoRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.infoLabel}>Skeletal Muscle</Text>
-                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('skeletalMuscle', bodyComp?.skeletalMuscle || 0) }]}>{bodyComp?.skeletalMuscle || '--'} kg</Text>
-                                </View>
-                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
-                                        {user?.gender === 'male' ? '>40% body wt' : '>30% body wt'}
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.infoRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.infoLabel}>Body Age</Text>
-                                    <Text style={[styles.infoValue, { color: getMetricStatusColor('bodyAge', bodyComp?.bodyAge || 0) }]}>{bodyComp?.bodyAge || '--'} years</Text>
-                                </View>
-                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                                    <Text style={[styles.infoLabel, { fontSize: 11 }]}>Target</Text>
-                                    <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
-                                        Equal to age ({user?.age || '--'})
-                                    </Text>
-                                </View>
-                            </View>
-
-                            {/* Fitness Profile */}
-                            <Text style={styles.modalSectionTitle}>Fitness Profile</Text>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Primary Goal</Text>
-                                {isEditingProfile ? (
-                                    <View style={styles.editOptionsContainer}>
-                                        {[
-                                            { value: 'weight_loss', label: 'Loss' },
-                                            { value: 'muscle_gain', label: 'Gain' },
-                                            { value: 'endurance', label: 'Endure' },
-                                            { value: 'flexibility', label: 'Flex' },
-                                        ].map(goal => (
-                                            <TouchableOpacity
-                                                key={goal.value}
-                                                onPress={() => setEditFitnessGoal(goal.value as any)}
-                                                style={[styles.editOptionChip, editFitnessGoal === goal.value && styles.editOptionChipActive]}
-                                            >
-                                                <Text style={[styles.editOptionText, editFitnessGoal === goal.value && styles.editOptionTextActive]}>{goal.label}</Text>
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Gender</Text>
+                                    {isEditingProfile ? (
+                                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                                            <TouchableOpacity onPress={() => setEditGender('male')}>
+                                                <Text style={[styles.infoValue, editGender === 'male' && { color: colors.primaryStart }]}>Male</Text>
                                             </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                ) : (
-                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
-                                        {user?.fitnessGoal?.replace('_', ' ') || '--'}
-                                    </Text>
-                                )}
-                            </View>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Experience</Text>
-                                {isEditingProfile ? (
-                                    <View style={styles.editOptionsContainer}>
-                                        {['beginner', 'intermediate', 'advanced'].map(exp => (
-                                            <TouchableOpacity
-                                                key={exp}
-                                                onPress={() => setEditExperienceLevel(exp as any)}
-                                                style={[styles.editOptionChip, editExperienceLevel === exp && styles.editOptionChipActive]}
-                                            >
-                                                <Text style={[styles.editOptionText, editExperienceLevel === exp && styles.editOptionTextActive]}>{exp.charAt(0).toUpperCase() + exp.slice(1, 3)}</Text>
+                                            <Text style={styles.infoValue}>|</Text>
+                                            <TouchableOpacity onPress={() => setEditGender('female')}>
+                                                <Text style={[styles.infoValue, editGender === 'female' && { color: colors.primaryStart }]}>Female</Text>
                                             </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                ) : (
-                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
-                                        {user?.fitnessProfile?.experienceLevel || user?.workoutExperience || '--'}
-                                    </Text>
-                                )}
-                            </View>
+                                        </View>
+                                    ) : (
+                                        <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>{user?.gender || '--'}</Text>
+                                    )}
+                                </View>
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Weight</Text>
+                                    {isEditingProfile ? (
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={editWeight}
+                                            onChangeText={setEditWeight}
+                                            keyboardType="decimal-pad"
+                                            placeholder="kg"
+                                            placeholderTextColor={colors.textTertiary}
+                                        />
+                                    ) : (
+                                        <Text style={styles.infoValue}>{user?.weight || '--'} kg</Text>
+                                    )}
+                                </View>
+                                <View style={styles.infoRow}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                        <Text style={[styles.infoLabel, { flex: 0, marginRight: 8 }]}>Height</Text>
 
-                            {/* Equipment & Health */}
-                            <Text style={styles.modalSectionTitle}>Environment & Health</Text>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Location</Text>
-                                {isEditingProfile ? (
-                                    <View style={styles.editOptionsContainer}>
-                                        {[
-                                            { value: 'bodyweight', label: 'Home' },
-                                            { value: 'home', label: 'Equip' },
-                                            { value: 'gym', label: 'Gym' },
-                                        ].map(loc => (
-                                            <TouchableOpacity
-                                                key={loc.value}
-                                                onPress={() => setEditEquipmentAccess(loc.value as any)}
-                                                style={[styles.editOptionChip, editEquipmentAccess === loc.value && styles.editOptionChipActive]}
-                                            >
-                                                <Text style={[styles.editOptionText, editEquipmentAccess === loc.value && styles.editOptionTextActive]}>{loc.label}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                ) : (
-                                    <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
-                                        {user?.fitnessProfile?.equipmentAccess || '--'}
-                                    </Text>
-                                )}
-                            </View>
-                            <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>Health Issues</Text>
-                                {isEditingProfile ? (
-                                    <View style={styles.tagContainer}>
-                                        {COMMON_HEALTH_ISSUES.map((issue) => (
-                                            <TouchableOpacity
-                                                key={issue}
-                                                style={[
-                                                    styles.infoTag,
-                                                    editHealthIssues.includes(issue) && { backgroundColor: colors.accentError + '33' }
-                                                ]}
-                                                onPress={() => toggleEditHealthIssue(issue)}
-                                            >
-                                                <Text style={[
-                                                    styles.tagText,
-                                                    editHealthIssues.includes(issue) && { color: colors.accentError }
-                                                ]}>
-                                                    {issue.replace('_', ' ')}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                ) : (
-                                    <View style={styles.tagContainer}>
-                                        {user?.fitnessProfile?.healthIssues && user.fitnessProfile.healthIssues.length > 0 ? (
-                                            user.fitnessProfile.healthIssues.map((issue, idx) => (
-                                                <View key={idx} style={styles.infoTag}>
-                                                    <Text style={styles.tagText}>{issue.replace('_', ' ')}</Text>
-                                                </View>
-                                            ))
-                                        ) : (
-                                            <Text style={styles.infoValue}>None declared</Text>
+                                        {isEditingProfile && (
+                                            <View style={styles.unitSelector}>
+                                                {(['cm', 'ft', 'm'] as const).map((unit) => (
+                                                    <TouchableOpacity
+                                                        key={unit}
+                                                        style={[styles.unitButton, heightUnit === unit && styles.unitButtonActive]}
+                                                        onPress={() => {
+                                                            // Convert current value to new unit when switching
+                                                            let newHeight = editHeight;
+                                                            // First convert to cm
+                                                            let cmVal = 0;
+                                                            if (heightUnit === 'cm') cmVal = parseFloat(editHeight) || 0;
+                                                            else if (heightUnit === 'ft') cmVal = feetToCm(editHeight);
+                                                            else cmVal = metersToCm(parseFloat(editHeight));
+
+                                                            setHeightUnit(unit);
+
+                                                            // Then convert to new unit
+                                                            if (unit === 'cm') newHeight = cmVal.toString();
+                                                            else if (unit === 'ft') newHeight = cmToFeet(cmVal);
+                                                            else newHeight = cmToMeters(cmVal).toString();
+
+                                                            setEditHeight(newHeight);
+                                                        }}
+                                                    >
+                                                        <Text style={[styles.unitText, heightUnit === unit && styles.unitTextActive]}>{unit}</Text>
+                                                    </TouchableOpacity>
+                                                ))}
+                                            </View>
                                         )}
                                     </View>
-                                )}
-                            </View>
-                            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-                                <Text style={styles.infoLabel}>Equipment</Text>
-                                {isEditingProfile ? (
-                                    <View style={styles.tagContainer}>
-                                        {EQUIPMENT_OPTIONS.map((eq) => (
-                                            <TouchableOpacity
-                                                key={eq.id}
-                                                style={[
-                                                    styles.infoTag,
-                                                    editAvailableEquipment.includes(eq.id) && { backgroundColor: colors.accentCyan + '33' }
-                                                ]}
-                                                onPress={() => toggleEditEquipment(eq.id)}
-                                            >
-                                                <Text style={[
-                                                    styles.tagText,
-                                                    editAvailableEquipment.includes(eq.id) && { color: colors.accentCyan }
-                                                ]}>
-                                                    {eq.label}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                ) : (
-                                    <View style={styles.tagContainer}>
-                                        {user?.fitnessProfile?.availableEquipment && user.fitnessProfile.availableEquipment.length > 0 ? (
-                                            user.fitnessProfile.availableEquipment.map((eq, idx) => (
-                                                <View key={idx} style={[styles.infoTag, { backgroundColor: 'rgba(7, 185, 231, 0.1)' }]}>
-                                                    <Text style={[styles.tagText, { color: colors.accentCyan }]}>{eq.replace('_', ' ')}</Text>
-                                                </View>
-                                            ))
-                                        ) : (
-                                            <Text style={styles.infoValue}>Bodyweight only</Text>
-                                        )}
-                                    </View>
-                                )}
-                            </View>
-                        </ScrollView>
 
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => {
-                                if (isEditingProfile) {
-                                    handleSaveProfile();
-                                } else {
-                                    setShowUserInfoModal(false);
-                                }
-                            }}
-                            style={{ marginTop: 20 }}
-                        >
-                            <LinearGradient
-                                colors={gradients.primary}
-                                style={styles.saveButton}
-                            >
-                                <Text style={styles.saveButtonText}>
-                                    {isEditingProfile ? 'Save & Return to Profile' : 'Back to Profile'}
+                                    {isEditingProfile ? (
+                                        <TextInput
+                                            style={styles.editInput}
+                                            value={editHeight}
+                                            onChangeText={setEditHeight}
+                                            keyboardType={heightUnit === 'ft' ? 'default' : 'numeric'}
+                                            placeholder={heightUnit}
+                                            placeholderTextColor={colors.textTertiary}
+                                        />
+                                    ) : (
+                                        <Text style={styles.infoValue}>{formatHeight(user?.height || 0, heightUnit)}</Text>
+                                    )}
+                                </View>
+
+                                {/* Body Composition */}
+                                <Text style={styles.modalSectionTitle}>Body Composition</Text>
+                                <Text style={[styles.summaryInfo, { fontSize: 11, marginBottom: 8, fontStyle: 'italic' }]}>
+                                    Your Current vs. Healthy Range
                                 </Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                </BlurView>
-            )}
+
+                                <View style={styles.infoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>Current BMI</Text>
+                                        <Text style={[styles.infoValue, { color: getMetricStatusColor('bmi', bodyComp?.bmi || 0) }]}>{bodyComp?.bmi?.toFixed(1) || '--'}</Text>
+                                    </View>
+                                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                        <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                        <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>18.5 - 24.9</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>Body Fat</Text>
+                                        <Text style={[styles.infoValue, { color: getMetricStatusColor('bodyFat', bodyComp?.bodyFat || 0) }]}>{bodyComp?.bodyFat || '--'} kg</Text>
+                                    </View>
+                                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                        <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                        <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
+                                            {user?.gender === 'male' ? '10-20%' : '18-28%'}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>BMR</Text>
+                                        <Text style={styles.infoValue}>{bodyComp?.bmr || '--'} kcal</Text>
+                                    </View>
+                                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                        <Text style={[styles.infoLabel, { fontSize: 11 }]}>Daily Calories</Text>
+                                        <Text style={[styles.infoValue, { fontSize: 12, color: colors.textSecondary }]}>Base metabolism</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>Visceral Fat</Text>
+                                        <Text style={[styles.infoValue, { color: getMetricStatusColor('visceralFat', bodyComp?.visceralFat || 0) }]}>{bodyComp?.visceralFat || '--'}%</Text>
+                                    </View>
+                                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                        <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                        <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>{'<10%'}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>Skeletal Muscle</Text>
+                                        <Text style={[styles.infoValue, { color: getMetricStatusColor('skeletalMuscle', bodyComp?.skeletalMuscle || 0) }]}>{bodyComp?.skeletalMuscle || '--'} kg</Text>
+                                    </View>
+                                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                        <Text style={[styles.infoLabel, { fontSize: 11 }]}>Healthy Range</Text>
+                                        <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
+                                            {user?.gender === 'male' ? '>40% body wt' : '>30% body wt'}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.infoRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.infoLabel}>Body Age</Text>
+                                        <Text style={[styles.infoValue, { color: getMetricStatusColor('bodyAge', bodyComp?.bodyAge || 0) }]}>{bodyComp?.bodyAge || '--'} years</Text>
+                                    </View>
+                                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                        <Text style={[styles.infoLabel, { fontSize: 11 }]}>Target</Text>
+                                        <Text style={[styles.infoValue, { fontSize: 12, color: colors.accentSuccess }]}>
+                                            Equal to age ({user?.age || '--'})
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {/* Fitness Profile */}
+                                <Text style={styles.modalSectionTitle}>Fitness Profile</Text>
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Primary Goal</Text>
+                                    {isEditingProfile ? (
+                                        <View style={styles.editOptionsContainer}>
+                                            {[
+                                                { value: 'weight_loss', label: 'Loss' },
+                                                { value: 'muscle_gain', label: 'Gain' },
+                                                { value: 'endurance', label: 'Endure' },
+                                                { value: 'flexibility', label: 'Flex' },
+                                            ].map(goal => (
+                                                <TouchableOpacity
+                                                    key={goal.value}
+                                                    onPress={() => setEditFitnessGoal(goal.value as any)}
+                                                    style={[styles.editOptionChip, editFitnessGoal === goal.value && styles.editOptionChipActive]}
+                                                >
+                                                    <Text style={[styles.editOptionText, editFitnessGoal === goal.value && styles.editOptionTextActive]}>{goal.label}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                            {user?.fitnessGoal?.replace('_', ' ') || '--'}
+                                        </Text>
+                                    )}
+                                </View>
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Experience</Text>
+                                    {isEditingProfile ? (
+                                        <View style={styles.editOptionsContainer}>
+                                            {['beginner', 'intermediate', 'advanced'].map(exp => (
+                                                <TouchableOpacity
+                                                    key={exp}
+                                                    onPress={() => setEditExperienceLevel(exp as any)}
+                                                    style={[styles.editOptionChip, editExperienceLevel === exp && styles.editOptionChipActive]}
+                                                >
+                                                    <Text style={[styles.editOptionText, editExperienceLevel === exp && styles.editOptionTextActive]}>{exp.charAt(0).toUpperCase() + exp.slice(1, 3)}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                            {user?.fitnessProfile?.experienceLevel || user?.workoutExperience || '--'}
+                                        </Text>
+                                    )}
+                                </View>
+
+                                {/* Equipment & Health */}
+                                <Text style={styles.modalSectionTitle}>Environment & Health</Text>
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Location</Text>
+                                    {isEditingProfile ? (
+                                        <View style={styles.editOptionsContainer}>
+                                            {[
+                                                { value: 'bodyweight', label: 'Home' },
+                                                { value: 'home', label: 'Equip' },
+                                                { value: 'gym', label: 'Gym' },
+                                            ].map(loc => (
+                                                <TouchableOpacity
+                                                    key={loc.value}
+                                                    onPress={() => setEditEquipmentAccess(loc.value as any)}
+                                                    style={[styles.editOptionChip, editEquipmentAccess === loc.value && styles.editOptionChipActive]}
+                                                >
+                                                    <Text style={[styles.editOptionText, editEquipmentAccess === loc.value && styles.editOptionTextActive]}>{loc.label}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <Text style={[styles.infoValue, { textTransform: 'capitalize' }]}>
+                                            {user?.fitnessProfile?.equipmentAccess || '--'}
+                                        </Text>
+                                    )}
+                                </View>
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Health Issues</Text>
+                                    {isEditingProfile ? (
+                                        <View style={styles.tagContainer}>
+                                            {COMMON_HEALTH_ISSUES.map((issue) => (
+                                                <TouchableOpacity
+                                                    key={issue}
+                                                    style={[
+                                                        styles.infoTag,
+                                                        editHealthIssues.includes(issue) && { backgroundColor: colors.accentError + '33' }
+                                                    ]}
+                                                    onPress={() => toggleEditHealthIssue(issue)}
+                                                >
+                                                    <Text style={[
+                                                        styles.tagText,
+                                                        editHealthIssues.includes(issue) && { color: colors.accentError }
+                                                    ]}>
+                                                        {issue.replace('_', ' ')}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <View style={styles.tagContainer}>
+                                            {user?.fitnessProfile?.healthIssues && user.fitnessProfile.healthIssues.length > 0 ? (
+                                                user.fitnessProfile.healthIssues.map((issue, idx) => (
+                                                    <View key={idx} style={styles.infoTag}>
+                                                        <Text style={styles.tagText}>{issue.replace('_', ' ')}</Text>
+                                                    </View>
+                                                ))
+                                            ) : (
+                                                <Text style={styles.infoValue}>None declared</Text>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                                    <Text style={styles.infoLabel}>Equipment</Text>
+                                    {isEditingProfile ? (
+                                        <View style={styles.tagContainer}>
+                                            {EQUIPMENT_OPTIONS.map((eq) => (
+                                                <TouchableOpacity
+                                                    key={eq.id}
+                                                    style={[
+                                                        styles.infoTag,
+                                                        editAvailableEquipment.includes(eq.id) && { backgroundColor: colors.accentCyan + '33' }
+                                                    ]}
+                                                    onPress={() => toggleEditEquipment(eq.id)}
+                                                >
+                                                    <Text style={[
+                                                        styles.tagText,
+                                                        editAvailableEquipment.includes(eq.id) && { color: colors.accentCyan }
+                                                    ]}>
+                                                        {eq.label}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    ) : (
+                                        <View style={styles.tagContainer}>
+                                            {user?.fitnessProfile?.availableEquipment && user.fitnessProfile.availableEquipment.length > 0 ? (
+                                                user.fitnessProfile.availableEquipment.map((eq, idx) => (
+                                                    <View key={idx} style={[styles.infoTag, { backgroundColor: 'rgba(7, 185, 231, 0.1)' }]}>
+                                                        <Text style={[styles.tagText, { color: colors.accentCyan }]}>{eq.replace('_', ' ')}</Text>
+                                                    </View>
+                                                ))
+                                            ) : (
+                                                <Text style={styles.infoValue}>Bodyweight only</Text>
+                                            )}
+                                        </View>
+                                    )}
+                                </View>
+                            </ScrollView>
+
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={() => {
+                                    if (isEditingProfile) {
+                                        handleSaveProfile();
+                                    } else {
+                                        setShowUserInfoModal(false);
+                                    }
+                                }}
+                                style={{ marginTop: 20 }}
+                            >
+                                <LinearGradient
+                                    colors={gradients.primary}
+                                    style={styles.saveButton}
+                                >
+                                    <Text style={styles.saveButtonText}>
+                                        {isEditingProfile ? 'Save & Return to Profile' : 'Back to Profile'}
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </BlurView>
+                )
+            }
 
             {/* Metrics Modal */}
             {
@@ -1504,35 +1606,37 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
             }
 
             {/* Success Modal */}
-            {showSuccessModal && (
-                <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
-                    <View style={styles.successModal}>
-                        <View style={styles.successIconContainer}>
-                            <Text style={styles.successIcon}>✨</Text>
-                        </View>
-                        <Text style={styles.successTitle}>
-                            {successType === 'profile' ? 'Profile Updated!' : 'Metrics Updated!'}
-                        </Text>
-                        <Text style={styles.successMessage}>
-                            {successType === 'profile'
-                                ? 'Your profile and workout plan have been updated successfully.'
-                                : 'Your body stats have been logged successfully. Keep up the good work!'}
-                        </Text>
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => setShowSuccessModal(false)}
-                            style={{ width: '100%', marginTop: 24 }}
-                        >
-                            <LinearGradient
-                                colors={gradients.primary}
-                                style={styles.successButton}
+            {
+                showSuccessModal && (
+                    <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
+                        <View style={styles.successModal}>
+                            <View style={styles.successIconContainer}>
+                                <Text style={styles.successIcon}>✨</Text>
+                            </View>
+                            <Text style={styles.successTitle}>
+                                {successType === 'profile' ? 'Profile Updated!' : 'Metrics Updated!'}
+                            </Text>
+                            <Text style={styles.successMessage}>
+                                {successType === 'profile'
+                                    ? 'Your profile and workout plan have been updated successfully.'
+                                    : 'Your body stats have been logged successfully. Keep up the good work!'}
+                            </Text>
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                onPress={() => setShowSuccessModal(false)}
+                                style={{ width: '100%', marginTop: 24 }}
                             >
-                                <Text style={styles.successButtonText}>Awesome!</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-                </BlurView>
-            )}
+                                <LinearGradient
+                                    colors={gradients.primary}
+                                    style={styles.successButton}
+                                >
+                                    <Text style={styles.successButtonText}>Awesome!</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </BlurView>
+                )
+            }
         </LinearGradient >
     );
 }
@@ -2129,7 +2233,6 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         color: colors.textSecondary,
         marginBottom: 8,
         marginTop: 16,
-        marginLeft: 16,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { fetchWorkoutStats } from '../store/slices/workoutSlice';
-import { fetchWorkoutPlan, fetchCustomPlans, switchActivePlan } from '../store/slices/workoutPlanSlice';
+import { fetchWorkoutPlan, fetchCustomPlans } from '../store/slices/workoutPlanSlice';
 import MotivationalTip from '../components/MotivationalTip';
 import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
@@ -42,6 +42,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         const state = await avatarService.getAvatarState();
         setAvatarState(state);
     };
+
+
 
     useEffect(() => {
         loadAvatarState();
@@ -317,75 +319,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <MotivationalTip />
                 </View>
 
-                {/* Custom Plan Management */}
-                <View style={styles.section}>
-                    <BlurView intensity={20} tint="dark" style={styles.customPlanCard}>
-                        <View style={styles.customPlanHeader}>
-                            <View style={styles.planTypeContainer}>
-                                <MaterialCommunityIcons
-                                    name={currentPlan?.planType === 'custom' ? 'clipboard-edit' : 'robot'}
-                                    size={20}
-                                    color={currentPlan?.planType === 'custom' ? colors.accentCyan : colors.accentPink}
-                                />
-                                <Text style={[styles.planTypeText, { color: colors.textPrimary }]}>
-                                    {currentPlan?.planType === 'custom' ? 'Custom Plan' : 'AI-Generated Plan'}
-                                </Text>
-                            </View>
-                            {currentPlan?.planType === 'custom' && (
-                                <TouchableOpacity onPress={() => navigation.navigate('CustomPlanBuilder', { plan: currentPlan })}>
-                                    <MaterialCommunityIcons name="pencil" size={20} color={colors.accentCyan} />
-                                </TouchableOpacity>
-                            )}
-                        </View>
 
-                        <View style={styles.customPlanActions}>
-                            {currentPlan?.planType === 'custom' ? (
-                                <>
-                                    <TouchableOpacity
-                                        style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
-                                        onPress={() => {
-                                            if (user?.workoutPlanId) {
-                                                dispatch(switchActivePlan({ userId: user.uid, planId: user.workoutPlanId, planType: 'ai-generated' }));
-                                            }
-                                        }}
-                                    >
-                                        <MaterialCommunityIcons name="robot" size={16} color={colors.accentPink} />
-                                        <Text style={[styles.planActionText, { color: colors.textPrimary }]}>Switch to AI Plan</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
-                                        onPress={() => navigation.navigate('CustomPlanBuilder')}
-                                    >
-                                        <MaterialCommunityIcons name="plus" size={16} color={colors.accentCyan} />
-                                        <Text style={[styles.planActionText, { color: colors.textPrimary }]}>New Plan</Text>
-                                    </TouchableOpacity>
-                                </>
-                            ) : (
-                                <>
-                                    <TouchableOpacity
-                                        style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
-                                        onPress={() => navigation.navigate('CustomPlanBuilder')}
-                                    >
-                                        <MaterialCommunityIcons name="clipboard-edit" size={16} color={colors.accentCyan} />
-                                        <Text style={[styles.planActionText, { color: colors.textPrimary }]}>Create Custom Plan</Text>
-                                    </TouchableOpacity>
-                                    {customPlans.length > 0 && (
-                                        <TouchableOpacity
-                                            style={[styles.planActionButton, { borderColor: colors.glassBorder }]}
-                                            onPress={() => {
-                                                const latestCustomPlan = customPlans[0];
-                                                dispatch(switchActivePlan({ userId: user?.uid || '', planId: latestCustomPlan.id, planType: 'custom' }));
-                                            }}
-                                        >
-                                            <MaterialCommunityIcons name="swap-horizontal" size={16} color={colors.accentCyan} />
-                                            <Text style={[styles.planActionText, { color: colors.textPrimary }]}>Switch to Custom</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                </>
-                            )}
-                        </View>
-                    </BlurView>
-                </View>
 
                 {/* Dynamic Status Card */}
                 <DailyStatusCard isRestDay={isRestDay} />
@@ -578,15 +512,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                             <View style={styles.detailsHeader}>
                                 <View style={styles.detailsTitleContainer}>
                                     <MaterialCommunityIcons name="flash" size={24} color={colors.accentCyan} />
-                                    <Text style={styles.detailsTitle}>
+                                    <Text style={styles.detailsTitle} numberOfLines={2}>
                                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][selectedDayIndex]} - {getSimplifiedFocus(currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.focus || 'Workout')}
-
                                     </Text>
                                 </View>
                                 <View style={styles.detailsDurationBadge}>
                                     <MaterialCommunityIcons name="clock-outline" size={16} color={colors.textPrimary} />
                                     <Text style={styles.detailsDurationText}>
-                                        {currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.duration} min
+                                        {Math.round(currentPlan.sessions.find(s => s.dayOfWeek === (selectedDayIndex + 1) % 7)?.duration || 0)} min
                                     </Text>
                                 </View>
                             </View>
@@ -1009,6 +942,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: Spacing.m,
+        width: '100%',
     },
     detailsTitleContainer: {
         flexDirection: 'row',
@@ -1213,49 +1147,5 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         fontStyle: 'italic',
     },
 
-    // Custom Plan Management
-    customPlanCard: {
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.m,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: colors.glassBorder,
-        backgroundColor: colors.glassSurface,
-        ...shadows.card,
-    },
-    customPlanHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.m,
-    },
-    planTypeContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.s,
-    },
-    planTypeText: {
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    customPlanActions: {
-        flexDirection: 'row',
-        gap: Spacing.s,
-    },
-    planActionButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: Spacing.xs,
-        paddingVertical: Spacing.s,
-        paddingHorizontal: Spacing.m,
-        borderRadius: Layout.borderRadius.s,
-        borderWidth: 1,
-        backgroundColor: colors.glassSurface,
-    },
-    planActionText: {
-        fontSize: 12,
-        fontWeight: '600',
-    },
+
 });

@@ -29,5 +29,9 @@ export const getSimplifiedFocus = (focus: string | undefined): string => {
         return 'Recovery';
     }
 
+    if (f.includes('custom')) {
+        return 'Custom';
+    }
+
     return focus; // Fallback to original if no match
 };
