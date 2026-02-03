@@ -252,6 +252,7 @@ export interface UserProfile {
     createdAt: Date;
     updatedAt: Date;
     transformationPhotos: string[];
+    pushToken?: string;
 }
 
 export interface WorkoutSession {

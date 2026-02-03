@@ -28,6 +28,8 @@ import CustomPlanBuilderScreen from './src/screens/CustomPlanBuilderScreen';
 
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
+import { notificationService } from './src/services/NotificationService';
+import * as Notifications from 'expo-notifications';
 
 export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder';
 
@@ -56,6 +58,34 @@ function AppContent() {
   const navigationParamsRef = useRef<NavigationParams>({});
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
+  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
+
+  // Register for push notifications on login
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      notificationService.registerForPushNotificationsAsync();
+
+      // Listener for when a notification is received while the app is foregrounded
+      notificationListener.current = notificationService.addNotificationReceivedListener(notification => {
+        console.log('Notification received in foreground:', notification);
+      });
+
+      // Listener for when a user taps on or interacts with a notification
+      responseListener.current = notificationService.addNotificationResponseReceivedListener(response => {
+        console.log('Notification interaction:', response);
+      });
+
+      return () => {
+        if (notificationListener.current) {
+          notificationListener.current.remove();
+        }
+        if (responseListener.current) {
+          responseListener.current.remove();
+        }
+      };
+    }
+  }, [isAuthenticated, user?.uid]);
 
   // Load saved theme on mount
   useEffect(() => {

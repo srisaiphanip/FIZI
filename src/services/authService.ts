@@ -235,6 +235,24 @@ class AuthService {
     }
 
     /**
+     * Update user's push notification token
+     */
+    async updatePushToken(token: string): Promise<void> {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const docRef = doc(db, 'users', user.uid);
+            await updateDoc(docRef, {
+                pushToken: token,
+                updatedAt: serverTimestamp(),
+            });
+        } catch (error) {
+            console.error('Error updating push token:', error);
+        }
+    }
+
+    /**
      * Upload profile photo to Firebase Storage
      */
     async uploadProfilePhoto(uri: string): Promise<string> {
