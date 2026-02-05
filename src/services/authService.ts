@@ -253,6 +253,24 @@ class AuthService {
     }
 
     /**
+     * Update user's last active timestamp
+     */
+    async updateLastActiveAt(): Promise<void> {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const docRef = doc(db, 'users', user.uid);
+            await updateDoc(docRef, {
+                lastActiveAt: serverTimestamp(),
+            });
+            console.log('Last active timestamp updated');
+        } catch (error) {
+            console.error('Error updating last active timestamp:', error);
+        }
+    }
+
+    /**
      * Upload profile photo to Firebase Storage
      */
     async uploadProfilePhoto(uri: string): Promise<string> {

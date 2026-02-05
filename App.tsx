@@ -61,10 +61,13 @@ function AppContent() {
   const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
   const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
-  // Register for push notifications on login
+  // Register for push notifications on login and track activity
   useEffect(() => {
     if (isAuthenticated && user) {
       notificationService.registerForPushNotificationsAsync();
+
+      // Track activity
+      authService.updateLastActiveAt();
 
       // Listener for when a notification is received while the app is foregrounded
       notificationListener.current = notificationService.addNotificationReceivedListener(notification => {
