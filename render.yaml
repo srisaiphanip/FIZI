@@ -12,3 +12,13 @@ services:
         value: 5001
       - key: FLASK_ENV
         value: production
+
+  - type: cron
+    name: fizi-daily-nudge
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    schedule: "0 8 * * *"
+    startCommand: "node scripts/daily-nudge.js"
+    region: oregon
+    plan: starter
