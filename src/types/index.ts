@@ -168,6 +168,7 @@ export interface PlannedExercise {
     category?: 'strength' | 'cardio' | 'flexibility' | 'plyometric';
     muscleGroups?: MuscleGroup[] | string[];
     caloriesPerRep?: number;
+    lastCompletedAt?: Date | any; // Timestamp of when it was last completed
 }
 
 export type EquipmentItem =

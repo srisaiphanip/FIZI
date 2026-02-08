@@ -159,7 +159,7 @@ class WorkoutPlanService {
         }
     }
 
-    async updateExerciseCompletion(planId: string, dayOfWeek: number, exerciseId: string, completed: boolean): Promise<boolean> {
+    async updateExerciseCompletion(planId: string, dayOfWeek: number, exerciseId: string, completed: boolean, lastCompletedAt?: Date): Promise<boolean> {
         try {
             const planRef = doc(db, 'workout_plans', planId);
             const planSnap = await getDoc(planRef);
@@ -170,6 +170,9 @@ class WorkoutPlanService {
                 const exercise = session.exercises.find((e: PlannedExercise) => e.exerciseId === exerciseId);
                 if (exercise) {
                     exercise.completed = completed;
+                    if (lastCompletedAt) {
+                        exercise.lastCompletedAt = lastCompletedAt;
+                    }
                     await updateDoc(planRef, { sessions: plan.sessions });
                     return true;
                 }

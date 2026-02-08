@@ -44,7 +44,11 @@ export const fetchWorkoutPlan = createAsyncThunk(
 /**
  * Update exercise completion status
  */
-export const updateExerciseCompletion = createAsyncThunk(
+export const updateExerciseCompletion = createAsyncThunk<
+    { dayOfWeek: number; exerciseId: string; completed: boolean },
+    { planId: string; dayOfWeek: number; exerciseId: string; completed: boolean; lastCompletedAt?: Date },
+    { rejectValue: string }
+>(
     'workoutPlan/updateExercise',
     async (
         {
@@ -52,11 +56,7 @@ export const updateExerciseCompletion = createAsyncThunk(
             dayOfWeek,
             exerciseId,
             completed,
-        }: {
-            planId: string;
-            dayOfWeek: number;
-            exerciseId: string;
-            completed: boolean;
+            lastCompletedAt,
         },
         { rejectWithValue }
     ) => {
@@ -65,7 +65,8 @@ export const updateExerciseCompletion = createAsyncThunk(
                 planId,
                 dayOfWeek,
                 exerciseId,
-                completed
+                completed,
+                lastCompletedAt
             );
             if (!success) {
                 return rejectWithValue('Failed to update exercise');
@@ -330,6 +331,31 @@ const workoutPlanSlice = createSlice({
             .addCase(fetchWorkoutPlan.fulfilled, (state, action) => {
                 state.loading = false;
                 state.currentPlan = action.payload;
+
+                // Process exercises to check if they were completed TODAY
+                if (action.payload.sessions) {
+                    action.payload.sessions.forEach(session => {
+                        if (session.exercises) {
+                            session.exercises.forEach(exercise => {
+                                if (exercise.completed && exercise.lastCompletedAt) {
+                                    const lastCompleted = exercise.lastCompletedAt.toDate ? exercise.lastCompletedAt.toDate() : new Date(exercise.lastCompletedAt);
+                                    const now = new Date();
+                                    const isToday = lastCompleted.getDate() === now.getDate() &&
+                                        lastCompleted.getMonth() === now.getMonth() &&
+                                        lastCompleted.getFullYear() === now.getFullYear();
+
+                                    if (!isToday) {
+                                        exercise.completed = false; // Reset if not completed today
+                                    }
+                                } else if (exercise.completed && !exercise.lastCompletedAt) {
+                                    // Legacy: If completed but no timestamp, we assume it's old and reset it (or keep it if we want to be safe, but fixing the bug requires reset)
+                                    // For now, let's reset it to ensure the fix works immediately for old plans too.
+                                    exercise.completed = false;
+                                }
+                            });
+                        }
+                    });
+                }
 
                 // Set today's workout
                 const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.

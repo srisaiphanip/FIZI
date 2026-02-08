@@ -101,7 +101,8 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     planId: currentPlan.id,
                     dayOfWeek: today,
                     exerciseId: exercise.id,
-                    completed: true
+                    completed: true,
+                    lastCompletedAt: new Date()
                 })).unwrap();
             }
 
@@ -206,7 +207,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
             {/* Footer with Actions */}
             <View style={styles.footer}>
-                {/* <TouchableOpacity
+                <TouchableOpacity
                     onPress={handleStart}
                     activeOpacity={0.8}
                 >
@@ -219,7 +220,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                         <MaterialCommunityIcons name="play-circle-outline" size={28} color="white" />
                         <Text style={styles.startButtonText}>Start Exercise</Text>
                     </LinearGradient>
-                </TouchableOpacity> */}
+                </TouchableOpacity>
 
                 <TouchableOpacity
                     onPress={handleSkipDetection}
@@ -234,7 +235,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primaryStart} />
-                            <Text style={[styles.skipButtonText, !isDark && { color: colors.textPrimary }]}>Complete Steps</Text>
+                            <Text style={[styles.skipButtonText, !isDark && { color: colors.textPrimary }]}>Skip Live Detection</Text>
                         </View>
                     </LinearGradient>
                 </TouchableOpacity>

@@ -17,7 +17,8 @@ import {
     TextInput,
     Image,
     Platform,
-    Linking
+    Linking,
+    Share
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -88,6 +89,8 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
     // Change Password State
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const [showRoadmapModal, setShowRoadmapModal] = useState(false);
+
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -155,6 +158,16 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
         loadAvatarState();
         setSuccessType('metrics');
         setShowSuccessModal(true);
+    };
+
+    const handleShareApp = async () => {
+        try {
+            await Share.share({
+                message: "Join me on FIZI! It's an AI-powered personal trainer that adapts to your progress. Download here: https://play.google.com/store/apps/details?id=com.maheshchalla.fizi&pcampaignid=web_share",
+            });
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        }
     };
 
     const handleSignOut = () => {
@@ -450,129 +463,134 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Avatar Display */}
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.avatarCard}>
-                    <View>
-                        <LinearGradient
-                            colors={gradients.primary}
-                            style={styles.avatarCircle}
-                        >
-                            {user?.photoURL ? (
-                                <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
-                            ) : (
-                                <View style={styles.defaultAvatarContainer}>
-                                    <MaterialCommunityIcons
-                                        name="account-circle"
-                                        size={140}
-                                        color="rgba(255, 255, 255, 0.9)"
-                                    />
-                                </View>
-                            )}
-                            {authLoading && (
-                                <View style={styles.uploadingOverlay}>
-                                    <ActivityIndicator color="#FFF" />
-                                </View>
-                            )}
-                        </LinearGradient>
-                    </View>
+                {/* Avatar Display - Redesigned Horizontal Card */}
+                <BlurView intensity={25} tint={isDark ? "light" : "dark"} style={styles.avatarCard}>
+                    <LinearGradient
+                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.7)', 'rgba(255,255,255,0.4)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFillObject}
+                    />
+                    <View style={styles.avatarContent}>
+                        <View style={styles.avatarContainer}>
+                            <LinearGradient
+                                colors={[colors.accentCyan, colors.primaryStart]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.avatarRing}
+                            >
+                                {user?.photoURL ? (
+                                    <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
+                                ) : (
+                                    <View style={styles.defaultAvatarContainer}>
+                                        <MaterialCommunityIcons
+                                            name="account"
+                                            size={48}
+                                            color="#FFF"
+                                        />
+                                    </View>
+                                )}
+                                {authLoading && (
+                                    <View style={styles.uploadingOverlay}>
+                                        <ActivityIndicator color="#FFF" size="small" />
+                                    </View>
+                                )}
+                            </LinearGradient>
+                        </View>
 
-                    <Text style={styles.userName}>{user?.displayName || 'Champion'}</Text>
-                    <Text style={styles.levelName}>{avatarState.levelName}</Text>
-                    <Text style={styles.levelBadge}>Level {avatarState.level}</Text>
+                        <View style={styles.userInfoSection}>
+                            <Text style={styles.userName}>{user?.displayName || 'Champion'}</Text>
+                            <Text style={styles.userTitle}>{avatarState.levelName}</Text>
 
-                    {/* Streak */}
-                    <View style={styles.streakContainer}>
-                        <LinearGradient
-                            colors={gradients.fire}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.streakGradient}
-                        >
-                            <Text style={styles.streakIcon}>🔥</Text>
-                            <Text style={styles.streakText}>{avatarState.currentStreak} Day Streak</Text>
-                        </LinearGradient>
+                            <View style={styles.statsRow}>
+                                <LinearGradient
+                                    colors={[colors.accentCyan + '30', colors.accentCyan + '10']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.levelBadgeContainer}
+                                >
+                                    <Text style={styles.levelBadgeText}>LEVEL {avatarState.level}</Text>
+                                </LinearGradient>
+
+                                <LinearGradient
+                                    colors={['rgba(255, 120, 100, 0.2)', 'rgba(255, 120, 100, 0.05)']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.streakBadgeContainer}
+                                >
+                                    <Text style={styles.streakEmoji}>🔥</Text>
+                                    <Text style={styles.streakBadgeText}>{avatarState.currentStreak}</Text>
+                                </LinearGradient>
+                            </View>
+                        </View>
                     </View>
                 </BlurView>
 
-                {/* Progress to Next Level */}
-                {nextLevel && (
-                    <BlurView intensity={10} tint="default" style={styles.progressCard}>
-                        <Text style={styles.sectionTitle}>Next Level Progress</Text>
 
-                        <View style={styles.progressItem}>
-                            <View style={styles.progressHeader}>
-                                <Text style={styles.progressLabel}>Workouts</Text>
-                                <Text style={styles.progressValue}>
-                                    {avatarState.totalWorkouts} / {nextLevel.workouts}
-                                </Text>
-                            </View>
-                            <View style={styles.progressBarBg}>
-                                <LinearGradient
-                                    colors={gradients.primary}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[
-                                        styles.progressFill,
-                                        { width: `${calculateProgress(avatarState.totalWorkouts, nextLevel.workouts)}%` }
-                                    ]}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.progressItem}>
-                            <View style={styles.progressHeader}>
-                                <Text style={styles.progressLabel}>Total Reps</Text>
-                                <Text style={styles.progressValue}>
-                                    {avatarState.totalReps} / {nextLevel.reps}
-                                </Text>
-                            </View>
-                            <View style={styles.progressBarBg}>
-                                <LinearGradient
-                                    colors={gradients.ocean}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[
-                                        styles.progressFill,
-                                        { width: `${calculateProgress(avatarState.totalReps, nextLevel.reps)}%` }
-                                    ]}
-                                />
-                            </View>
-                        </View>
-                    </BlurView>
-                )}
 
                 {/* User Info Section */}
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.userInfoCard}>
-                    <TouchableOpacity
-                        style={styles.userInfoButton}
-                        onPress={() => setShowUserInfoModal(true)}
+                {/* User Info Section */}
+                <TouchableOpacity
+                    onPress={() => setShowUserInfoModal(true)}
+                    activeOpacity={0.9}
+                >
+                    <LinearGradient
+                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.3)']}
+                        style={styles.menuCard}
                     >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="account-details-outline" size={24} color={colors.accentCyan} />
+                        <View style={styles.menuItem}>
+                            <LinearGradient
+                                colors={[colors.accentCyan + '20', colors.accentCyan + '05']}
+                                style={styles.menuIconContainer}
+                            >
+                                <MaterialCommunityIcons name="account-details-outline" size={22} color={colors.accentCyan} />
+                            </LinearGradient>
+                            <View style={styles.userInfoTextContainer}>
+                                <Text style={styles.userInfoTitle}>User Profile</Text>
+                                <Text style={styles.userInfoSubtitle}>Personal details & settings</Text>
+                            </View>
+                            <View style={{
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                                borderRadius: 12,
+                                padding: 6
+                            }}>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                            </View>
                         </View>
-                        <View style={styles.userInfoTextContainer}>
-                            <Text style={styles.userInfoTitle}>User Profile Information</Text>
-                            <Text style={styles.userInfoSubtitle}>View your registration details</Text>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                </BlurView>
+                    </LinearGradient>
+                </TouchableOpacity>
 
                 {/* Exercise Library */}
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.userInfoCard}>
-                    <TouchableOpacity
-                        style={styles.userInfoButton}
-                        onPress={() => navigation.navigate('ExerciseLibrary')}
+                {/* Exercise Library */}
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('ExerciseLibrary')}
+                    activeOpacity={0.9}
+                >
+                    <LinearGradient
+                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.3)']}
+                        style={styles.menuCard}
                     >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="dumbbell" size={24} color={colors.accentCyan} />
+                        <View style={styles.menuItem}>
+                            <LinearGradient
+                                colors={[colors.accentCyan + '20', colors.accentCyan + '05']}
+                                style={styles.menuIconContainer}
+                            >
+                                <MaterialCommunityIcons name="dumbbell" size={22} color={colors.accentCyan} />
+                            </LinearGradient>
+                            <View style={styles.userInfoTextContainer}>
+                                <Text style={styles.userInfoTitle}>Exercise Library</Text>
+                                <Text style={styles.userInfoSubtitle}>Browse all 300+ exercises</Text>
+                            </View>
+                            <View style={{
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                                borderRadius: 12,
+                                padding: 6
+                            }}>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                            </View>
                         </View>
-                        <View style={styles.userInfoTextContainer}>
-                            <Text style={styles.userInfoTitle}>Browse Exercise Library</Text>
-                            <Text style={styles.userInfoSubtitle}>Explore all available exercises</Text>
-                        </View>
-                        <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                </BlurView>
+                    </LinearGradient>
+                </TouchableOpacity>
 
                 {/* Custom Workout Plans */}
                 <View style={styles.customPlansSection}>
@@ -625,7 +643,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         </Text>
                                     </View>
                                     <TouchableOpacity
-                                        style={[styles.actionButton, { backgroundColor: colors.accentCyan + '20', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.accentCyan + '4D' }]}
+                                        style={[styles.actionButton, { backgroundColor: 'transparent', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder }]}
                                         onPress={() => {
                                             if (customPlans.length > 0 && user?.uid) {
                                                 const latestPlan = customPlans[0];
@@ -642,12 +660,14 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                                         <MaterialCommunityIcons
                                             name={customPlans.length > 0 ? "swap-horizontal" : "plus-circle-outline"}
                                             size={20}
-                                            color={colors.accentCyan}
+                                            color={colors.textSecondary}
                                         />
-                                        <Text style={{ color: colors.textPrimary, marginLeft: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                            {customPlans.length > 0 ? 'Switch to Custom Plan' : 'Create Custom Plan'}
+                                        <Text style={{ color: colors.textSecondary, marginLeft: 8, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                            {customPlans.length > 0 ? 'Switch to Custom Plan' : 'Create New From Scratch'}
                                         </Text>
                                     </TouchableOpacity>
+
+
                                 </View>
                             )}
                         </View>
@@ -762,17 +782,68 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     )}
                 </View>
 
+                {/* Progress to Next Level */}
+                {nextLevel && (
+                    <BlurView intensity={10} tint="default" style={styles.progressCard}>
+                        <Text style={styles.sectionTitle}>Next Level Progress</Text>
+
+                        <View style={styles.progressItem}>
+                            <View style={styles.progressHeader}>
+                                <Text style={styles.progressLabel}>Workouts</Text>
+                                <Text style={styles.progressValue}>
+                                    {avatarState.totalWorkouts} / {nextLevel.workouts}
+                                </Text>
+                            </View>
+                            <View style={styles.progressBarBg}>
+                                <LinearGradient
+                                    colors={gradients.primary}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={[
+                                        styles.progressFill,
+                                        { width: `${calculateProgress(avatarState.totalWorkouts, nextLevel.workouts)}%` }
+                                    ]}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.progressItem}>
+                            <View style={styles.progressHeader}>
+                                <Text style={styles.progressLabel}>Total Reps</Text>
+                                <Text style={styles.progressValue}>
+                                    {avatarState.totalReps} / {nextLevel.reps}
+                                </Text>
+                            </View>
+                            <View style={styles.progressBarBg}>
+                                <LinearGradient
+                                    colors={gradients.ocean}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={[
+                                        styles.progressFill,
+                                        { width: `${calculateProgress(avatarState.totalReps, nextLevel.reps)}%` }
+                                    ]}
+                                />
+                            </View>
+                        </View>
+                    </BlurView>
+                )}
+
+                {/* Lifetime Stats */}
                 {/* Lifetime Stats */}
                 <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.statsCard}>
                     <Text style={styles.sectionTitle}>Lifetime Stats</Text>
                     <View style={styles.statsGrid}>
                         {[
-                            { label: 'Workouts', value: avatarState.totalWorkouts },
-                            { label: 'Total Reps', value: avatarState.totalReps },
-                            { label: 'Minutes', value: `${avatarState.totalMinutes}m` },
-                            { label: 'Best Streak', value: avatarState.longestStreak },
+                            { label: 'Workouts', value: avatarState.totalWorkouts, icon: 'dumbbell' },
+                            { label: 'Total Reps', value: avatarState.totalReps, icon: 'repeat' },
+                            { label: 'Time', value: `${avatarState.totalMinutes}m`, icon: 'clock-outline' },
+                            { label: 'Best Streak', value: avatarState.longestStreak, icon: 'fire' },
                         ].map((stat, i) => (
                             <View key={i} style={styles.statItem}>
+                                <View style={styles.statIconContainer}>
+                                    <MaterialCommunityIcons name={stat.icon as any} size={20} color={colors.accentCyan} />
+                                </View>
                                 <Text style={styles.statValue}>{stat.value}</Text>
                                 <Text style={styles.statLabel}>{stat.label}</Text>
                             </View>
@@ -863,74 +934,24 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </View>
                 </BlurView>
 
-                {/* Level Roadmap */}
-                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.roadmapCard}>
-                    <Text style={styles.sectionTitle}>Level Map & Unlocks</Text>
-                    {
-                        AVATAR_LEVELS.slice(0, showAllLevels ? undefined : 1).map((level) => {
-                            // Find exercises that unlock at this level
-                            const levelExercises = exercises.filter(ex => ex.unlockLevel === level.level);
-
-                            return (
-                                <View
-                                    key={level.level}
-                                    style={[
-                                        styles.roadmapItem,
-                                        avatarState.level > level.level && styles.roadmapItemActive, // Past
-                                        avatarState.level === level.level && styles.roadmapItemCurrent // Current
-                                    ]}
-                                >
-                                    <Text style={styles.roadmapIcon}>{level.icon}</Text>
-                                    <View style={styles.roadmapInfo}>
-                                        <Text style={[
-                                            styles.roadmapName,
-                                            avatarState.level >= level.level && styles.roadmapNameActive
-                                        ]}>
-                                            Lv.{level.level} - {level.name}
-                                        </Text>
-                                        <Text style={styles.roadmapReq}>
-                                            {level.minWorkouts} workouts • {level.minReps} reps
-                                        </Text>
-
-                                        {/* Unlocked Exercises List */}
-                                        {levelExercises.length > 0 && (
-                                            <View style={styles.unlockedExercisesContainer}>
-                                                <Text style={styles.unlockedLabel}>Unlocks:</Text>
-                                                <View style={styles.unlockedList}>
-                                                    {levelExercises.map(ex => (
-                                                        <Text key={ex.id} style={styles.unlockedItem}>• {ex.displayName}</Text>
-                                                    ))}
-                                                </View>
-                                            </View>
-                                        )}
-                                    </View>
-                                    {avatarState.level >= level.level && (
-                                        <Text style={styles.roadmapCheck}>✓</Text>
-                                    )}
-                                </View>
-                            );
-                        })
-                    }
-
+                {/* Level Roadmap & Settings */}
+                <Text style={styles.sectionTitle}>Progression</Text>
+                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
                     <TouchableOpacity
-                        style={styles.showMoreButton}
-                        onPress={() => setShowAllLevels(!showAllLevels)}
+                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        onPress={() => setShowRoadmapModal(true)}
                     >
-                        <Text style={styles.showMoreText}>
-                            {showAllLevels ? 'Show Less' : `Show More (${AVATAR_LEVELS.length - 1})`}
-                        </Text>
-                        <MaterialCommunityIcons
-                            name={showAllLevels ? 'chevron-up' : 'chevron-down'}
-                            size={16}
-                            color={colors.primaryStart}
-                        />
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="map-marker-path" size={22} color={colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Level Map & Unlocks</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </BlurView>
 
                 {/* Appearance Section */}
+                <Text style={styles.sectionTitle}>Appearance</Text>
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    <Text style={styles.sectionTitle}>Appearance</Text>
-
                     <TouchableOpacity
                         style={[styles.menuItem, { borderBottomWidth: 0 }]}
                         onPress={toggleTheme}
@@ -968,10 +989,24 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </TouchableOpacity>
                 </BlurView>
 
-                {/* Support & Legal Section */}
+                {/* Community Section */}
+                <Text style={styles.sectionTitle}>Community</Text>
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    <Text style={styles.sectionTitle}>Support & Legal</Text>
+                    <TouchableOpacity
+                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        onPress={handleShareApp}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="share-variant-outline" size={22} color={colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Refer a Friend</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                    </TouchableOpacity>
+                </BlurView>
 
+                {/* Support & Legal Section */}
+                <Text style={styles.sectionTitle}>Support & Legal</Text>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
                     {/* Privacy Policy */}
                     <TouchableOpacity
                         style={styles.menuItem}
@@ -1034,9 +1069,8 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 </BlurView>
 
                 {/* Account Actions Section */}
+                <Text style={styles.sectionTitle}>Account</Text>
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    <Text style={styles.sectionTitle}>Account</Text>
-
                     {/* Change Password */}
                     <TouchableOpacity
                         style={styles.menuItem}
@@ -1605,6 +1639,71 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                 )
             }
 
+            {/* Roadmap Modal */}
+            {
+                showRoadmapModal && (
+                    <BlurView intensity={80} tint={isDark ? "light" : "dark"} style={styles.modalOverlay}>
+                        <View style={[styles.modal, { maxHeight: '80%' }]}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>Level Roadmap</Text>
+                                <TouchableOpacity
+                                    style={styles.closeModalButton}
+                                    onPress={() => setShowRoadmapModal(false)}
+                                >
+                                    <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {
+                                    AVATAR_LEVELS.map((level) => {
+                                        const levelExercises = exercises.filter(e => e.unlockLevel === level.level);
+                                        return (
+                                            <View
+                                                key={level.level}
+                                                style={[
+                                                    styles.roadmapItem,
+                                                    avatarState.level >= level.level && styles.roadmapItemActive,
+                                                    avatarState.level === level.level && styles.roadmapItemCurrent
+                                                ]}
+                                            >
+                                                <Text style={styles.roadmapIcon}>{level.icon}</Text>
+                                                <View style={styles.roadmapInfo}>
+                                                    <Text style={[
+                                                        styles.roadmapName,
+                                                        avatarState.level >= level.level && styles.roadmapNameActive
+                                                    ]}>
+                                                        Lv.{level.level} - {level.name}
+                                                    </Text>
+                                                    <Text style={styles.roadmapReq}>
+                                                        {level.minWorkouts} workouts • {level.minReps} reps
+                                                    </Text>
+
+                                                    {/* Unlocked Exercises List */}
+                                                    {levelExercises.length > 0 && (
+                                                        <View style={styles.unlockedExercisesContainer}>
+                                                            <Text style={styles.unlockedLabel}>Unlocks:</Text>
+                                                            <View style={styles.unlockedList}>
+                                                                {levelExercises.map(ex => (
+                                                                    <Text key={ex.id} style={styles.unlockedItem}>• {ex.displayName}</Text>
+                                                                ))}
+                                                            </View>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                {avatarState.level >= level.level && (
+                                                    <Text style={styles.roadmapCheck}>✓</Text>
+                                                )}
+                                            </View>
+                                        );
+                                    })
+                                }
+                            </ScrollView>
+                        </View>
+                    </BlurView>
+                )
+            }
+
             {/* Success Modal */}
             {
                 showSuccessModal && (
@@ -1666,7 +1765,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         flexDirection: 'row',
         alignItems: 'center',
         paddingTop: 60,
-        paddingHorizontal: Spacing.l,
+        paddingHorizontal: Spacing.m,
         paddingBottom: Spacing.m,
     },
     backButtonGeneric: {
@@ -1685,127 +1784,147 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     },
     content: {
         flex: 1,
-        paddingHorizontal: Spacing.l,
+        paddingHorizontal: Spacing.m,
     },
     // deleted sectionTitle
 
-    // Avatar Card
-    avatarCard: {
+    // Avatar Card Styles
+    avatarCardWrapper: {
+        marginBottom: Spacing.m,
         borderRadius: Layout.borderRadius.xl,
-        padding: Spacing.xl,
-        alignItems: 'center',
-        marginBottom: Spacing.l,
+        ...shadows.glow, // Outer glow
+        shadowColor: colors.primaryStart,
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+    },
+    avatarCard: {
+        marginBottom: Spacing.m,
+        borderRadius: Layout.borderRadius.xl,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        backgroundColor: colors.glassSurface,
-        ...shadows.card,
+        borderColor: 'rgba(255,255,255,0.15)',
     },
-    avatarCircle: {
-        width: 160,
-        height: 160,
-        borderRadius: 80,
+    avatarContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+    },
+    avatarContainer: {
+        marginRight: 20,
+    },
+    avatarRing: {
+        width: 74,
+        height: 74,
+        borderRadius: 37,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: Spacing.m,
-        ...shadows.glow,
-        borderWidth: 4,
-        borderColor: colors.primaryStart + '4D',
-        shadowColor: colors.primaryStart, // Override shadow color
-    },
-    avatarEmoji: {
-        fontSize: 80,
-    },
-    defaultAvatarContainer: {
-        width: 160,
-        height: 160,
-        borderRadius: 80,
-        justifyContent: 'center',
-        alignItems: 'center',
+        padding: 3, // Ring thickness
     },
     avatarImage: {
-        width: 140,
-        height: 140,
-        borderRadius: 70,
-        borderWidth: 4,
-        borderColor: colors.glassBorder,
+        width: '100%',
+        height: '100%',
+        borderRadius: 34,
+        borderWidth: 2,
+        borderColor: colors.backgroundDark, // Separate image from ring
+    },
+    defaultAvatarContainer: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 34,
+        backgroundColor: colors.glassSurface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.backgroundDark,
     },
     uploadingOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 80,
+        borderRadius: 34,
     },
     editIconBadge: {
         position: 'absolute',
-        bottom: 4,
-        right: 4,
+        bottom: 0,
+        right: 0,
         backgroundColor: colors.accentCyan,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
+        borderWidth: 2,
         borderColor: colors.backgroundDark,
         ...shadows.small,
     },
     editIconText: {
-        fontSize: 18,
+        fontSize: 14,
+    },
+    userInfoSection: {
+        flex: 1,
+        justifyContent: 'center',
     },
     userName: {
-        fontSize: 24, // Main name size
-        fontWeight: '800',
+        fontSize: 22,
+        fontWeight: '900', // Ultrabold
         color: colors.textPrimary,
-        marginTop: Spacing.m,
-        marginBottom: 4,
-        textAlign: 'center',
+        marginBottom: 2,
+        letterSpacing: 0.5,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
-    levelName: {
-        fontSize: 16, // Reduced slightly to be secondary to name
+    userTitle: {
+        fontSize: 14,
         fontWeight: '600',
-        color: colors.accentCyan,
-        marginBottom: Spacing.xs,
-        textAlign: 'center',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
+        color: colors.textSecondary,
+        marginBottom: 10,
+        letterSpacing: 0.5,
     },
-    levelBadge: {
-        fontSize: 15,
-        color: colors.accentCyan,
-        marginTop: 6,
-        fontWeight: '700',
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-    },
-    streakContainer: {
-        marginTop: Spacing.m,
-        overflow: 'hidden',
-        borderRadius: Layout.borderRadius.round,
-        ...shadows.small,
-    },
-    streakGradient: {
+    statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
+        gap: 10,
     },
-    streakIcon: {
-        fontSize: 18,
-        marginRight: 8,
+    levelBadgeContainer: {
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 20, // Pill shape
+        borderWidth: 1,
+        borderColor: colors.accentCyan + '50',
     },
-    streakText: {
-        color: colors.textPrimary,
-        fontSize: 15,
+    levelBadgeText: {
+        fontSize: 12,
+        color: colors.accentCyan,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    streakBadgeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 20, // Pill shape
+        borderWidth: 1,
+        borderColor: 'rgba(255, 120, 100, 0.4)',
+        gap: 6,
+    },
+    streakEmoji: {
+        fontSize: 12,
+    },
+    streakBadgeText: {
+        color: '#FF7864',
+        fontSize: 13,
         fontWeight: '800',
     },
 
     // Progress Card
     progressCard: {
         borderRadius: Layout.borderRadius.l,
-        padding: Spacing.l,
-        marginBottom: Spacing.l,
+        padding: Spacing.m,
+        marginBottom: Spacing.m,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: colors.glassBorder,
@@ -1847,8 +1966,8 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     // Stats Card
     statsCard: {
         borderRadius: Layout.borderRadius.m,
-        padding: Spacing.l,
-        marginBottom: Spacing.l,
+        padding: Spacing.m,
+        marginBottom: Spacing.m,
         overflow: 'hidden',
     },
     statsGrid: {
@@ -1864,6 +1983,12 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         alignItems: 'center',
         ...shadows.small,
     },
+    statIconContainer: {
+        marginBottom: 8,
+        padding: 8,
+        backgroundColor: colors.accentCyan + '15',
+        borderRadius: 20,
+    },
     statValue: {
         fontSize: 24,
         fontWeight: 'bold',
@@ -1878,8 +2003,8 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     // Metrics Card
     metricsCard: {
         borderRadius: Layout.borderRadius.m,
-        padding: Spacing.l,
-        marginBottom: Spacing.l,
+        padding: Spacing.m,
+        marginBottom: Spacing.m,
         overflow: 'hidden',
     },
     metricsHeader: {
@@ -1942,7 +2067,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     achievementsCard: {
         borderRadius: Layout.borderRadius.m,
         padding: Spacing.s, // Reduced padding
-        marginBottom: Spacing.l,
+        marginBottom: Spacing.m,
         overflow: 'hidden',
     },
     achievementsGrid: {
@@ -1977,7 +2102,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     roadmapCard: {
         borderRadius: Layout.borderRadius.m,
         padding: Spacing.s, // Reduced padding
-        marginBottom: Spacing.l,
+        marginBottom: Spacing.m,
         overflow: 'hidden',
     },
     roadmapItem: {
@@ -2203,7 +2328,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     // Menu Styles
     menuCard: {
         borderRadius: Layout.borderRadius.l,
-        marginBottom: Spacing.l,
+        marginBottom: Spacing.m,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: colors.glassBorder,
@@ -2240,7 +2365,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     // User Info Styles
     userInfoCard: {
         borderRadius: Layout.borderRadius.l,
-        marginBottom: Spacing.l,
+        marginBottom: Spacing.m,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: colors.glassBorder,

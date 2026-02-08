@@ -51,15 +51,25 @@ export default function CustomPlanBuilderScreen({ navigation, route }: CustomPla
     const { loading } = useAppSelector(state => state.workoutPlan);
 
     // Plan data - with safety checks
-    const existingPlan = route?.params?.plan as WorkoutPlan | undefined;
-    const [planName, setPlanName] = useState(existingPlan?.name || '');
-    const [planDescription, setPlanDescription] = useState(existingPlan?.description || '');
-    const [planDuration, setPlanDuration] = useState(existingPlan?.duration || 4);
+    // Plan data - with safety checks
+    const passedPlan = route?.params?.plan as WorkoutPlan | undefined;
+    const isClone = route?.params?.isClone ?? false;
+
+    // If we are cloning, we don't treat it as an existing plan for update purposes
+    const existingPlan = isClone ? undefined : passedPlan;
+
+    const [planName, setPlanName] = useState(
+        passedPlan ? (isClone ? `Customized ${passedPlan.name}` : passedPlan.name) : ''
+    );
+    const [planDescription, setPlanDescription] = useState(passedPlan?.description || '');
+    const [planDuration, setPlanDuration] = useState(passedPlan?.duration || 4);
     const [planDifficulty, setPlanDifficulty] = useState<'beginner' | 'intermediate' | 'advanced'>(
-        existingPlan?.difficulty || 'intermediate'
+        passedPlan?.difficulty || 'intermediate'
     );
     const [sessions, setSessions] = useState<WorkoutSession[]>(
-        existingPlan?.sessions || createDefaultSessions()
+        passedPlan?.sessions
+            ? (isClone ? passedPlan.sessions.slice(0, 7) : passedPlan.sessions)
+            : createDefaultSessions()
     );
 
     // UI state

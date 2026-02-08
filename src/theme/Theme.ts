@@ -33,6 +33,7 @@ export const DarkColors = {
     glassSurface: 'rgba(255, 255, 255, 0.12)',
     glassBorder: 'rgba(255, 255, 255, 0.08)',
     glassHighlight: 'rgba(255, 255, 255, 0.20)',
+    cardSurface: '#1E1E2E', // Dark card background for non-glass elements
 };
 
 export const LightColors = {
@@ -66,6 +67,7 @@ export const LightColors = {
     glassSurface: 'rgba(255, 255, 255, 0.7)',
     glassBorder: 'rgba(148, 163, 184, 0.15)',
     glassHighlight: 'rgba(255, 255, 255, 0.9)',
+    cardSurface: '#FFFFFF', // Light card background
 };
 
 // Default export for backward compatibility
