@@ -24,6 +24,14 @@ export const AppConfig = {
         enablePoseDetection: true,
 
         /**
+         * Use local on-device pose detection instead of server
+         * 
+         * When true: Uses MediaPipe on the device (requires native build)
+         * When false: Uses Python backend server (slower but works in Expo Go)
+         */
+        useLocalPoseDetection: false, // @thinksys library API mismatch - needs investigation
+
+        /**
          * Show mock pose overlay for UI testing
          * Works without native build (for development/testing)
          */

@@ -36,6 +36,8 @@ export const RECOVERY_EXERCISES: Exercise[] = [
         commonMistakes: ['Walking too fast', 'Not relaxing', 'Skipping this entirely'],
         caloriesPerRep: 0.05,
         thumbnailUrl: 'https://images.fizi.ai/exercises/walking-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 300,
         stages: [],
         formChecks: []
     },
@@ -71,6 +73,8 @@ export const RECOVERY_EXERCISES: Exercise[] = [
         commonMistakes: ['Rushing through poses', 'Holding breath', 'Pushing too hard'],
         caloriesPerRep: 0.2,
         thumbnailUrl: 'https://images.fizi.ai/exercises/yoga-flow-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 600,
         stages: [],
         formChecks: []
     },
@@ -107,6 +111,8 @@ export const RECOVERY_EXERCISES: Exercise[] = [
         commonMistakes: ['Rolling too fast', 'Rolling over bones', 'Holding breath'],
         caloriesPerRep: 0.1,
         thumbnailUrl: 'https://images.fizi.ai/exercises/foam-rolling-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 300,
         stages: [],
         formChecks: []
     },
@@ -142,6 +148,8 @@ export const RECOVERY_EXERCISES: Exercise[] = [
         commonMistakes: ['Shallow breathing', 'Raising shoulders', 'Rushing breaths'],
         caloriesPerRep: 0.02,
         thumbnailUrl: 'https://images.fizi.ai/exercises/breathing-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 300,
         stages: [],
         formChecks: []
     },
@@ -178,6 +186,8 @@ export const RECOVERY_EXERCISES: Exercise[] = [
         commonMistakes: ['Bouncing', 'Not breathing', 'Forcing stretches'],
         caloriesPerRep: 0.15,
         thumbnailUrl: 'https://images.fizi.ai/exercises/stretching-circuit-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 600,
         stages: [],
         formChecks: []
     },
@@ -213,6 +223,8 @@ export const RECOVERY_EXERCISES: Exercise[] = [
         commonMistakes: ['Going too hard', 'High resistance', 'Not hydrating'],
         caloriesPerRep: 0.08,
         thumbnailUrl: 'https://images.fizi.ai/exercises/cycling-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 600,
         stages: [],
         formChecks: []
     }

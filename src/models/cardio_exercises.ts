@@ -37,6 +37,8 @@ export const CARDIO_EXERCISES: Exercise[] = [
         commonMistakes: ['Landing too hard', 'Not reaching full extension', 'Holding breath'],
         caloriesPerRep: 0.3,
         thumbnailUrl: 'https://images.fizi.ai/exercises/jumping-jacks-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 60,
         stages: [
             { name: 'closed', angleRanges: [{ joint: 'left_shoulder', min: -20, max: 60, optimal: 20 }] },
             { name: 'open', angleRanges: [{ joint: 'left_shoulder', min: 120, max: 200, optimal: 160 }] }
@@ -76,6 +78,7 @@ export const CARDIO_EXERCISES: Exercise[] = [
         commonMistakes: ['Sagging hips in plank', 'Not jumping high enough', 'Poor landing mechanics'],
         caloriesPerRep: 1.2,
         thumbnailUrl: 'https://images.fizi.ai/exercises/burpees-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'stand', angleRanges: [{ joint: 'left_knee', min: 160, max: 200, optimal: 180 }] },
             { name: 'plank', angleRanges: [{ joint: 'left_elbow', min: 160, max: 200, optimal: 170 }] }
@@ -114,6 +117,7 @@ export const CARDIO_EXERCISES: Exercise[] = [
         commonMistakes: ['Hips too high', 'Not bringing knee far enough', 'Losing plank form'],
         caloriesPerRep: 0.4,
         thumbnailUrl: 'https://images.fizi.ai/exercises/mountain-climbers-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'neutral', angleRanges: [{ joint: 'left_knee', min: 160, max: 200, optimal: 170 }] },
             { name: 'active', angleRanges: [{ joint: 'left_knee', min: 30, max: 90, optimal: 60 }] }
@@ -152,6 +156,7 @@ export const CARDIO_EXERCISES: Exercise[] = [
         commonMistakes: ['Not lifting knees high enough', 'Leaning back', 'Landing on heels'],
         caloriesPerRep: 0.25,
         thumbnailUrl: 'https://images.fizi.ai/exercises/high-knees-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_knee', min: 160, max: 200, optimal: 175 }] },
             { name: 'up', angleRanges: [{ joint: 'left_knee', min: 40, max: 90, optimal: 70 }] }
@@ -191,6 +196,8 @@ export const CARDIO_EXERCISES: Exercise[] = [
         commonMistakes: ['Jumping too high', 'Landing on heels', 'Tense shoulders'],
         caloriesPerRep: 0.2,
         thumbnailUrl: 'https://images.fizi.ai/exercises/jump-rope-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 60,
         stages: [
             { name: 'airborne', angleRanges: [{ joint: 'left_knee', min: 140, max: 180, optimal: 160 }] },
             { name: 'landed', angleRanges: [{ joint: 'left_knee', min: 160, max: 200, optimal: 175 }] }
@@ -229,6 +236,8 @@ export const CARDIO_EXERCISES: Exercise[] = [
         commonMistakes: ['Too much vertical bounce', 'Tense upper body', 'Irregular pace'],
         caloriesPerRep: 0.15,
         thumbnailUrl: 'https://images.fizi.ai/exercises/running-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 60,
         stages: [
             { name: 'ground', angleRanges: [{ joint: 'left_knee', min: 160, max: 200, optimal: 175 }] },
             { name: 'lifted', angleRanges: [{ joint: 'left_knee', min: 80, max: 120, optimal: 100 }] }

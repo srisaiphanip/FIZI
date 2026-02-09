@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
+import { ExerciseTimer } from '../components/ExerciseTimer';
 
 import AppConfig from '../config/appConfig';
 import { Pose, FormValidation } from '../types';
@@ -303,7 +304,46 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         color: colors.textTertiary,
         fontSize: 8,
         marginTop: 2,
-    }
+    },
+
+    // Timer-Only Mode Styles
+    timerHeader: {
+        padding: Spacing.xl,
+        paddingTop: 60,
+        alignItems: 'center',
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: colors.glassSurface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: colors.glassBorder,
+    },
+    timerHeaderContent: {
+        alignItems: 'center',
+    },
+    timerExerciseName: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: colors.textPrimary,
+        marginBottom: 8,
+    },
+    timerModeLabel: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        textTransform: 'uppercase',
+    },
+    timerContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
 
 export default function CameraScreen({ navigation }: CameraScreenProps) {
@@ -339,6 +379,10 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
             workoutAnalysisService.reset(navigation.params.exerciseId);
         }
     }, [navigation.params?.exerciseId]);
+
+    // Get current exercise to check tracking mode - MUST be after all useState calls
+    const currentExercise = useMemo(() => getExerciseById(exerciseId), [exerciseId]);
+    const trackingMode = currentExercise?.trackingMode || 'ai_reps';
     const [repCount, setRepCount] = useState(0);
     const [currentStage, setCurrentStage] = useState('');
     const [formScore, setFormScore] = useState(100);
@@ -686,7 +730,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
+    }
 
     // Handle permission states
     if (!permission) {
@@ -713,6 +757,60 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
         );
     }
 
+    // TIMER-ONLY MODE (No Camera)
+    if (trackingMode === 'timer_only') {
+        return (
+            <View style={styles.container}>
+                <LinearGradient
+                    colors={[colors.backgroundDark, colors.backgroundDark]}
+                    style={{ flex: 1 }}
+                >
+                    {/* Header */}
+                    <View style={styles.timerHeader}>
+                        <TouchableOpacity
+                            style={styles.closeButton}
+                            onPress={() => navigation.navigate('Home')}
+                        >
+                            <Text style={styles.controlIcon}>✕</Text>
+                        </TouchableOpacity>
+                        <View style={styles.timerHeaderContent}>
+                            <Text style={styles.timerExerciseName}>
+                                {currentExercise?.displayName || currentExercise?.name}
+                            </Text>
+                            <Text style={styles.timerModeLabel}>Timer Mode</Text>
+                        </View>
+                    </View>
+
+                    {/* Timer */}
+                    <View style={styles.timerContent}>
+                        <ExerciseTimer
+                            duration={currentExercise?.timerDuration || 60}
+                            onComplete={() => {
+                                // Save workout with proper structure
+                                const workout = {
+                                    exerciseId,
+                                    exerciseName: currentExercise?.displayName || currentExercise?.name || exerciseId,
+                                    duration: currentExercise?.timerDuration || 60,
+                                    reps: 1,
+                                    averageFormScore: 100,
+                                    caloriesBurned: Math.round((currentExercise?.caloriesPerRep || 0.3) * (currentExercise?.timerDuration || 60))
+                                };
+                                dispatch(saveWorkout(workout as any));
+                                avatarService.updateAfterWorkout({
+                                    exerciseId,
+                                    reps: 1,
+                                    duration: currentExercise?.timerDuration || 60,
+                                    formScore: 100,
+                                });
+                            }}
+                        />
+                    </View>
+                </LinearGradient>
+            </View>
+        );
+    }
+
+    // CAMERA MODE (ai_reps or ai_timer)
     return (
         <View style={styles.container}>
             <CameraView

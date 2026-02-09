@@ -37,6 +37,8 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
         commonMistakes: ['Landing with locked knees', 'Not squatting deep enough', 'Poor landing mechanics'],
         caloriesPerRep: 0.8,
         thumbnailUrl: 'https://images.fizi.ai/exercises/jump-squats-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 45,
         stages: [
             { name: 'squat', angleRanges: [{ joint: 'left_knee', min: 60, max: 100, optimal: 80 }] },
             { name: 'jump', angleRanges: [{ joint: 'left_knee', min: 160, max: 200, optimal: 175 }] }
@@ -75,6 +77,8 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
         commonMistakes: ['Jumping too close to box', 'Landing with straight legs', 'Not using arms'],
         caloriesPerRep: 1.0,
         thumbnailUrl: 'https://images.fizi.ai/exercises/box-jumps-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 45,
         stages: [
             { name: 'ground', angleRanges: [{ joint: 'left_knee', min: 70, max: 110, optimal: 90 }] },
             { name: 'landed', angleRanges: [{ joint: 'left_knee', min: 80, max: 120, optimal: 100 }] }
@@ -114,6 +118,7 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
         commonMistakes: ['Not pushing hard enough', 'Landing with straight arms', 'Losing core tension'],
         caloriesPerRep: 0.7,
         thumbnailUrl: 'https://images.fizi.ai/exercises/plyo-pushups-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 60, max: 90, optimal: 75 }] },
             { name: 'explosive', angleRanges: [{ joint: 'left_elbow', min: 160, max: 200, optimal: 170 }] }
@@ -152,6 +157,8 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
         commonMistakes: ['Not jumping high enough', 'Landing too stiffly', 'Leaning forward'],
         caloriesPerRep: 1.1,
         thumbnailUrl: 'https://images.fizi.ai/exercises/tuck-jumps-thumb.jpg',
+        trackingMode: 'timer_only',
+        timerDuration: 45,
         stages: [
             { name: 'ground', angleRanges: [{ joint: 'left_knee', min: 140, max: 200, optimal: 170 }] },
             { name: 'tucked', angleRanges: [{ joint: 'left_knee', min: 30, max: 70, optimal: 50 }] }
@@ -190,6 +197,7 @@ export const PLYOMETRIC_EXERCISES: Exercise[] = [
         commonMistakes: ['Not pushing off hard enough', 'Poor landing balance', 'Too short of bounds'],
         caloriesPerRep: 0.6,
         thumbnailUrl: 'https://images.fizi.ai/exercises/lateral-bounds-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'left', angleRanges: [{ joint: 'left_knee', min: 80, max: 120, optimal: 100 }] },
             { name: 'right', angleRanges: [{ joint: 'right_knee', min: 80, max: 120, optimal: 100 }] }

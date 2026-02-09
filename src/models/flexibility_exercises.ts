@@ -38,6 +38,8 @@ export const FLEXIBILITY_EXERCISES: Exercise[] = [
         commonMistakes: ['Locking knees', 'Rounding back too much', 'Holding breath'],
         caloriesPerRep: 0.05,
         thumbnailUrl: 'https://images.fizi.ai/exercises/forward-fold-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [
             { name: 'hold', angleRanges: [{ joint: 'left_hip', min: 30, max: 90, optimal: 60 }], duration: 30 }
         ],
@@ -76,6 +78,8 @@ export const FLEXIBILITY_EXERCISES: Exercise[] = [
         commonMistakes: ['Moving too fast', 'Not engaging core', 'Holding positions too long'],
         caloriesPerRep: 0.1,
         thumbnailUrl: 'https://images.fizi.ai/exercises/cat-cow-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 45,
         stages: [
             { name: 'cat', angleRanges: [{ joint: 'torso', min: 80, max: 120, optimal: 100 }] },
             { name: 'cow', angleRanges: [{ joint: 'torso', min: 140, max: 180, optimal: 160 }] }
@@ -115,6 +119,8 @@ export const FLEXIBILITY_EXERCISES: Exercise[] = [
         commonMistakes: ['Tensing shoulders', 'Forcing hips down', 'Shallow breathing'],
         caloriesPerRep: 0.03,
         thumbnailUrl: 'https://images.fizi.ai/exercises/childs-pose-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 45,
         stages: [
             { name: 'hold', angleRanges: [{ joint: 'left_hip', min: 30, max: 70, optimal: 50 }], duration: 45 }
         ],
@@ -153,6 +159,8 @@ export const FLEXIBILITY_EXERCISES: Exercise[] = [
         commonMistakes: ['Rounding back', 'Locking elbows', 'Tensing shoulders'],
         caloriesPerRep: 0.15,
         thumbnailUrl: 'https://images.fizi.ai/exercises/downward-dog-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [
             { name: 'hold', angleRanges: [{ joint: 'left_hip', min: 60, max: 100, optimal: 80 }], duration: 30 }
         ],
@@ -190,6 +198,8 @@ export const FLEXIBILITY_EXERCISES: Exercise[] = [
         commonMistakes: ['Arching lower back', 'Letting knee flare out', 'Pulling too hard'],
         caloriesPerRep: 0.04,
         thumbnailUrl: 'https://images.fizi.ai/exercises/quad-stretch-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [
             { name: 'hold', angleRanges: [{ joint: 'left_knee', min: 30, max: 70, optimal: 50 }], duration: 30 }
         ],
@@ -227,6 +237,8 @@ export const FLEXIBILITY_EXERCISES: Exercise[] = [
         commonMistakes: ['Hunching shoulders', 'Rotating body', 'Pulling too hard'],
         caloriesPerRep: 0.03,
         thumbnailUrl: 'https://images.fizi.ai/exercises/shoulder-stretch-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [
             { name: 'hold', angleRanges: [{ joint: 'left_shoulder', min: 60, max: 120, optimal: 90 }], duration: 30 }
         ],

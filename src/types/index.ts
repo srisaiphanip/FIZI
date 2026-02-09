@@ -110,6 +110,10 @@ export interface Exercise {
     stages: ExerciseStage[];
     formChecks: FormCheck[];
 
+    // Tracking Mode (AI Detection vs Timer)
+    trackingMode: 'ai_reps' | 'ai_timer' | 'timer_only';
+    timerDuration?: number; // seconds, for ai_timer and timer_only modes
+
     // Equipment Requirements
     equipmentRequired: 'bodyweight' | 'home' | 'gym'; // High-level category
     requiredEquipment: EquipmentItem[]; // Granular requirements

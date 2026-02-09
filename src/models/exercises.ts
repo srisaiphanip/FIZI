@@ -43,6 +43,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         progressionPath: ['bw-pushup-wide', 'bw-pushup-diamond'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/pushups-thumb.jpg',
         demonstrationVideo: 'https://videos.fizi.ai/exercises/pushups.mp4',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 60, max: 90, optimal: 75 }, { joint: 'right_elbow', min: 60, max: 90, optimal: 75 }] },
             { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
@@ -85,6 +86,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         tips: ['Keep weight on heels', 'Push knees out', 'Look straight ahead'],
         caloriesPerRep: 0.4,
         thumbnailUrl: 'https://images.fizi.ai/exercises/squats-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_knee', min: 60, max: 90, optimal: 80 }, { joint: 'right_knee', min: 60, max: 90, optimal: 80 }] },
             { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 170 }, { joint: 'right_knee', min: 160, max: 180, optimal: 170 }] }
@@ -119,6 +121,8 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         tips: ['Squeeze glutes', 'Keep neck neutral', 'Breathe steadily'],
         caloriesPerRep: 0.1,
         thumbnailUrl: 'https://images.fizi.ai/exercises/plank-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [{ name: 'hold', angleRanges: [{ joint: 'left_shoulder', min: 80, max: 100, optimal: 90 }], duration: 30 }],
         formChecks: []
     },
@@ -149,6 +153,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         tips: ['Keep torso upright', 'Step far enough forward', 'Control the descent'],
         caloriesPerRep: 0.5,
         thumbnailUrl: 'https://images.fizi.ai/exercises/lunges-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_knee', min: 80, max: 100, optimal: 90 }, { joint: 'right_knee', min: 80, max: 100, optimal: 90 }] },
             { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 170 }, { joint: 'right_knee', min: 160, max: 180, optimal: 170 }] }
@@ -183,6 +188,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Pushing through toes instead of heels', 'Overarching lower back', 'Not fully extending hips'],
         caloriesPerRep: 0.3,
         thumbnailUrl: 'https://images.fizi.ai/exercises/glute-bridge-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_hip', min: 40, max: 70, optimal: 55 }] },
             { name: 'up', angleRanges: [{ joint: 'left_hip', min: 160, max: 180, optimal: 170 }] }
@@ -217,6 +223,8 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Hips sagging', 'Rotating torso', 'Not keeping body straight'],
         caloriesPerRep: 0.12,
         thumbnailUrl: 'https://images.fizi.ai/exercises/side-plank-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [{ name: 'hold', angleRanges: [{ joint: 'left_hip', min: 160, max: 200, optimal: 180 }], duration: 30 }],
         formChecks: []
     },
@@ -247,6 +255,8 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Knees too far forward', 'Not going deep enough', 'Arching back'],
         caloriesPerRep: 0.08,
         thumbnailUrl: 'https://images.fizi.ai/exercises/wall-sit-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [{ name: 'hold', angleRanges: [{ joint: 'left_knee', min: 80, max: 100, optimal: 90 }], duration: 30 }],
         formChecks: []
     },
@@ -277,6 +287,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Elbows flaring out', 'Going too deep', 'Using shoulders instead of triceps'],
         caloriesPerRep: 0.4,
         thumbnailUrl: 'https://images.fizi.ai/exercises/tricep-dips-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 80, max: 100, optimal: 90 }] },
             { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }] }
@@ -311,6 +322,8 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Rotating hips', 'Arching back', 'Moving too fast'],
         caloriesPerRep: 0.25,
         thumbnailUrl: 'https://images.fizi.ai/exercises/bird-dog-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 30,
         stages: [
             { name: 'hold', angleRanges: [{ joint: 'left_shoulder', min: 140, max: 180, optimal: 160 }], duration: 5 }
         ],
@@ -343,6 +356,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Not going high enough', 'Bouncing', 'Rushing reps'],
         caloriesPerRep: 0.15,
         thumbnailUrl: 'https://images.fizi.ai/exercises/calf-raises-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_knee', min: 170, max: 200, optimal: 180 }] },
             { name: 'up', angleRanges: [{ joint: 'left_knee', min: 170, max: 200, optimal: 180 }] }
@@ -377,6 +391,8 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Lifting head too high', 'Not engaging glutes', 'Holding breath'],
         caloriesPerRep: 0.1,
         thumbnailUrl: 'https://images.fizi.ai/exercises/superman-thumb.jpg',
+        trackingMode: 'ai_timer',
+        timerDuration: 20,
         stages: [{ name: 'hold', angleRanges: [{ joint: 'left_hip', min: 160, max: 200, optimal: 180 }], duration: 10 }],
         formChecks: []
     },
@@ -408,6 +424,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Pulling on neck', 'Rushing through reps', 'Not twisting fully'],
         caloriesPerRep: 0.2,
         thumbnailUrl: 'https://images.fizi.ai/exercises/bicycle-crunches-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'right', angleRanges: [{ joint: 'right_knee', min: 60, max: 90, optimal: 75 }] },
             { name: 'left', angleRanges: [{ joint: 'left_knee', min: 60, max: 90, optimal: 75 }] }
@@ -441,6 +458,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Leaning forward', 'Front knee collapsing inward', 'Not stepping back far enough'],
         caloriesPerRep: 0.45,
         thumbnailUrl: 'https://images.fizi.ai/exercises/reverse-lunge-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_knee', min: 80, max: 100, optimal: 90 }] },
             { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 170 }] }
@@ -475,6 +493,7 @@ export const BODYWEIGHT_EXERCISES: Exercise[] = [
         commonMistakes: ['Hips dropping', 'Not going deep enough', 'Moving forward instead of down'],
         caloriesPerRep: 0.6,
         thumbnailUrl: 'https://images.fizi.ai/exercises/pike-pushups-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 70, max: 90, optimal: 80 }] },
             { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }] }
@@ -515,6 +534,7 @@ export const DUMBBELL_EXERCISES: Exercise[] = [
         tips: ['Keep elbows pinned', 'Focus on squeeze', 'Control eccentric'],
         caloriesPerRep: 0.4,
         thumbnailUrl: 'https://images.fizi.ai/exercises/bicep-curls-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [
             { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 30, max: 50, optimal: 40 }, { joint: 'right_elbow', min: 30, max: 50, optimal: 40 }] },
             { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
@@ -548,6 +568,7 @@ export const DUMBBELL_EXERCISES: Exercise[] = [
         tips: ['Keep core tight', 'Press slightly back', 'Full lockout'],
         caloriesPerRep: 0.6,
         thumbnailUrl: 'https://images.fizi.ai/exercises/db-press-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [{ name: 'press', angleRanges: [{ joint: 'left_shoulder', min: 160, max: 180, optimal: 170 }] }],
         formChecks: []
     }
@@ -582,7 +603,11 @@ export const RESISTANCE_BAND_EXERCISES: Exercise[] = [
         ],
         tips: ['Think elbows back', 'Pause at contraction', 'Keep chest up'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/rb-row-thumb.jpg',
-        stages: [],
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'pulled', angleRanges: [{ joint: 'left_elbow', min: 70, max: 100, optimal: 85 }, { joint: 'right_elbow', min: 70, max: 100, optimal: 85 }] },
+            { name: 'extended', angleRanges: [{ joint: 'left_elbow', min: 150, max: 180, optimal: 165 }, { joint: 'right_elbow', min: 150, max: 180, optimal: 165 }] }
+        ],
         formChecks: []
     },
     {
@@ -609,7 +634,11 @@ export const RESISTANCE_BAND_EXERCISES: Exercise[] = [
         ],
         tips: ['Keep tension throughout', 'Squeeze chest', 'Control eccentric'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/rb-press-thumb.jpg',
-        stages: [],
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'retracted', angleRanges: [{ joint: 'left_elbow', min: 70, max: 100, optimal: 85 }, { joint: 'right_elbow', min: 70, max: 100, optimal: 85 }] },
+            { name: 'extended', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
         formChecks: []
     }
 ];
@@ -642,6 +671,7 @@ export const PULLUP_BAR_EXERCISES: Exercise[] = [
         ],
         tips: ['Dead hang at bottom', 'Lead with chest', 'Squeeze lats'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/pullups-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [],
         formChecks: []
     }
@@ -676,7 +706,11 @@ export const KETTLEBELL_EXERCISES: Exercise[] = [
         ],
         tips: ['Hip snap is key', 'Arms are ropes', 'Plank at top'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/kb-swing-thumb.jpg',
-        stages: [],
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_hip', min: 30, max: 70, optimal: 50 }, { joint: 'right_hip', min: 30, max: 70, optimal: 50 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_hip', min: 160, max: 180, optimal: 170 }, { joint: 'right_hip', min: 160, max: 180, optimal: 170 }] }
+        ],
         formChecks: []
     },
     {
@@ -703,7 +737,11 @@ export const KETTLEBELL_EXERCISES: Exercise[] = [
         ],
         tips: ['Hip power', 'Fast under bell', 'Soft catch overhead'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/kb-snatch-thumb.jpg',
-        stages: [],
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_hip', min: 30, max: 70, optimal: 50 }] },
+            { name: 'overhead', angleRanges: [{ joint: 'left_shoulder', min: 160, max: 180, optimal: 170 }] }
+        ],
         formChecks: []
     }
 ];
@@ -737,7 +775,11 @@ export const BARBELL_EXERCISES: Exercise[] = [
         ],
         tips: ['Break at knees and hips together', 'Big breath and brace', 'Push knees out'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/bb-squat-thumb.jpg',
-        stages: [],
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_knee', min: 60, max: 100, optimal: 80 }, { joint: 'right_knee', min: 60, max: 100, optimal: 80 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 170 }, { joint: 'right_knee', min: 160, max: 180, optimal: 170 }] }
+        ],
         formChecks: []
     },
     {
@@ -764,7 +806,11 @@ export const BARBELL_EXERCISES: Exercise[] = [
         ],
         tips: ['Leg drive', 'Touch and press', 'Control eccentric'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/bb-bench-thumb.jpg',
-        stages: [],
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 70, max: 100, optimal: 85 }, { joint: 'right_elbow', min: 70, max: 100, optimal: 85 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
         formChecks: []
     }
 ];
@@ -798,7 +844,11 @@ export const CABLE_EXERCISES: Exercise[] = [
         ],
         tips: ['Lead with elbows', 'Chest up', 'Slow eccentric'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/cable-pulldown-thumb.jpg',
-        stages: [],
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'extended', angleRanges: [{ joint: 'left_elbow', min: 150, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 150, max: 180, optimal: 170 }] },
+            { name: 'pulled', angleRanges: [{ joint: 'left_elbow', min: 70, max: 100, optimal: 85 }, { joint: 'right_elbow', min: 70, max: 100, optimal: 85 }] }
+        ],
         formChecks: []
     },
     {
@@ -825,6 +875,7 @@ export const CABLE_EXERCISES: Exercise[] = [
         ],
         tips: ['Keep elbows stationary', 'Full extension', 'Squeeze triceps'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/cable-tricep-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [],
         formChecks: []
     }
@@ -859,6 +910,7 @@ export const LEG_MACHINE_EXERCISES: Exercise[] = [
         ],
         tips: ['Keep lower back down', 'Full range', 'Control the weight'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/leg-press-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [],
         formChecks: []
     }
@@ -893,6 +945,7 @@ export const SMITH_MACHINE_EXERCISES: Exercise[] = [
         ],
         tips: ['Feet forward for balance', 'Use safety catches', 'Control movement'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/smith-squat-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [],
         formChecks: []
     }
@@ -928,6 +981,7 @@ export const BENCH_EXERCISES: Exercise[] = [
         ],
         tips: ['Long stance', 'Torso upright', 'Control descent'],
         thumbnailUrl: 'https://images.fizi.ai/exercises/bulgarian-split-thumb.jpg',
+        trackingMode: 'ai_reps',
         stages: [],
         formChecks: []
     }

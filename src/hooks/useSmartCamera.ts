@@ -46,41 +46,39 @@ export const useSmartCamera = (
 
         isProcessingRef.current = true;
         try {
-            // 1. Capture Frame (Single source of truth)
-            // Use low quality for speed, just like Gesture-Sense
+            // 1. Capture Frame - Optimized for server upload speed
             const photo = await cameraRef.current.takePictureAsync({
-                quality: 0.5, // Increase quality for better detection
+                quality: 0.3, // Reduced from 0.5 for faster upload (30% smaller files)
                 base64: true,
                 shutterSound: false,
-                skipProcessing: true, // skip orienting/cropping for speed (server handles rotation if needed)
+                skipProcessing: true,
+                // fastMode disabled - causes crashes with base64 on some devices
             });
 
-            if (photo && photo.base64) {
+            if (!photo || !photo.base64) return;
+
+            // 2. Process Pose via Backend Server
+            if (AppConfig.features.enablePoseDetection) {
                 const base64 = photo.base64;
+                const result = await poseDetectionService.detectPose(base64, exerciseId);
 
-                // 2. Process Pose & Stats via Backend
-                if (AppConfig.features.enablePoseDetection) {
-                    const result = await poseDetectionService.detectPose(base64, exerciseId);
-
-                    if (result.poses && result.poses.length > 0) {
-                        setPoses(result.poses);
-                        setRepCount(result.rep_count);
-                        setStage(result.stage);
-                        setFeedback(result.feedback);
-                        setFormScore(result.form_score);
-                        missedFramesRef.current = 0;
-                    } else {
-                        missedFramesRef.current += 1;
-                        if (missedFramesRef.current > 10) {
-                            setPoses([]);
-                            // Optional: Don't reset stats like reps, but maybe feedback?
-                            setStage(null);
-                            setFeedback([]);
-                        }
-                    }
+                if (result.poses && result.poses.length > 0) {
+                    setPoses(result.poses);
+                    setRepCount(result.rep_count);
+                    setStage(result.stage);
+                    setFeedback(result.feedback);
+                    setFormScore(result.form_score);
+                    missedFramesRef.current = 0;
                 } else {
-                    setPoses([]);
+                    missedFramesRef.current += 1;
+                    if (missedFramesRef.current > 10) {
+                        setPoses([]);
+                        setStage(null);
+                        setFeedback([]);
+                    }
                 }
+            } else {
+                setPoses([]);
             }
         } catch (err) {
             console.warn('[SmartCamera] Detection error:', err);
@@ -98,7 +96,7 @@ export const useSmartCamera = (
     useEffect(() => {
         if (isActive) {
             setIsDetecting(true);
-            // Initialize service
+            // Initialize pose detection service
             poseDetectionService.initialize().then(() => {
                 runDetectionLoop();
             });

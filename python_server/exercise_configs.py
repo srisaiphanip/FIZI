@@ -54,11 +54,6 @@ EXERCISE_CONFIGS = {
         ],
         'form_checks': []
     },
-    'jumping-jacks': {
-        'name': 'Jumping Jacks',
-        'key_angles': ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip'],
-        'stages': [
-            {'name': 'closed', 'ranges': {'left_shoulder': (-20, 60), 'right_shoulder': (-20, 60)}},
             {'name': 'open', 'ranges': {'left_shoulder': (120, 200), 'right_shoulder': (120, 200)}}
         ],
         'form_checks': []
@@ -108,20 +103,10 @@ EXERCISE_CONFIGS = {
         ],
         'form_checks': []
     },
-    'jump-rope': {
-        'name': 'Jump Rope',
-        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
-        'stages': [
-            {'name': 'landed', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}},
             {'name': 'airborne', 'ranges': {'left_knee': (120, 160), 'right_knee': (120, 160), 'left_hip': (150, 190)}}
         ],
         'form_checks': []
     },
-    'running-in-place': {
-        'name': 'Running in Place',
-        'key_angles': ['left_knee', 'right_knee'],
-        'stages': [
-            {'name': 'ground', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}},
             {'name': 'lifted', 'ranges': {'left_knee': (80, 120), 'right_knee': (80, 120)}}
         ],
         'form_checks': []
@@ -175,20 +160,10 @@ EXERCISE_CONFIGS = {
         ],
         'form_checks': []
     },
-    'jump-squats': {
-        'name': 'Jump Squats',
-        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
-        'stages': [
-            {'name': 'squat', 'ranges': {'left_knee': (60, 100), 'right_knee': (60, 100)}},
             {'name': 'jump', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}}
         ],
         'form_checks': []
     },
-    'box-jumps': {
-        'name': 'Box Jumps',
-        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
-        'stages': [
-            {'name': 'ground', 'ranges': {'left_knee': (60, 120), 'right_knee': (60, 120), 'left_hip': (50, 120)}},
             {'name': 'landed', 'ranges': {'left_knee': (70, 130), 'right_knee': (70, 130), 'left_hip': (60, 130)}}
         ],
         'form_checks': []
@@ -202,11 +177,6 @@ EXERCISE_CONFIGS = {
         ],
         'form_checks': []
     },
-    'tuck-jumps': {
-        'name': 'Tuck Jumps',
-        'key_angles': ['left_knee', 'right_knee', 'left_hip'],
-        'stages': [
-            {'name': 'ground', 'ranges': {'left_knee': (140, 200), 'right_knee': (140, 200)}},
             {'name': 'tucked', 'ranges': {'left_knee': (30, 70), 'right_knee': (30, 70)}}
         ],
         'form_checks': []
@@ -347,8 +317,8 @@ EXERCISE_CONFIGS = {
         'name': 'Kettlebell Swing',
         'key_angles': ['left_hip', 'right_hip', 'left_shoulder', 'torso_inclination'],
         'stages': [
-            {'name': 'bottom', 'ranges': {'left_hip': (60, 100), 'torso_inclination': (30, 60)}},
-            {'name': 'top', 'ranges': {'left_hip': (160, 200), 'left_shoulder': (140, 180)}}
+            {'name': 'down', 'ranges': {'left_hip': (30, 70), 'right_hip': (30, 70), 'torso_inclination': (30, 60)}},
+            {'name': 'up', 'ranges': {'left_hip': (160, 180), 'right_hip': (160, 180), 'left_shoulder': (140, 180)}}
         ],
         'form_checks': []
     },
@@ -356,8 +326,8 @@ EXERCISE_CONFIGS = {
         'name': 'Kettlebell Snatch',
         'key_angles': ['left_elbow', 'right_elbow', 'left_shoulder', 'left_hip'],
         'stages': [
-            {'name': 'bottom', 'ranges': {'left_hip': (60, 100)}},
-            {'name': 'top', 'ranges': {'left_elbow': (160, 200), 'left_shoulder': (160, 200)}}
+            {'name': 'down', 'ranges': {'left_hip': (30, 70)}},
+            {'name': 'overhead', 'ranges': {'left_elbow': (160, 180), 'left_shoulder': (160, 180)}}
         ],
         'form_checks': []
     },
@@ -450,45 +420,6 @@ EXERCISE_CONFIGS = {
     # RECOVERY EXERCISES (Time-based tracking)
     # ============================================
     
-    'walking': {
-        'name': 'Walking',
-        'key_angles': [],  # Time-based, no angle tracking
-        'stages': [],
-        'form_checks': [],
-        'tracking_type': 'time_based'
-    },
-    'gentle-yoga-flow': {
-        'name': 'Gentle Yoga Flow',
-        'key_angles': ['left_hip', 'left_shoulder', 'torso_inclination'],
-        'stages': [
-            {'name': 'flow', 'ranges': {'left_hip': (60, 200)}}
-        ],
-        'form_checks': [],
-        'tracking_type': 'time_based'
-    },
-    'foam-rolling': {
-        'name': 'Foam Rolling',
-        'key_angles': [],  # Manual activity
-        'stages': [],
-        'form_checks': [],
-        'tracking_type': 'time_based'
-    },
-    'deep-breathing': {
-        'name': 'Deep Breathing',
-        'key_angles': [],  # Breathing exercise
-        'stages': [],
-        'form_checks': [],
-        'tracking_type': 'time_based'
-    },
-    'light-stretching-circuit': {
-        'name': 'Light Stretching Circuit',
-        'key_angles': ['left_hip', 'left_knee', 'left_shoulder'],
-        'stages': [
-            {'name': 'stretch', 'ranges': {'left_hip': (60, 200)}}
-        ],
-        'form_checks': [],
-        'tracking_type': 'time_based'
-    },
     'easy-cycling': {
         'name': 'Easy Cycling',
         'key_angles': ['left_knee', 'right_knee'],

@@ -135,6 +135,35 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     <View style={styles.categoryBadge}>
                         <Text style={styles.categoryText}>{exercise.category.toUpperCase()}</Text>
                     </View>
+
+                    {/* Tracking Mode Badge */}
+                    <View style={[
+                        styles.trackingModeBadge,
+                        exercise.trackingMode === 'ai_reps' && styles.trackingModeAI,
+                        exercise.trackingMode === 'ai_timer' && styles.trackingModeAITimer,
+                        exercise.trackingMode === 'timer_only' && styles.trackingModeTimer
+                    ]}>
+                        <MaterialCommunityIcons
+                            name={
+                                exercise.trackingMode === 'timer_only' ? 'timer-outline' :
+                                    exercise.trackingMode === 'ai_timer' ? 'timer-check-outline' :
+                                        'camera-enhance-outline'
+                            }
+                            size={16}
+                            color={
+                                exercise.trackingMode === 'timer_only' ? colors.accentWarning :
+                                    colors.accentCyan
+                            }
+                        />
+                        <Text style={[
+                            styles.trackingModeText,
+                            exercise.trackingMode === 'timer_only' && styles.trackingModeTextTimer
+                        ]}>
+                            {exercise.trackingMode === 'ai_reps' && 'AI Rep Counting'}
+                            {exercise.trackingMode === 'ai_timer' && 'AI Form Check + Timer'}
+                            {exercise.trackingMode === 'timer_only' && 'Timer Based'}
+                        </Text>
+                    </View>
                 </View>
 
                 {/* Description */}
@@ -217,11 +246,19 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                     >
-                        <MaterialCommunityIcons name="play-circle-outline" size={28} color="white" />
-                        <Text style={styles.startButtonText}>Start Exercise</Text>
+                        <MaterialCommunityIcons
+                            name={exercise.trackingMode === 'timer_only' ? 'timer-play-outline' : 'play-circle-outline'}
+                            size={28}
+                            color="white"
+                        />
+                        <Text style={styles.startButtonText}>
+                            {exercise.trackingMode === 'timer_only' ? 'Start Timer' : 'Start Exercise'}
+                        </Text>
                     </LinearGradient>
                 </TouchableOpacity>
 
+
+                {/* Skip button for all exercises */}
                 <TouchableOpacity
                     onPress={handleSkipDetection}
                     activeOpacity={0.8}
@@ -235,7 +272,9 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                             <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primaryStart} />
-                            <Text style={[styles.skipButtonText, !isDark && { color: colors.textPrimary }]}>Skip Live Detection</Text>
+                            <Text style={[styles.skipButtonText, !isDark && { color: colors.textPrimary }]}>
+                                {exercise.trackingMode === 'timer_only' ? 'Mark Complete' : 'Skip Live Detection'}
+                            </Text>
                         </View>
                     </LinearGradient>
                 </TouchableOpacity>
@@ -328,6 +367,37 @@ const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
         color: colors.accentCyan,
         fontSize: 12,
         fontWeight: 'bold',
+    },
+    // Tracking Mode Badge
+    trackingModeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: Spacing.m,
+        paddingVertical: 6,
+        borderRadius: Layout.borderRadius.m,
+        marginTop: Spacing.s,
+        borderWidth: 1,
+    },
+    trackingModeAI: {
+        backgroundColor: colors.accentCyan + '22',
+        borderColor: colors.accentCyan,
+    },
+    trackingModeAITimer: {
+        backgroundColor: colors.accentCyan + '22',
+        borderColor: colors.accentCyan,
+    },
+    trackingModeTimer: {
+        backgroundColor: colors.accentWarning + '22',
+        borderColor: colors.accentWarning,
+    },
+    trackingModeText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: colors.accentCyan,
+    },
+    trackingModeTextTimer: {
+        color: colors.accentWarning,
     },
     card: {
         borderRadius: Layout.borderRadius.l,
