@@ -25,7 +25,6 @@ import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 import CustomPlanBuilderScreen from './src/screens/CustomPlanBuilderScreen';
 
-
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
 import { notificationService } from './src/services/NotificationService';

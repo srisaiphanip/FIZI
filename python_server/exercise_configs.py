@@ -54,10 +54,6 @@ EXERCISE_CONFIGS = {
         ],
         'form_checks': []
     },
-            {'name': 'open', 'ranges': {'left_shoulder': (120, 200), 'right_shoulder': (120, 200)}}
-        ],
-        'form_checks': []
-    },
     'shoulder-press': {
         'name': 'Shoulder Press',
         'key_angles': ['left_elbow', 'right_elbow'],
@@ -100,14 +96,6 @@ EXERCISE_CONFIGS = {
         'stages': [
             {'name': 'down', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}},
             {'name': 'up', 'ranges': {'left_knee': (30, 100), 'right_knee': (30, 100), 'left_hip': (50, 100)}}
-        ],
-        'form_checks': []
-    },
-            {'name': 'airborne', 'ranges': {'left_knee': (120, 160), 'right_knee': (120, 160), 'left_hip': (150, 190)}}
-        ],
-        'form_checks': []
-    },
-            {'name': 'lifted', 'ranges': {'left_knee': (80, 120), 'right_knee': (80, 120)}}
         ],
         'form_checks': []
     },
@@ -160,24 +148,12 @@ EXERCISE_CONFIGS = {
         ],
         'form_checks': []
     },
-            {'name': 'jump', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}}
-        ],
-        'form_checks': []
-    },
-            {'name': 'landed', 'ranges': {'left_knee': (70, 130), 'right_knee': (70, 130), 'left_hip': (60, 130)}}
-        ],
-        'form_checks': []
-    },
     'plyo-pushups': {
         'name': 'Plyo Push-ups',
         'key_angles': ['left_elbow', 'right_elbow', 'torso_inclination'],
         'stages': [
             {'name': 'down', 'ranges': {'left_elbow': (60, 90), 'right_elbow': (60, 90)}},
             {'name': 'explosive', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}}
-        ],
-        'form_checks': []
-    },
-            {'name': 'tucked', 'ranges': {'left_knee': (30, 70), 'right_knee': (30, 70)}}
         ],
         'form_checks': []
     },
@@ -412,6 +388,152 @@ EXERCISE_CONFIGS = {
         'stages': [
             {'name': 'up', 'ranges': {'left_knee': (160, 200)}},
             {'name': 'down', 'ranges': {'left_knee': (70, 110)}}
+        ],
+        'form_checks': []
+    },
+    
+    # ============================================
+    # NEW BARBELL EXERCISES
+    # ============================================
+    
+    'bb_deadlift': {
+        'name': 'Barbell Deadlift',
+        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip', 'torso_inclination'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_knee': (60, 100), 'right_knee': (60, 100), 'left_hip': (30, 80), 'torso_inclination': (30, 70)}},
+            {'name': 'up', 'ranges': {'left_knee': (160, 180), 'right_knee': (160, 180), 'left_hip': (160, 200), 'torso_inclination': (0, 30)}}
+        ],
+        'form_checks': []
+    },
+    
+    'bb_bicep_curl': {
+        'name': 'Barbell Bicep Curl',
+        'key_angles': ['left_elbow', 'right_elbow', 'left_shoulder', 'right_shoulder'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}},
+            {'name': 'up', 'ranges': {'left_elbow': (30, 50), 'right_elbow': (30, 50)}}
+        ],
+        'form_checks': []
+    },
+    
+    'bb_behind_back_curl': {
+        'name': 'Behind the Back Barbell Curl',
+        'key_angles': ['left_elbow', 'right_elbow'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}},
+            {'name': 'up', 'ranges': {'left_elbow': (40, 70), 'right_elbow': (40, 70)}}
+        ],
+        'form_checks': []
+    },
+    
+    'bb_t_bar_row': {
+        'name': 'T-Bar Row',
+        'key_angles': ['left_elbow', 'right_elbow', 'left_shoulder', 'right_shoulder', 'torso_inclination'],
+        'stages': [
+            {'name': 'extended', 'ranges': {'left_elbow': (150, 200), 'right_elbow': (150, 200)}},
+            {'name': 'pulled', 'ranges': {'left_elbow': (60, 90), 'right_elbow': (60, 90)}}
+        ],
+        'form_checks': []
+    },
+    
+    # ============================================
+    # NEW DUMBBELL EXERCISES
+    # ============================================
+    
+    'db_hammer_curl': {
+        'name': 'Dumbbell Hammer Curl',
+        'key_angles': ['left_elbow', 'right_elbow'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}},
+            {'name': 'up', 'ranges': {'left_elbow': (30, 50), 'right_elbow': (30, 50)}}
+        ],
+        'form_checks': []
+    },
+    
+    'db_tricep_extension': {
+        'name': 'Dumbbell Overhead Tricep Extension',
+        'key_angles': ['left_elbow', 'right_elbow', 'left_shoulder', 'right_shoulder'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_elbow': (60, 90), 'right_elbow': (60, 90)}},
+            {'name': 'up', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}}
+        ],
+        'form_checks': []
+    },
+    
+    # ============================================
+    # NEW CABLE EXERCISES
+    # ============================================
+    
+    'cable_tricep_pushdown_rope': {
+        'name': 'Cable Tricep Rope Pushdown',
+        'key_angles': ['left_elbow', 'right_elbow'],
+        'stages': [
+            {'name': 'up', 'ranges': {'left_elbow': (80, 110), 'right_elbow': (80, 110)}},
+            {'name': 'down', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}}
+        ],
+        'form_checks': []
+    },
+    
+    'cable_tricep_overhead': {
+        'name': 'Cable Rope Overhead Extension',
+        'key_angles': ['left_elbow', 'right_elbow', 'left_shoulder', 'right_shoulder'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_elbow': (60, 90), 'right_elbow': (60, 90)}},
+            {'name': 'up', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}}
+        ],
+        'form_checks': []
+    },
+    
+    'cable_seated_row': {
+        'name': 'Cable Seated Row',
+        'key_angles': ['left_elbow', 'right_elbow', 'left_shoulder', 'right_shoulder', 'torso_inclination'],
+        'stages': [
+            {'name': 'extended', 'ranges': {'left_elbow': (150, 200), 'right_elbow': (150, 200)}},
+            {'name': 'pulled', 'ranges': {'left_elbow': (70, 100), 'right_elbow': (70, 100)}}
+        ],
+        'form_checks': []
+    },
+    
+    'cable_lat_pulldown_short_bar': {
+        'name': 'Lat Pulldown (Close Grip)',
+        'key_angles': ['left_elbow', 'right_elbow', 'left_shoulder', 'right_shoulder'],
+        'stages': [
+            {'name': 'extended', 'ranges': {'left_elbow': (150, 200), 'right_elbow': (150, 200)}},
+            {'name': 'pulled', 'ranges': {'left_elbow': (70, 100), 'right_elbow': (70, 100)}}
+        ],
+        'form_checks': []
+    },
+    
+    # ============================================
+    # NEW MACHINE EXERCISES
+    # ============================================
+    
+    'machine_leg_extension': {
+        'name': 'Leg Extension',
+        'key_angles': ['left_knee', 'right_knee'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_knee': (80, 100), 'right_knee': (80, 100)}},
+            {'name': 'up', 'ranges': {'left_knee': (160, 180), 'right_knee': (160, 180)}}
+        ],
+        'form_checks': []
+    },
+    
+    'machine_hack_squat': {
+        'name': 'Hack Squat',
+        'key_angles': ['left_knee', 'right_knee', 'left_hip', 'right_hip'],
+        'stages': [
+            {'name': 'down', 'ranges': {'left_knee': (60, 90), 'right_knee': (60, 90)}},
+            {'name': 'up', 'ranges': {'left_knee': (160, 200), 'right_knee': (160, 200)}}
+        ],
+        'form_checks': []
+    },
+    
+    'machine_tricep_press': {
+        'name': 'Tricep Press Machine',
+        'key_angles': ['left_elbow', 'right_elbow'],
+        'stages': [
+            {'name': 'up', 'ranges': {'left_elbow': (80, 110), 'right_elbow': (80, 110)}},
+            {'name': 'down', 'ranges': {'left_elbow': (160, 200), 'right_elbow': (160, 200)}}
         ],
         'form_checks': []
     },

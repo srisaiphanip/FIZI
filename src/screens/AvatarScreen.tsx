@@ -55,9 +55,10 @@ const EQUIPMENT_OPTIONS = [
 
 interface AvatarScreenProps {
     navigation: any;
+    isTab?: boolean;
 }
 
-export default function AvatarScreen({ navigation }: AvatarScreenProps) {
+export default function AvatarScreen({ navigation, isTab }: AvatarScreenProps) {
     const dispatch = useAppDispatch();
     const { colors, gradients, shadows, isDark, toggleTheme } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
@@ -451,17 +452,25 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
 
     const bodyComp = getBodyComposition();
 
-    return (
-        <LinearGradient colors={gradients.background} style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButtonGeneric}>
-                    <Text style={styles.backButton}>← Back</Text>
-                </TouchableOpacity>
-                <Text style={styles.title}>Hero Journey</Text>
-            </View>
+    const ContentWrapper = isTab ? View : LinearGradient;
+    const wrapperProps = isTab ? { style: styles.container } : { colors: gradients.background, style: styles.container };
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+    return (
+        <ContentWrapper {...wrapperProps as any}>
+            {!isTab && (
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButtonGeneric}>
+                        <Text style={styles.backButton}>← Back</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Hero Journey</Text>
+                </View>
+            )}
+
+            <ScrollView
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={isTab ? { paddingTop: 60, paddingBottom: 120 } : undefined}
+            >
                 {/* Avatar Display */}
                 {/* Avatar Display - Redesigned Horizontal Card */}
                 <BlurView intensity={25} tint={isDark ? "light" : "dark"} style={styles.avatarCard}>
@@ -1736,7 +1745,7 @@ export default function AvatarScreen({ navigation }: AvatarScreenProps) {
                     </BlurView>
                 )
             }
-        </LinearGradient >
+        </ContentWrapper >
     );
 }
 

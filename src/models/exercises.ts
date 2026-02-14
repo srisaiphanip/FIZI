@@ -571,6 +571,72 @@ export const DUMBBELL_EXERCISES: Exercise[] = [
         trackingMode: 'ai_reps',
         stages: [{ name: 'press', angleRanges: [{ joint: 'left_shoulder', min: 160, max: 180, optimal: 170 }] }],
         formChecks: []
+    },
+    {
+        id: 'db_hammer_curl',
+        name: 'hammer_curl',
+        displayName: 'Dumbbell Hammer Curl',
+        category: 'strength',
+        muscleGroups: ['arms'],
+        equipmentRequired: 'home',
+        requiredEquipment: ['dumbbells'],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 12,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [13, 14, 15, 16],
+        description: 'Neutral grip bicep and forearm builder',
+        instructions: [
+            'Stand with dumbbells at sides, palms facing inward',
+            'Keep elbows pinned at sides',
+            'Curl weights up maintaining neutral grip',
+            'Squeeze at top, lower with control'
+        ],
+        tips: ['Keep wrists neutral', 'Don\'t swing', 'Focus on forearms and biceps'],
+        commonMistakes: ['Rotating wrists', 'Using momentum', 'Moving elbows'],
+        caloriesPerRep: 0.4,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/hammer-curls-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 30, max: 50, optimal: 40 }, { joint: 'right_elbow', min: 30, max: 50, optimal: 40 }] },
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'db_tricep_extension',
+        name: 'tricep_extension',
+        displayName: 'Dumbbell Overhead Tricep Extension',
+        category: 'strength',
+        muscleGroups: ['arms'],
+        equipmentRequired: 'home',
+        requiredEquipment: ['dumbbells'],
+        unlockLevel: 2,
+        difficulty: 'beginner',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [13, 14, 15, 16],
+        description: 'Overhead tricep isolation',
+        instructions: [
+            'Hold dumbbell overhead with both hands',
+            'Keep elbows close to head',
+            'Lower weight behind head',
+            'Extend back to lockout'
+        ],
+        tips: ['Keep elbows in', 'Full stretch at bottom', 'Control the weight'],
+        commonMistakes: ['Elbows flaring out', 'Arching back', 'Using too much weight'],
+        caloriesPerRep: 0.4,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/db-tricep-extension-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 60, max: 90, optimal: 75 }, { joint: 'right_elbow', min: 60, max: 90, optimal: 75 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
     }
 ];
 
@@ -812,6 +878,142 @@ export const BARBELL_EXERCISES: Exercise[] = [
             { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
         ],
         formChecks: []
+    },
+    {
+        id: 'bb_deadlift',
+        name: 'deadlift',
+        displayName: 'Barbell Deadlift',
+        category: 'strength',
+        muscleGroups: ['back', 'legs', 'core'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['barbell'],
+        unlockLevel: 3,
+        difficulty: 'intermediate',
+        baseReps: 6,
+        baseSets: 3,
+        repIncrement: 1,
+        setIncrement: 1,
+        keypoints: [11, 12, 23, 24, 25, 26],
+        description: 'King of posterior chain exercises',
+        instructions: [
+            'Feet hip-width, bar over mid-foot',
+            'Bend and grip bar outside knees',
+            'Chest up, back flat, brace core',
+            'Drive through floor to stand tall',
+            'Lower with control, keep bar close'
+        ],
+        tips: ['Bar stays close to body', 'Push floor away', 'Brace hard', 'Neutral spine'],
+        commonMistakes: ['Rounded back', 'Bar too far forward', 'Not using legs', 'Hyperextending at top'],
+        caloriesPerRep: 1.2,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/bb-deadlift-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_knee', min: 60, max: 100, optimal: 80 }, { joint: 'right_knee', min: 60, max: 100, optimal: 80 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 175 }, { joint: 'right_knee', min: 160, max: 180, optimal: 175 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'bb_bicep_curl',
+        name: 'bicep_curl',
+        displayName: 'Barbell Bicep Curl',
+        category: 'strength',
+        muscleGroups: ['arms'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['barbell'],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [13, 14, 15, 16],
+        description: 'Barbell bicep mass builder',
+        instructions: [
+            'Stand with barbell, hands shoulder-width',
+            'Elbows pinned at sides',
+            'Curl bar up to shoulders',
+            'Squeeze biceps at top',
+            'Lower with control'
+        ],
+        tips: ['No swinging', 'Keep elbows stationary', 'Full range of motion'],
+        commonMistakes: ['Using momentum', 'Elbows moving forward', 'Partial reps'],
+        caloriesPerRep: 0.5,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/bb-curl-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 30, max: 50, optimal: 40 }, { joint: 'right_elbow', min: 30, max: 50, optimal: 40 }] },
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'bb_behind_back_curl',
+        name: 'behind_back_curl',
+        displayName: 'Behind the Back Barbell Curl',
+        category: 'strength',
+        muscleGroups: ['arms'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['barbell'],
+        unlockLevel: 4,
+        difficulty: 'intermediate',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [13, 14, 15, 16],
+        description: 'Bicep exercise with constant tension',
+        instructions: [
+            'Hold barbell behind back, palms facing away',
+            'Stand upright with bar resting on glutes',
+            'Curl bar up as high as possible',
+            'Squeeze biceps hard',
+            'Lower with control'
+        ],
+        tips: ['Use lighter weight', 'Focus on peak contraction', 'Keep body stable'],
+        commonMistakes: ['Using too much weight', 'Leaning forward', 'Incomplete range'],
+        caloriesPerRep: 0.4,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/bb-behind-curl-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 40, max: 70, optimal: 55 }, { joint: 'right_elbow', min: 40, max: 70, optimal: 55 }] },
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'bb_t_bar_row',
+        name: 't_bar_row',
+        displayName: 'T-Bar Row',
+        category: 'strength',
+        muscleGroups: ['back', 'arms'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['barbell'],
+        unlockLevel: 3,
+        difficulty: 'intermediate',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [11, 12, 13, 14],
+        description: 'Thick back builder with barbell',
+        instructions: [
+            'Straddle barbell, bend at hips',
+            'Grip bar or V-handle attachment',
+            'Pull bar to chest keeping back flat',
+            'Squeeze shoulder blades together',
+            'Lower with control'
+        ],
+        tips: ['Keep back flat', 'Pull with elbows', 'Drive elbows back'],
+        commonMistakes: ['Rounding back', 'Using too much leg drive', 'Not full range'],
+        caloriesPerRep: 0.7,
+        thumbnailUrl: 'https://images.fizi.ai/exercises/t-bar-row-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'extended', angleRanges: [{ joint: 'left_elbow', min: 150, max: 180, optimal: 165 }, { joint: 'right_elbow', min: 150, max: 180, optimal: 165 }] },
+            { name: 'pulled', angleRanges: [{ joint: 'left_elbow', min: 60, max: 90, optimal: 75 }, { joint: 'right_elbow', min: 60, max: 90, optimal: 75 }] }
+        ],
+        formChecks: []
     }
 ];
 
@@ -852,9 +1054,9 @@ export const CABLE_EXERCISES: Exercise[] = [
         formChecks: []
     },
     {
-        id: 'cable_tricep_pushdown',
+        id: 'cable_tricep_pushdown_rope',
         name: 'tricep_pushdown',
-        displayName: 'Cable Tricep Pushdown',
+        displayName: 'Cable Tricep Rope Pushdown',
         category: 'strength',
         muscleGroups: ['arms'],
         equipmentRequired: 'gym',
@@ -866,17 +1068,116 @@ export const CABLE_EXERCISES: Exercise[] = [
         repIncrement: 2,
         setIncrement: 1,
         keypoints: [13, 14, 15, 16],
-        description: 'Tricep isolation',
+        description: 'Tricep isolation with rope for better range',
         instructions: [
-            'Stand facing cable machine',
+            'Stand facing cable machine with rope attachment',
             'Elbows pinned at sides',
-            'Push bar down to full extension',
+            'Push rope down to full extension',
+            'Split rope at bottom for peak contraction',
             'Control return'
         ],
-        tips: ['Keep elbows stationary', 'Full extension', 'Squeeze triceps'],
-        thumbnailUrl: 'https://images.fizi.ai/exercises/cable-tricep-thumb.jpg',
+        tips: ['Keep elbows stationary', 'Full extension', 'Squeeze triceps', 'Split rope at bottom'],
+        thumbnailUrl: 'https://images.fizi.ai/exercises/cable-tricep-rope-thumb.jpg',
         trackingMode: 'ai_reps',
-        stages: [],
+        stages: [
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 80, max: 110, optimal: 95 }, { joint: 'right_elbow', min: 80, max: 110, optimal: 95 }] },
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'cable_tricep_overhead',
+        name: 'tricep_overhead',
+        displayName: 'Cable Rope Overhead Extension',
+        category: 'strength',
+        muscleGroups: ['arms'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['cable_machine'],
+        unlockLevel: 3,
+        difficulty: 'intermediate',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [13, 14, 15, 16],
+        description: 'Overhead tricep extension with rope',
+        instructions: [
+            'Face away from cable machine',
+            'Hold rope overhead with both hands',
+            'Keep elbows pointed forward',
+            'Extend arms fully overhead',
+            'Lower rope behind head with control'
+        ],
+        tips: ['Keep elbows stable', 'Full stretch at bottom', 'Squeeze at top'],
+        thumbnailUrl: 'https://images.fizi.ai/exercises/cable-overhead-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 60, max: 90, optimal: 75 }, { joint: 'right_elbow', min: 60, max: 90, optimal: 75 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'cable_seated_row',
+        name: 'seated_row',
+        displayName: 'Cable Seated Row',
+        category: 'strength',
+        muscleGroups: ['back', 'arms'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['cable_machine'],
+        unlockLevel: 2,
+        difficulty: 'beginner',
+        baseReps: 12,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [11, 12, 13, 14],
+        description: 'Horizontal pulling for back thickness',
+        instructions: [
+            'Sit on bench facing cable machine',
+            'Feet on platform, knees slightly bent',
+            'Pull handle to lower chest/abdomen',
+            'Squeeze shoulder blades together',
+            'Control return keeping tension'
+        ],
+        tips: ['Keep back straight', 'Pull elbows back', 'Don\'t lean back excessively'],
+        thumbnailUrl: 'https://images.fizi.ai/exercises/cable-seated-row-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'extended', angleRanges: [{ joint: 'left_elbow', min: 150, max: 180, optimal: 165 }, { joint: 'right_elbow', min: 150, max: 180, optimal: 165 }] },
+            { name: 'pulled', angleRanges: [{ joint: 'left_elbow', min: 70, max: 100, optimal: 85 }, { joint: 'right_elbow', min: 70, max: 100, optimal: 85 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'cable_lat_pulldown_short_bar',
+        name: 'pulldown_short',
+        displayName: 'Lat Pulldown (Close Grip)',
+        category: 'strength',
+        muscleGroups: ['back', 'arms'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['cable_machine'],
+        unlockLevel: 2,
+        difficulty: 'beginner',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [11, 12, 13, 14],
+        description: 'Close grip pulldown targeting lower lats',
+        instructions: [
+            'Use close grip bar attachment',
+            'Pull down to upper chest',
+            'Squeeze lower lats',
+            'Control return with full stretch'
+        ],
+        tips: ['Lead with elbows', 'Focus on lower lat squeeze', 'Slow eccentric'],
+        thumbnailUrl: 'https://images.fizi.ai/exercises/cable-pulldown-close-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'extended', angleRanges: [{ joint: 'left_elbow', min: 150, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 150, max: 180, optimal: 170 }] },
+            { name: 'pulled', angleRanges: [{ joint: 'left_elbow', min: 70, max: 100, optimal: 85 }, { joint: 'right_elbow', min: 70, max: 100, optimal: 85 }] }
+        ],
         formChecks: []
     }
 ];
@@ -912,6 +1213,101 @@ export const LEG_MACHINE_EXERCISES: Exercise[] = [
         thumbnailUrl: 'https://images.fizi.ai/exercises/leg-press-thumb.jpg',
         trackingMode: 'ai_reps',
         stages: [],
+        formChecks: []
+    },
+    {
+        id: 'machine_leg_extension',
+        name: 'leg_extension',
+        displayName: 'Leg Extension',
+        category: 'strength',
+        muscleGroups: ['legs'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['leg_extension_machine'],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 12,
+        baseSets: 3,
+        repIncrement: 3,
+        setIncrement: 1,
+        keypoints: [23, 24, 25, 26],
+        description: 'Quad isolation exercise',
+        instructions: [
+            'Sit on machine, adjust pad to ankles',
+            'Hold handles for stability',
+            'Extend legs to full lockout',
+            'Squeeze quads at top',
+            'Lower with control'
+        ],
+        tips: ['Full extension', 'Pause at top', 'Control the negative'],
+        thumbnailUrl: 'https://images.fizi.ai/exercises/leg-extension-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_knee', min: 80, max: 100, optimal: 90 }, { joint: 'right_knee', min: 80, max: 100, optimal: 90 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 175 }, { joint: 'right_knee', min: 160, max: 180, optimal: 175 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'machine_hack_squat',
+        name: 'hack_squat',
+        displayName: 'Hack Squat',
+        category: 'strength',
+        muscleGroups: ['legs'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['hack_squat_machine'],
+        unlockLevel: 3,
+        difficulty: 'intermediate',
+        baseReps: 10,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [23, 24, 25, 26],
+        description: 'Quad-focused squat variation',
+        instructions: [
+            'Stand on platform with back against pad',
+            'Feet shoulder-width, slightly forward',
+            'Release safety and squat down',
+            'Go deep while keeping heels down',
+            'Drive through feet to stand'
+        ],
+        tips: ['Keep back against pad', 'Push through whole foot', 'Control descent'],
+        thumbnailUrl: 'https://images.fizi.ai/exercises/hack-squat-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'down', angleRanges: [{ joint: 'left_knee', min: 60, max: 90, optimal: 75 }, { joint: 'right_knee', min: 60, max: 90, optimal: 75 }] },
+            { name: 'up', angleRanges: [{ joint: 'left_knee', min: 160, max: 180, optimal: 170 }, { joint: 'right_knee', min: 160, max: 180, optimal: 170 }] }
+        ],
+        formChecks: []
+    },
+    {
+        id: 'machine_tricep_press',
+        name: 'tricep_press',
+        displayName: 'Tricep Press Machine',
+        category: 'strength',
+        muscleGroups: ['arms'],
+        equipmentRequired: 'gym',
+        requiredEquipment: ['tricep_machine'],
+        unlockLevel: 1,
+        difficulty: 'beginner',
+        baseReps: 12,
+        baseSets: 3,
+        repIncrement: 2,
+        setIncrement: 1,
+        keypoints: [13, 14, 15, 16],
+        description: 'Machine-guided tricep extension',
+        instructions: [
+            'Sit on machine, adjust seat height',
+            'Grip handles at shoulder height',
+            'Press down to full extension',
+            'Control return to start'
+        ],
+        tips: ['Keep elbows stable', 'Full lockout', 'Slow eccentric'],
+        thumbnailUrl: 'https://images.fizi.ai/exercises/tricep-machine-thumb.jpg',
+        trackingMode: 'ai_reps',
+        stages: [
+            { name: 'up', angleRanges: [{ joint: 'left_elbow', min: 80, max: 110, optimal: 95 }, { joint: 'right_elbow', min: 80, max: 110, optimal: 95 }] },
+            { name: 'down', angleRanges: [{ joint: 'left_elbow', min: 160, max: 180, optimal: 170 }, { joint: 'right_elbow', min: 160, max: 180, optimal: 170 }] }
+        ],
         formChecks: []
     }
 ];

@@ -187,6 +187,9 @@ export type EquipmentItem =
     | 'squat_rack'
     | 'cable_machine'
     | 'leg_press_machine'
+    | 'leg_extension_machine'
+    | 'hack_squat_machine'
+    | 'tricep_machine'
     | 'lat_pulldown_machine'
     | 'smith_machine'
     | 'ez_bar';
@@ -258,6 +261,17 @@ export interface UserProfile {
     updatedAt: Date;
     transformationPhotos: string[];
     pushToken?: string;
+
+    // Nutrition fields
+    nutritionPreferences?: {
+        dietType?: 'omnivore' | 'vegetarian' | 'vegan' | 'pescatarian';
+        restrictions: string[];
+        allergies: string[];
+        mealsPerDay: number;
+        preferredMealTimes: string[];
+        dislikedFoods: string[];
+    };
+    currentDietPlanId?: string;
 }
 
 export interface WorkoutSession {
