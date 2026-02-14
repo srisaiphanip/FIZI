@@ -18,7 +18,9 @@ import {
     Image,
     Platform,
     Linking,
-    Share
+    Share,
+    NativeSyntheticEvent,
+    NativeScrollEvent
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -56,9 +58,10 @@ const EQUIPMENT_OPTIONS = [
 interface AvatarScreenProps {
     navigation: any;
     isTab?: boolean;
+    onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }
 
-export default function AvatarScreen({ navigation, isTab }: AvatarScreenProps) {
+export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScreenProps) {
     const dispatch = useAppDispatch();
     const { colors, gradients, shadows, isDark, toggleTheme } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
@@ -470,6 +473,9 @@ export default function AvatarScreen({ navigation, isTab }: AvatarScreenProps) {
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={isTab ? { paddingTop: 60, paddingBottom: 120 } : undefined}
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+                directionalLockEnabled={true}
             >
                 {/* Avatar Display */}
                 {/* Avatar Display - Redesigned Horizontal Card */}

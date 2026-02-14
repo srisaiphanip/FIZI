@@ -49,6 +49,7 @@ export interface FoodSuggestion {
     protein: number;
     carbs: number;
     fats: number;
+    dietaryType: 'veg' | 'non-veg' | 'both';
     benefits?: string[];
 }
 
@@ -80,7 +81,7 @@ export interface DietPlan {
 
 export interface NutritionPreferences {
     // Dietary restrictions
-    dietType?: 'omnivore' | 'vegetarian' | 'vegan' | 'pescatarian';
+    dietType?: 'veg' | 'non-veg';
     restrictions: string[]; // "gluten-free", "dairy-free", "nut-free", etc.
     allergies: string[];
 

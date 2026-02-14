@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Image, NativeSyntheticEvent, NativeScrollEvent, Animated } from 'react-native';
 import AvatarScreen from './AvatarScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,6 +43,39 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const [selectedTab, setSelectedTab] = useState<'profile' | 'work' | 'diet'>('work');
     const horizontalScrollRef = React.useRef<ScrollView>(null);
     const screenWidth = Dimensions.get('window').width;
+
+    // Animated value for bottom bar visibility
+    const bottomBarAnim = React.useRef(new Animated.Value(0)).current; // 0 = visible, 100 = hidden
+    const lastScrollY = React.useRef(0);
+    const isBottomBarHidden = React.useRef(false);
+
+    const handleVerticalScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const delta = currentScrollY - lastScrollY.current;
+
+        // Threshold to avoid jitter
+        if (Math.abs(delta) < 10) return;
+
+        if (delta > 0 && currentScrollY > 50 && !isBottomBarHidden.current) {
+            // Scrolling down - hide
+            isBottomBarHidden.current = true;
+            Animated.timing(bottomBarAnim, {
+                toValue: 100,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        } else if (delta < 0 && isBottomBarHidden.current) {
+            // Scrolling up - show
+            isBottomBarHidden.current = false;
+            Animated.timing(bottomBarAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+
+        lastScrollY.current = currentScrollY;
+    };
 
     const loadAvatarState = async () => {
         const state = await avatarService.getAvatarState();
@@ -329,10 +362,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 onMomentumScrollEnd={handleMomentumScrollEnd}
                 style={styles.horizontalScroll}
                 contentContainerStyle={{ width: screenWidth * 3 }}
+                directionalLockEnabled={true}
             >
                 {/* 1. Profile Tab (Left) */}
                 <View style={{ width: screenWidth }}>
-                    <AvatarScreen navigation={navigation} isTab={true} />
+                    <AvatarScreen navigation={navigation} isTab={true} onScroll={handleVerticalScroll} />
                 </View>
 
                 {/* 2. Work Tab (Middle) */}
@@ -341,6 +375,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         ref={scrollViewRef}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
+                        onScroll={handleVerticalScroll}
+                        scrollEventThrottle={16}
+                        directionalLockEnabled={true}
                     >
                         <View style={styles.topSpacing} />
                         <Text style={styles.greeting}>
@@ -371,7 +408,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 <View style={{ width: screenWidth }}>
                     <ScrollView
                         showsVerticalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollContent}
+                        contentContainerStyle={styles.dietScrollContent}
+                        onScroll={handleVerticalScroll}
+                        scrollEventThrottle={16}
+                        directionalLockEnabled={true}
                     >
                         <View style={styles.topSpacing} />
                         <Text style={styles.greeting}>
@@ -383,55 +423,60 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             </ScrollView>
 
             {/* Instagram-Style Bottom Navigation Bar */}
-            <BlurView intensity={isDark ? 70 : 80} tint={isDark ? "dark" : "light"} style={styles.bottomNavBar}>
-                {/* Profile Tab */}
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => handleTabPress('profile')}
-                    activeOpacity={0.6}
-                >
-                    {user?.photoURL ? (
-                        <View style={[styles.profileNavIcon, selectedTab === 'profile' && styles.profileNavIconActive]}>
-                            <Image source={{ uri: user.photoURL }} style={styles.profileNavImage} />
-                        </View>
-                    ) : (
+            <Animated.View style={[
+                styles.bottomNavBarContainer,
+                { transform: [{ translateY: bottomBarAnim }] }
+            ]}>
+                <BlurView intensity={isDark ? 70 : 80} tint={isDark ? "dark" : "light"} style={styles.bottomNavBar}>
+                    {/* Profile Tab */}
+                    <TouchableOpacity
+                        style={styles.navItem}
+                        onPress={() => handleTabPress('profile')}
+                        activeOpacity={0.6}
+                    >
+                        {user?.photoURL ? (
+                            <View style={[styles.profileNavIcon, selectedTab === 'profile' && styles.profileNavIconActive]}>
+                                <Image source={{ uri: user.photoURL }} style={styles.profileNavImage} />
+                            </View>
+                        ) : (
+                            <MaterialCommunityIcons
+                                name={selectedTab === 'profile' ? "account" : "account-outline"}
+                                size={28}
+                                color={selectedTab === 'profile' ? colors.primaryStart : colors.textTertiary}
+                            />
+                        )}
+                        <Text style={[styles.navText, selectedTab === 'profile' && styles.navTextActive]}>Profile</Text>
+                    </TouchableOpacity>
+
+                    {/* Work Tab */}
+                    <TouchableOpacity
+                        style={styles.navItem}
+                        onPress={() => handleTabPress('work')}
+                        activeOpacity={0.6}
+                    >
                         <MaterialCommunityIcons
-                            name={selectedTab === 'profile' ? "account" : "account-outline"}
+                            name={selectedTab === 'work' ? "dumbbell" : "dumbbell"}
                             size={28}
-                            color={selectedTab === 'profile' ? colors.primaryStart : colors.textTertiary}
+                            color={selectedTab === 'work' ? colors.primaryStart : colors.textTertiary}
                         />
-                    )}
-                    <Text style={[styles.navText, selectedTab === 'profile' && styles.navTextActive]}>Profile</Text>
-                </TouchableOpacity>
+                        <Text style={[styles.navText, selectedTab === 'work' && styles.navTextActive]}>Work</Text>
+                    </TouchableOpacity>
 
-                {/* Work Tab */}
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => handleTabPress('work')}
-                    activeOpacity={0.6}
-                >
-                    <MaterialCommunityIcons
-                        name={selectedTab === 'work' ? "dumbbell" : "dumbbell"}
-                        size={28}
-                        color={selectedTab === 'work' ? colors.primaryStart : colors.textTertiary}
-                    />
-                    <Text style={[styles.navText, selectedTab === 'work' && styles.navTextActive]}>Work</Text>
-                </TouchableOpacity>
-
-                {/* Diet Tab */}
-                <TouchableOpacity
-                    style={styles.navItem}
-                    onPress={() => handleTabPress('diet')}
-                    activeOpacity={0.6}
-                >
-                    <MaterialCommunityIcons
-                        name={selectedTab === 'diet' ? "food-apple" : "food-apple-outline"}
-                        size={28}
-                        color={selectedTab === 'diet' ? colors.primaryStart : colors.textTertiary}
-                    />
-                    <Text style={[styles.navText, selectedTab === 'diet' && styles.navTextActive]}>Diet</Text>
-                </TouchableOpacity>
-            </BlurView>
+                    {/* Diet Tab */}
+                    <TouchableOpacity
+                        style={styles.navItem}
+                        onPress={() => handleTabPress('diet')}
+                        activeOpacity={0.6}
+                    >
+                        <MaterialCommunityIcons
+                            name={selectedTab === 'diet' ? "food-apple" : "food-apple-outline"}
+                            size={28}
+                            color={selectedTab === 'diet' ? colors.primaryStart : colors.textTertiary}
+                        />
+                        <Text style={[styles.navText, selectedTab === 'diet' && styles.navTextActive]}>Diet</Text>
+                    </TouchableOpacity>
+                </BlurView>
+            </Animated.View>
         </LinearGradient >
     );
 }
@@ -441,7 +486,12 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         flex: 1,
     },
     scrollContent: {
-        padding: Spacing.l,
+        paddingHorizontal: Spacing.m,
+        paddingTop: 10,
+        paddingBottom: 100,
+    },
+    dietScrollContent: {
+        paddingHorizontal: Spacing.s,
         paddingTop: 10,
         paddingBottom: 100,
     },
@@ -453,15 +503,18 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
     },
 
     // Instagram-Style Bottom Navigation
-    bottomNavBar: {
+    bottomNavBarContainer: {
         position: 'absolute' as 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
+        zIndex: 100,
+    },
+    bottomNavBar: {
         flexDirection: 'row' as 'row',
         backgroundColor: isDark ? 'rgba(20,20,30,0.95)' : 'rgba(255,255,255,0.95)',
-        paddingBottom: 20,
-        paddingTop: 8,
+        paddingBottom: 6,
+        paddingTop: 3,
         borderTopWidth: 0.5,
         borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
         justifyContent: 'space-around' as 'space-around',

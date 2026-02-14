@@ -22,11 +22,11 @@ export class PlanGeneratorService {
         const safeProfile: UserProfile = {
             ...profile,
             progressSystem: profile.progressSystem || {
-                currentLevel: profile.level || 1,
-                currentXP: profile.xp || 0,
-                levelProgress: ((profile.xp || 0) % 1000) / 10,
-                totalWorkouts: profile.totalWorkouts || 0,
-                achievements: []
+                currentLevel: (profile as any).level || 1,
+                currentXP: (profile as any).xp || 0,
+                xpToNextLevel: 1000,
+                totalWorkoutsCompleted: (profile as any).totalWorkouts || 0,
+                unlockedExercises: []
             },
             fitnessProfile: profile.fitnessProfile || {
                 equipmentAccess: 'bodyweight',

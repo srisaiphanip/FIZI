@@ -261,48 +261,48 @@ class NutritionService {
      */
     getFoodSuggestions(goal: UserProfile['fitnessGoal']): DietPlan['foodSuggestions'] {
         const proteinFoods: FoodSuggestion[] = [
-            { category: 'protein', name: 'Chicken Breast', servingSize: '100g', calories: 165, protein: 31, carbs: 0, fats: 3.6, benefits: ['Lean protein', 'Low fat'] },
-            { category: 'protein', name: 'Greek Yogurt', servingSize: '150g', calories: 100, protein: 17, carbs: 6, fats: 0.4, benefits: ['Probiotics', 'Calcium'] },
-            { category: 'protein', name: 'Eggs', servingSize: '2 large', calories: 140, protein: 12, carbs: 1, fats: 10, benefits: ['Complete protein', 'Vitamin D'] },
-            { category: 'protein', name: 'Salmon', servingSize: '100g', calories: 208, protein: 20, carbs: 0, fats: 13, benefits: ['Omega-3', 'Vitamin B12'] },
-            { category: 'protein', name: 'Tofu', servingSize: '100g', calories: 76, protein: 8, carbs: 2, fats: 4.8, benefits: ['Plant-based', 'Iron'] },
-            { category: 'protein', name: 'Lentils', servingSize: '100g cooked', calories: 116, protein: 9, carbs: 20, fats: 0.4, benefits: ['Fiber', 'Plant protein'] },
-            { category: 'protein', name: 'Cottage Cheese', servingSize: '100g', calories: 98, protein: 11, carbs: 3.4, fats: 4.3, benefits: ['Casein protein', 'Low carb'] },
-            { category: 'protein', name: 'Turkey Breast', servingSize: '100g', calories: 135, protein: 30, carbs: 0, fats: 0.7, benefits: ['Very lean', 'Low calorie'] }
+            { category: 'protein', name: 'Chicken Breast', servingSize: '100g', calories: 165, protein: 31, carbs: 0, fats: 3.6, dietaryType: 'non-veg', benefits: ['Lean protein', 'Low fat'] },
+            { category: 'protein', name: 'Greek Yogurt', servingSize: '150g', calories: 100, protein: 17, carbs: 6, fats: 0.4, dietaryType: 'veg', benefits: ['Probiotics', 'Calcium'] },
+            { category: 'protein', name: 'Eggs', servingSize: '2 large', calories: 140, protein: 12, carbs: 1, fats: 10, dietaryType: 'veg', benefits: ['Complete protein', 'Vitamin D'] },
+            { category: 'protein', name: 'Salmon', servingSize: '100g', calories: 208, protein: 20, carbs: 0, fats: 13, dietaryType: 'non-veg', benefits: ['Omega-3', 'Vitamin B12'] },
+            { category: 'protein', name: 'Tofu', servingSize: '100g', calories: 76, protein: 8, carbs: 2, fats: 4.8, dietaryType: 'veg', benefits: ['Plant-based', 'Iron'] },
+            { category: 'protein', name: 'Lentils', servingSize: '100g cooked', calories: 116, protein: 9, carbs: 20, fats: 0.4, dietaryType: 'veg', benefits: ['Fiber', 'Plant protein'] },
+            { category: 'protein', name: 'Cottage Cheese', servingSize: '100g', calories: 98, protein: 11, carbs: 3.4, fats: 4.3, dietaryType: 'veg', benefits: ['Casein protein', 'Low carb'] },
+            { category: 'protein', name: 'Turkey Breast', servingSize: '100g', calories: 135, protein: 30, carbs: 0, fats: 0.7, dietaryType: 'non-veg', benefits: ['Very lean', 'Low calorie'] }
         ];
 
         const carbFoods: FoodSuggestion[] = [
-            { category: 'carbs', name: 'Brown Rice', servingSize: '100g cooked', calories: 112, protein: 2.6, carbs: 24, fats: 0.9, benefits: ['Fiber', 'B vitamins'] },
-            { category: 'carbs', name: 'Sweet Potato', servingSize: '100g', calories: 86, protein: 1.6, carbs: 20, fats: 0.1, benefits: ['Vitamin A', 'Fiber'] },
-            { category: 'carbs', name: 'Oats', servingSize: '40g dry', calories: 150, protein: 5, carbs: 27, fats: 3, benefits: ['Beta-glucan', 'Sustained energy'] },
-            { category: 'carbs', name: 'Quinoa', servingSize: '100g cooked', calories: 120, protein: 4.4, carbs: 21, fats: 1.9, benefits: ['Complete protein', 'Gluten-free'] },
-            { category: 'carbs', name: 'Whole Wheat Bread', servingSize: '2 slices', calories: 160, protein: 8, carbs: 28, fats: 2, benefits: ['Fiber', 'B vitamins'] },
-            { category: 'carbs', name: 'Banana', servingSize: '1 medium', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, benefits: ['Potassium', 'Quick energy'] },
-            { category: 'carbs', name: 'Pasta', servingSize: '100g cooked', calories: 131, protein: 5, carbs: 25, fats: 1.1, benefits: ['Energy', 'Easy to digest'] }
+            { category: 'carbs', name: 'Brown Rice', servingSize: '100g cooked', calories: 112, protein: 2.6, carbs: 24, fats: 0.9, dietaryType: 'both', benefits: ['Fiber', 'B vitamins'] },
+            { category: 'carbs', name: 'Sweet Potato', servingSize: '100g', calories: 86, protein: 1.6, carbs: 20, fats: 0.1, dietaryType: 'both', benefits: ['Vitamin A', 'Fiber'] },
+            { category: 'carbs', name: 'Oats', servingSize: '40g dry', calories: 150, protein: 5, carbs: 27, fats: 3, dietaryType: 'both', benefits: ['Beta-glucan', 'Sustained energy'] },
+            { category: 'carbs', name: 'Quinoa', servingSize: '100g cooked', calories: 120, protein: 4.4, carbs: 21, fats: 1.9, dietaryType: 'both', benefits: ['Complete protein', 'Gluten-free'] },
+            { category: 'carbs', name: 'Whole Wheat Bread', servingSize: '2 slices', calories: 160, protein: 8, carbs: 28, fats: 2, dietaryType: 'both', benefits: ['Fiber', 'B vitamins'] },
+            { category: 'carbs', name: 'Banana', servingSize: '1 medium', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, dietaryType: 'both', benefits: ['Potassium', 'Quick energy'] },
+            { category: 'carbs', name: 'Pasta', servingSize: '100g cooked', calories: 131, protein: 5, carbs: 25, fats: 1.1, dietaryType: 'both', benefits: ['Energy', 'Easy to digest'] }
         ];
 
         const fatFoods: FoodSuggestion[] = [
-            { category: 'fats', name: 'Avocado', servingSize: '½ medium', calories: 120, protein: 1.5, carbs: 6, fats: 11, benefits: ['Monounsaturated fats', 'Fiber'] },
-            { category: 'fats', name: 'Almonds', servingSize: '28g (23 almonds)', calories: 164, protein: 6, carbs: 6, fats: 14, benefits: ['Vitamin E', 'Magnesium'] },
-            { category: 'fats', name: 'Olive Oil', servingSize: '1 tbsp', calories: 119, protein: 0, carbs: 0, fats: 13.5, benefits: ['Heart healthy', 'Antioxidants'] },
-            { category: 'fats', name: 'Peanut Butter', servingSize: '2 tbsp', calories: 188, protein: 8, carbs: 7, fats: 16, benefits: ['Protein', 'Satisfying'] },
-            { category: 'fats', name: 'Chia Seeds', servingSize: '28g', calories: 138, protein: 4.7, carbs: 12, fats: 8.7, benefits: ['Omega-3', 'Fiber'] },
-            { category: 'fats', name: 'Walnuts', servingSize: '28g', calories: 185, protein: 4.3, carbs: 3.9, fats: 18.5, benefits: ['Brain health', 'Omega-3'] }
+            { category: 'fats', name: 'Avocado', servingSize: '½ medium', calories: 120, protein: 1.5, carbs: 6, fats: 11, dietaryType: 'both', benefits: ['Monounsaturated fats', 'Fiber'] },
+            { category: 'fats', name: 'Almonds', servingSize: '28g (23 almonds)', calories: 164, protein: 6, carbs: 6, fats: 14, dietaryType: 'both', benefits: ['Vitamin E', 'Magnesium'] },
+            { category: 'fats', name: 'Olive Oil', servingSize: '1 tbsp', calories: 119, protein: 0, carbs: 0, fats: 13.5, dietaryType: 'both', benefits: ['Heart healthy', 'Antioxidants'] },
+            { category: 'fats', name: 'Peanut Butter', servingSize: '2 tbsp', calories: 188, protein: 8, carbs: 7, fats: 16, dietaryType: 'both', benefits: ['Protein', 'Satisfying'] },
+            { category: 'fats', name: 'Chia Seeds', servingSize: '28g', calories: 138, protein: 4.7, carbs: 12, fats: 8.7, dietaryType: 'both', benefits: ['Omega-3', 'Fiber'] },
+            { category: 'fats', name: 'Walnuts', servingSize: '28g', calories: 185, protein: 4.3, carbs: 3.9, fats: 18.5, dietaryType: 'both', benefits: ['Brain health', 'Omega-3'] }
         ];
 
         const vegetables: FoodSuggestion[] = [
-            { category: 'vegetables', name: 'Broccoli', servingSize: '100g', calories: 34, protein: 2.8, carbs: 7, fats: 0.4, benefits: ['Vitamin C', 'Fiber'] },
-            { category: 'vegetables', name: 'Spinach', servingSize: '100g', calories: 23, protein: 2.9, carbs: 3.6, fats: 0.4, benefits: ['Iron', 'Vitamin K'] },
-            { category: 'vegetables', name: 'Bell Peppers', servingSize: '100g', calories: 31, protein: 1, carbs: 6, fats: 0.3, benefits: ['Vitamin C', 'Antioxidants'] },
-            { category: 'vegetables', name: 'Kale', servingSize: '100g', calories: 35, protein: 2.9, carbs: 4.4, fats: 1.5, benefits: ['Calcium', 'Vitamin A'] },
-            { category: 'vegetables', name: 'Carrots', servingSize: '100g', calories: 41, protein: 0.9, carbs: 10, fats: 0.2, benefits: ['Vitamin A', 'Beta-carotene'] }
+            { category: 'vegetables', name: 'Broccoli', servingSize: '100g', calories: 34, protein: 2.8, carbs: 7, fats: 0.4, dietaryType: 'both', benefits: ['Vitamin C', 'Fiber'] },
+            { category: 'vegetables', name: 'Spinach', servingSize: '100g', calories: 23, protein: 2.9, carbs: 3.6, fats: 0.4, dietaryType: 'both', benefits: ['Iron', 'Vitamin K'] },
+            { category: 'vegetables', name: 'Bell Peppers', servingSize: '100g', calories: 31, protein: 1, carbs: 6, fats: 0.3, dietaryType: 'both', benefits: ['Vitamin C', 'Antioxidants'] },
+            { category: 'vegetables', name: 'Kale', servingSize: '100g', calories: 35, protein: 2.9, carbs: 4.4, fats: 1.5, dietaryType: 'both', benefits: ['Calcium', 'Vitamin A'] },
+            { category: 'vegetables', name: 'Carrots', servingSize: '100g', calories: 41, protein: 0.9, carbs: 10, fats: 0.2, dietaryType: 'both', benefits: ['Vitamin A', 'Beta-carotene'] }
         ];
 
         const fruits: FoodSuggestion[] = [
-            { category: 'fruits', name: 'Apple', servingSize: '1 medium', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, benefits: ['Fiber', 'Vitamin C'] },
-            { category: 'fruits', name: 'Blueberries', servingSize: '100g', calories: 57, protein: 0.7, carbs: 14, fats: 0.3, benefits: ['Antioxidants', 'Low GI'] },
-            { category: 'fruits', name: 'Orange', servingSize: '1 medium', calories: 62, protein: 1.2, carbs: 15, fats: 0.2, benefits: ['Vitamin C', 'Hydrating'] },
-            { category: 'fruits', name: 'Berries Mix', servingSize: '100g', calories: 50, protein: 1, carbs: 12, fats: 0.3, benefits: ['Antioxidants', 'Low calorie'] }
+            { category: 'fruits', name: 'Apple', servingSize: '1 medium', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, dietaryType: 'both', benefits: ['Fiber', 'Vitamin C'] },
+            { category: 'fruits', name: 'Blueberries', servingSize: '100g', calories: 57, protein: 0.7, carbs: 14, fats: 0.3, dietaryType: 'both', benefits: ['Antioxidants', 'Low GI'] },
+            { category: 'fruits', name: 'Orange', servingSize: '1 medium', calories: 62, protein: 1.2, carbs: 15, fats: 0.2, dietaryType: 'both', benefits: ['Vitamin C', 'Hydrating'] },
+            { category: 'fruits', name: 'Berries Mix', servingSize: '100g', calories: 50, protein: 1, carbs: 12, fats: 0.3, dietaryType: 'both', benefits: ['Antioxidants', 'Low calorie'] }
         ];
 
         return {
