@@ -261,6 +261,7 @@ export interface UserProfile {
     updatedAt: Date;
     transformationPhotos: string[];
     pushToken?: string;
+    notificationsEnabled?: boolean;
 
     // Nutrition fields
     nutritionPreferences?: {

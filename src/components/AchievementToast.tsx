@@ -12,6 +12,7 @@ import {
     Animated,
     Dimensions,
 } from 'react-native';
+import { useTheme } from '../hooks/useTheme';
 
 interface AchievementToastProps {
     icon: string;
@@ -30,6 +31,9 @@ export default function AchievementToast({
     onDismiss,
     duration = 4000,
 }: AchievementToastProps) {
+    const { colors, shadows, isDark } = useTheme();
+    const styles = React.useMemo(() => createStyles(colors, shadows, isDark), [colors, shadows, isDark]);
+
     const translateY = useRef(new Animated.Value(-100)).current;
     const scale = useRef(new Animated.Value(0.8)).current;
     const opacity = useRef(new Animated.Value(0)).current;
@@ -102,29 +106,28 @@ export default function AchievementToast({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, shadows: any, isDark: boolean) => StyleSheet.create({
     container: {
         position: 'absolute',
         top: 50,
         left: 20,
         right: 20,
-        backgroundColor: 'rgba(255, 215, 0, 0.95)',
+        backgroundColor: isDark ? 'rgba(30, 30, 46, 0.95)' : 'rgba(255, 255, 255, 0.95)',
         borderRadius: 16,
         padding: 16,
         flexDirection: 'row',
         alignItems: 'center',
         zIndex: 1000,
-        shadowColor: '#FFD700',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 10,
+        borderWidth: 1,
+        borderColor: colors.accentWarning, // Keep the gold accent for achievements
+        ...shadows.glow, // Use app shadow
+        shadowColor: colors.accentWarning, // Override shadow color to gold
     },
     iconContainer: {
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        backgroundColor: 'rgba(250, 204, 21, 0.15)', // Light gold background for icon
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -136,14 +139,13 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     title: {
-        color: '#1A1F3D',
+        color: colors.textPrimary,
         fontSize: 16,
         fontWeight: 'bold',
     },
     description: {
-        color: '#1A1F3D',
+        color: colors.textSecondary,
         fontSize: 12,
-        opacity: 0.8,
         marginTop: 2,
     },
     sparkles: {

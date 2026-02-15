@@ -20,14 +20,19 @@ import {
     Linking,
     Share,
     NativeSyntheticEvent,
-    NativeScrollEvent
+    NativeScrollEvent,
+    Modal, // Added Modal
+    Switch // Added Switch
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
+import { RootState } from '../store'; // Added RootState import
 import { uploadPhoto, signOut, updateProfile, changePassword } from '../store/slices/authSlice';
+import { setAvatarScrollOffset } from '../store/slices/uiSlice';
 import { regenerateUserPlan, fetchCustomPlans, deleteCustomPlan, duplicatePlan, switchActivePlan, switchToAIPlan } from '../store/slices/workoutPlanSlice';
+import { toggleSetting } from '../store/slices/settingsSlice'; // Added toggleSetting import
 import { UserProfile } from '../types';
 import {
     avatarService,
@@ -65,8 +70,11 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     const dispatch = useAppDispatch();
     const { colors, gradients, shadows, isDark, toggleTheme } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
-    const { user, loading: authLoading } = useAppSelector((state) => state.auth);
+    const { user, loading: authLoading } = useAppSelector((state: RootState) => state.auth); // Modified to use RootState
+    const { notificationsEnabled } = useAppSelector((state: RootState) => state.settings); // Added settings state
     const { currentPlan, customPlans } = useAppSelector((state) => state.workoutPlan);
+    const { avatarScrollOffset } = useAppSelector((state) => state.ui);
+    const scrollViewRef = React.useRef<ScrollView>(null);
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
     const [loading, setLoading] = useState(true);
     const [showMetricsModal, setShowMetricsModal] = useState(false);
@@ -105,6 +113,15 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
             dispatch(fetchCustomPlans(user.uid));
         }
     }, []);
+
+    // Restore scroll position when loading finishes
+    useEffect(() => {
+        if (!loading && avatarScrollOffset > 0) {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollTo({ y: avatarScrollOffset, animated: false });
+            }, 50); // Reduced delay for snappier feel
+        }
+    }, [loading]);
 
     const loadAvatarState = async () => {
         setLoading(true);
@@ -304,6 +321,11 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
         );
     };
 
+    // Notification Settings Handlers
+    const handleToggleNotification = (value: boolean) => {
+        dispatch(toggleSetting({ key: 'notificationsEnabled', value }));
+    };
+
 
     const getAvatarEmoji = (level: number): string => {
         const levelData = AVATAR_LEVELS.find(l => l.level === level);
@@ -470,10 +492,19 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
             )}
 
             <ScrollView
+                ref={scrollViewRef}
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={isTab ? { paddingTop: 60, paddingBottom: 120 } : undefined}
-                onScroll={onScroll}
+                onScroll={(e) => {
+                    onScroll && onScroll(e);
+                }}
+                onMomentumScrollEnd={(e) => {
+                    dispatch(setAvatarScrollOffset(e.nativeEvent.contentOffset.y));
+                }}
+                onScrollEndDrag={(e) => {
+                    dispatch(setAvatarScrollOffset(e.nativeEvent.contentOffset.y));
+                }}
                 scrollEventThrottle={16}
                 directionalLockEnabled={true}
             >
@@ -1004,11 +1035,48 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     </TouchableOpacity>
                 </BlurView>
 
+                {/* Preference Section */}
+                <Text style={styles.sectionTitle}>Preferences</Text>
+                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
+                    {/* Notifications Toggle */}
+                    <TouchableOpacity
+                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        onPress={() => handleToggleNotification(!notificationsEnabled)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="bell" size={22} color={colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Notifications</Text>
+                        <View style={{
+                            width: 50,
+                            height: 30,
+                            borderRadius: 15,
+                            backgroundColor: notificationsEnabled ? colors.primaryStart : '#ddd',
+                            justifyContent: 'center',
+                            alignItems: notificationsEnabled ? 'flex-end' : 'flex-start',
+                            paddingHorizontal: 2
+                        }}>
+                            <View style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: 13,
+                                backgroundColor: '#FFF',
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 2.5,
+                                elevation: 2
+                            }} />
+                        </View>
+                    </TouchableOpacity>
+                </BlurView>
+
                 {/* Community Section */}
                 <Text style={styles.sectionTitle}>Community</Text>
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
                     <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        style={styles.menuItem}
                         onPress={handleShareApp}
                     >
                         <View style={styles.menuIconContainer}>
@@ -1017,11 +1085,35 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                         <Text style={styles.menuItemText}>Refer a Friend</Text>
                         <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
+
+                    {/* Rate App */}
+                    <TouchableOpacity
+                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
+                        onPress={() => Linking.openURL(Platform.OS === 'android' ? 'https://play.google.com/store/apps/details?id=com.maheshchalla.fizi' : 'https://apps.apple.com/app/idYOUR_APP_ID')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="star-outline" size={22} color={colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>Rate Our App</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                    </TouchableOpacity>
                 </BlurView>
 
                 {/* Support & Legal Section */}
                 <Text style={styles.sectionTitle}>Support & Legal</Text>
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
+                    {/* FAQ */}
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => navigation.navigate('FAQ')}
+                    >
+                        <View style={styles.menuIconContainer}>
+                            <MaterialCommunityIcons name="frequently-asked-questions" size={22} color={colors.textPrimary} />
+                        </View>
+                        <Text style={styles.menuItemText}>FAQ</Text>
+                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                    </TouchableOpacity>
+
                     {/* Privacy Policy */}
                     <TouchableOpacity
                         style={styles.menuItem}
@@ -1699,7 +1791,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                                                         <View style={styles.unlockedExercisesContainer}>
                                                             <Text style={styles.unlockedLabel}>Unlocks:</Text>
                                                             <View style={styles.unlockedList}>
-                                                                {levelExercises.map(ex => (
+                                                                {levelExercises.map((ex: any) => (
                                                                     <Text key={ex.id} style={styles.unlockedItem}>• {ex.displayName}</Text>
                                                                 ))}
                                                             </View>

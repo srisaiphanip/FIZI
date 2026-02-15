@@ -35,8 +35,18 @@ export function DietTab({ user }: DietTabProps) {
     const [takenSupplementIds, setTakenSupplementIds] = useState<string[]>([]);
     const [dietaryPreference, setDietaryPreference] = useState<'veg' | 'non-veg'>('non-veg');
     const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
+    const [waterDrank, setWaterDrank] = useState(0); // L consumed
 
-    // Weekly rotating recipes - one for each day
+    // Generate last 7 days for calendar strip
+    const weekDates = useMemo(() => {
+        const dates = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - 3 + i); // 3 days back, 3 days forward
+            dates.push(d);
+        }
+        return dates;
+    }, []);
     // Weekly rotating recipes - one for each day
     const weeklyRecipes = useMemo(() => [
         // Monday - Veg
@@ -388,14 +398,19 @@ export function DietTab({ user }: DietTabProps) {
 
                 <View style={styles.metabolicInfo}>
                     <View style={styles.metabolicItem}>
+                        <MaterialCommunityIcons name="fire" size={16} color={colors.textTertiary} style={{ marginBottom: 4 }} />
                         <Text style={styles.metabolicLabel}>BMR</Text>
                         <Text style={styles.metabolicValue}>{Math.round(nutritionProfile.bmr)}</Text>
                     </View>
+                    <View style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)' }} />
                     <View style={styles.metabolicItem}>
+                        <MaterialCommunityIcons name="run" size={16} color={colors.textTertiary} style={{ marginBottom: 4 }} />
                         <Text style={styles.metabolicLabel}>TDEE</Text>
                         <Text style={styles.metabolicValue}>{Math.round(nutritionProfile.tdee)}</Text>
                     </View>
+                    <View style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)' }} />
                     <View style={styles.metabolicItem}>
+                        <MaterialCommunityIcons name="water-outline" size={16} color={colors.textTertiary} style={{ marginBottom: 4 }} />
                         <Text style={styles.metabolicLabel}>Water</Text>
                         <Text style={styles.metabolicValue}>{nutritionProfile.waterIntake}L</Text>
                     </View>
@@ -450,20 +465,38 @@ export function DietTab({ user }: DietTabProps) {
                     const isSelected = selectedMealIndex === index;
 
                     // Get suggestion based on meal type and calories
-                    const getSuggestion = () => {
+                    const getSuggestionItems = () => {
                         const cals = meal.calories;
                         if (meal.id === 'breakfast') {
-                            if (dietaryPreference === 'veg') return `• Oats (${Math.round(cals / 4)}g) + Milk\n• 1 Banana + Almonds`;
-                            return `• ${Math.round(cals / 70)} Eggs + Toast\n• Greek Yogurt + Berries`;
+                            if (dietaryPreference === 'veg') return [
+                                { icon: 'barley', text: `Oats (${Math.round(cals / 4)}g) + Milk` },
+                                { icon: 'sprout', text: '1 Banana + Almonds' }
+                            ];
+                            return [
+                                { icon: 'egg', text: `${Math.round(cals / 70)} Eggs + Toast` },
+                                { icon: 'cup', text: 'Greek Yogurt + Berries' }
+                            ];
                         }
                         if (meal.id === 'lunch' || meal.id === 'dinner') {
-                            if (dietaryPreference === 'veg') return `• Tofu/Paneer (${Math.round(cals / 2.5)}g)\n• Rice/Quinoa + Veggies`;
-                            return `• Chicken Breast (${Math.round(cals / 1.5)}g)\n• Rice  + Veggies`;
+                            if (dietaryPreference === 'veg') return [
+                                { icon: 'cheese', text: `Tofu/Paneer (${Math.round(cals / 2.5)}g)` },
+                                { icon: 'bowl-mix', text: 'Rice/Quinoa + Veggies' } // Changed rice to bowl-mix
+                            ];
+                            return [
+                                { icon: 'food-drumstick', text: `Chicken Breast (${Math.round(cals / 1.5)}g)` },
+                                { icon: 'bowl-mix', text: 'Rice + Veggies' }
+                            ];
                         }
                         if (meal.id === 'snack' || meal.id === 'preworkout') {
-                            return `• 1 Apple + Peanut Butter\n• Whey Protein Shake`;
+                            return [
+                                { icon: 'food-apple', text: '1 Apple + Peanut Butter' }, // Changed fruit-apple to food-apple
+                                { icon: 'cup-water', text: 'Whey Protein Shake' }
+                            ];
                         }
-                        return `• Protein Shake\n• Handful of Nuts`;
+                        return [
+                            { icon: 'cup', text: 'Protein Shake' },
+                            { icon: 'peanut', text: 'Handful of Nuts' }
+                        ];
                     };
 
                     return (
@@ -497,8 +530,36 @@ export function DietTab({ user }: DietTabProps) {
 
                             {isSelected && (
                                 <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.glassBorder }}>
+                                    {/* Component: Macro Breakdown */}
+                                    {meal.macros && (
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 4 }}>
+                                            <View style={{ alignItems: 'center' }}>
+                                                <Text style={{ color: colors.accentCyan, fontSize: 12, fontWeight: '700' }}>{meal.macros.protein}g</Text>
+                                                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Protein</Text>
+                                            </View>
+                                            <View style={{ width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                            <View style={{ alignItems: 'center' }}>
+                                                <Text style={{ color: colors.accentYellow, fontSize: 12, fontWeight: '700' }}>{meal.macros.carbs}g</Text>
+                                                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Carbs</Text>
+                                            </View>
+                                            <View style={{ width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                                            <View style={{ alignItems: 'center' }}>
+                                                <Text style={{ color: '#FF6B6B', fontSize: 12, fontWeight: '700' }}>{meal.macros.fats}g</Text>
+                                                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Fats</Text>
+                                            </View>
+                                        </View>
+                                    )}
+
+                                    {/* Component: Structured Suggestions */}
                                     <Text style={{ fontSize: 11, color: colors.accentCyan, fontWeight: '800', marginBottom: 8, letterSpacing: 1 }}>SUGGESTED MEAL</Text>
-                                    <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20, fontWeight: '500' }}>{getSuggestion()}</Text>
+                                    <View>
+                                        {getSuggestionItems().map((item, idx) => (
+                                            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                                                <MaterialCommunityIcons name={item.icon as any} size={14} color={colors.textSecondary} style={{ marginRight: 8, opacity: 0.8 }} />
+                                                <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20, fontWeight: '500' }}>{item.text}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
                                 </View>
                             )}
                         </TouchableOpacity>
@@ -677,46 +738,65 @@ export function DietTab({ user }: DietTabProps) {
                 <BlurView intensity={100} tint={isDark ? "dark" : "light"} style={styles.modalContainer}>
                     {selectedRecipe && (
                         <View style={{ flex: 1 }}>
-                            <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-                                <Image source={{ uri: selectedRecipe.image }} style={styles.modalImage} />
-                                <TouchableOpacity
-                                    style={styles.closeButton}
-                                    onPress={() => setSelectedRecipe(null)}
-                                >
-                                    <MaterialCommunityIcons name="close" size={24} color="#FFF" />
-                                </TouchableOpacity>
+                            <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+                                <View>
+                                    <Image source={{ uri: selectedRecipe.image }} style={styles.modalImage} />
+                                    <LinearGradient
+                                        colors={['transparent', 'rgba(0,0,0,0.8)']}
+                                        style={styles.modalImageGradient}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.closeButton}
+                                        onPress={() => setSelectedRecipe(null)}
+                                    >
+                                        <MaterialCommunityIcons name="close" size={24} color="#FFF" />
+                                    </TouchableOpacity>
+                                    <View style={styles.modalTitleContainer}>
+                                        <Text style={styles.modalTitle}>{selectedRecipe.title}</Text>
+                                    </View>
+                                </View>
 
                                 <View style={styles.modalContent}>
-                                    <View style={styles.modalHeader}>
-                                        <Text style={styles.modalTitle}>{selectedRecipe.title}</Text>
-                                        <View style={styles.modalMetaRow}>
-                                            <View style={styles.modalMetaItem}>
-                                                <MaterialCommunityIcons name="fire" size={16} color={colors.accentWarning} />
-                                                <Text style={styles.modalMetaText}>{selectedRecipe.calories} kcal</Text>
+                                    <View style={styles.modalMetaRow}>
+                                        <View style={styles.modalMetaBadge}>
+                                            <MaterialCommunityIcons name="fire" size={16} color={colors.accentWarning} />
+                                            <Text style={styles.modalMetaText}>{selectedRecipe.calories} kcal</Text>
+                                        </View>
+                                        <View style={styles.modalMetaBadge}>
+                                            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.accentCyan} />
+                                            <Text style={styles.modalMetaText}>{selectedRecipe.time}</Text>
+                                        </View>
+                                        <View style={styles.modalMetaBadge}>
+                                            <MaterialCommunityIcons name="chef-hat" size={16} color={colors.accentPink} />
+                                            <Text style={styles.modalMetaText}>{selectedRecipe.difficulty}</Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Macro Breakdown Badge */}
+                                    {selectedRecipe.macros && (
+                                        <View style={styles.modalMacros}>
+                                            <View style={styles.macroBadgeItem}>
+                                                <Text style={[styles.macroBadgeLabel, { color: colors.accentPink }]}>Protein</Text>
+                                                <Text style={styles.macroBadgeValue}>{selectedRecipe.macros.protein}g</Text>
                                             </View>
-                                            <View style={styles.modalMetaItem}>
-                                                <MaterialCommunityIcons name="clock-outline" size={16} color={colors.accentCyan} />
-                                                <Text style={styles.modalMetaText}>{selectedRecipe.time}</Text>
+                                            <View style={styles.verticalDivider} />
+                                            <View style={styles.macroBadgeItem}>
+                                                <Text style={[styles.macroBadgeLabel, { color: colors.accentCyan }]}>Carbs</Text>
+                                                <Text style={styles.macroBadgeValue}>{selectedRecipe.macros.carbs}g</Text>
                                             </View>
-                                            <View style={styles.modalMetaItem}>
-                                                <MaterialCommunityIcons name="chef-hat" size={16} color={colors.accentPink} />
-                                                <Text style={styles.modalMetaText}>{selectedRecipe.difficulty}</Text>
+                                            <View style={styles.verticalDivider} />
+                                            <View style={styles.macroBadgeItem}>
+                                                <Text style={[styles.macroBadgeLabel, { color: colors.accentYellow }]}>Fats</Text>
+                                                <Text style={styles.macroBadgeValue}>{selectedRecipe.macros.fats}g</Text>
                                             </View>
                                         </View>
-
-                                        {/* Macro Breakdown Badge */}
-                                        {selectedRecipe.macros && (
-                                            <View style={styles.modalMacros}>
-                                                <Text style={styles.modalMacroText}><Text style={{ color: colors.accentPink }}>P: {selectedRecipe.macros.protein}g</Text>  •  <Text style={{ color: colors.accentCyan }}>C: {selectedRecipe.macros.carbs}g</Text>  •  <Text style={{ color: colors.accentYellow }}>F: {selectedRecipe.macros.fats}g</Text></Text>
-                                            </View>
-                                        )}
-                                    </View>
+                                    )}
 
                                     <View style={styles.modalSection}>
                                         <Text style={styles.modalSectionTitle}>Ingredients</Text>
                                         {selectedRecipe.ingredients?.map((ing: string, i: number) => (
                                             <View key={i} style={styles.ingredientRow}>
-                                                <View style={styles.bulletPoint} />
+                                                <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.accentCyan} style={{ marginRight: 12, opacity: 0.8 }} />
                                                 <Text style={styles.ingredientText}>{ing}</Text>
                                             </View>
                                         ))}
@@ -725,8 +805,10 @@ export function DietTab({ user }: DietTabProps) {
                                     <View style={styles.modalSection}>
                                         <Text style={styles.modalSectionTitle}>Instructions</Text>
                                         {selectedRecipe.instructions?.map((inst: string, i: number) => (
-                                            <View key={i} style={styles.instructionRow}>
-                                                <Text style={styles.instructionNumber}>{i + 1}</Text>
+                                            <View key={i} style={styles.instructionCard}>
+                                                <View style={styles.instructionNumberContainer}>
+                                                    <Text style={styles.instructionNumber}>{i + 1}</Text>
+                                                </View>
                                                 <Text style={styles.instructionText}>{inst}</Text>
                                             </View>
                                         ))}
@@ -812,7 +894,8 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         borderRadius: Layout.borderRadius.xl,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)',
         ...shadows.card,
     },
     calorieHeaderRow: {
@@ -876,9 +959,14 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         flexDirection: 'row',
         justifyContent: 'space-around',
         marginTop: Spacing.l,
-        paddingTop: Spacing.s,
+        paddingTop: Spacing.l,
         borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.05)',
+        borderTopColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        marginHorizontal: -Spacing.l,
+        paddingHorizontal: Spacing.l,
+        marginBottom: -Spacing.l,
+        paddingBottom: Spacing.l,
     },
     metabolicItem: {
         alignItems: 'center',
@@ -1253,7 +1341,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
     },
     modalContent: {
         flex: 1,
-        marginTop: -40,
+        marginTop: -30,
         backgroundColor: isDark ? '#121212' : '#FFFFFF',
         borderTopLeftRadius: 30,
         borderTopRightRadius: 30,
@@ -1266,16 +1354,20 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         alignItems: 'center',
     },
     modalTitle: {
-        fontSize: 24,
+        fontSize: 28, // increased
         fontWeight: '800',
-        color: colors.textPrimary,
-        textAlign: 'center',
+        color: '#FFF', // Always white on image
+        textAlign: 'left',
         marginBottom: Spacing.m,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     modalMetaRow: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        marginBottom: Spacing.m,
+        justifyContent: 'space-between',
+        marginBottom: Spacing.s, // Reduced from xl
+        marginTop: Spacing.s,
     },
     modalMetaItem: {
         flexDirection: 'row',
@@ -1289,12 +1381,16 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         marginLeft: 6,
     },
     modalMacros: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
         backgroundColor: 'rgba(255,255,255,0.05)',
         paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
+        paddingVertical: 12,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.1)',
+        marginTop: 0, // Removed extra margin
     },
     modalMacroText: {
         fontSize: 12,
@@ -1327,22 +1423,77 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         color: colors.textSecondary,
         lineHeight: 22,
     },
-    instructionRow: {
-        flexDirection: 'row',
-        marginBottom: 16,
-    },
-    instructionNumber: {
-        fontSize: 14,
-        fontWeight: '900',
-        color: colors.accentCyan,
-        width: 24,
-        marginRight: 8,
-        marginTop: 2,
-    },
+
     instructionText: {
         fontSize: 15,
         color: colors.textSecondary,
         lineHeight: 24,
         flex: 1,
+    },
+    modalImageGradient: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 150,
+    },
+    modalTitleContainer: {
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        right: 20,
+    },
+    modalMetaBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    macroBadgeItem: {
+        alignItems: 'center',
+        paddingHorizontal: 12,
+    },
+    macroBadgeLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        marginBottom: 2,
+    },
+    macroBadgeValue: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: colors.textPrimary,
+    },
+    verticalDivider: {
+        width: 1,
+        height: 24,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    instructionCard: {
+        flexDirection: 'row',
+        padding: 16,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 16,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    instructionNumberContainer: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: colors.accentCyan,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+        marginTop: 2,
+    },
+    instructionNumber: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#000', // Black text on Cyan background
     },
 });

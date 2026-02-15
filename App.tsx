@@ -27,10 +27,11 @@ import CustomPlanBuilderScreen from './src/screens/CustomPlanBuilderScreen';
 
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
+import FAQScreen from './src/screens/FAQScreen';
 import { notificationService } from './src/services/NotificationService';
 import * as Notifications from 'expo-notifications';
 
-export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder';
+export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder' | 'FAQ';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -47,6 +48,7 @@ export interface NavigationParams {
 
 
 import { loadTheme } from './src/store/slices/themeSlice';
+import { loadSettings } from './src/store/slices/settingsSlice';
 import { useTheme } from './src/hooks/useTheme';
 
 function AppContent() {
@@ -89,9 +91,10 @@ function AppContent() {
     }
   }, [isAuthenticated, user?.uid]);
 
-  // Load saved theme on mount
+  // Load saved theme and settings on mount
   useEffect(() => {
     dispatch(loadTheme());
+    dispatch(loadSettings());
   }, []);
 
   // Check onboarding status on mount
@@ -263,6 +266,8 @@ function AppContent() {
         return <DataUsageScreen navigation={navigation} />;
       case 'CustomPlanBuilder':
         return <CustomPlanBuilderScreen navigation={navigation} route={{ params: navigation.params }} />;
+      case 'FAQ':
+        return <FAQScreen navigation={navigation} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Colors, Spacing, Shadows } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface LevelUpModalProps {
     visible: boolean;
@@ -18,6 +19,9 @@ export default function LevelUpModal({
     unlockedExercises = [],
     onClose
 }: LevelUpModalProps) {
+    const { colors, shadows, isDark } = useTheme();
+    const styles = React.useMemo(() => createStyles(colors, shadows), [colors, shadows]);
+
     const scaleAnim = useRef(new Animated.Value(0)).current;
     const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -80,7 +84,7 @@ export default function LevelUpModal({
                             <MaterialCommunityIcons
                                 name="trophy"
                                 size={64}
-                                color={Colors.textPrimary}
+                                color="#FFFFFF" // Keep trophy white on gradient
                             />
                         </Animated.View>
 
@@ -97,7 +101,7 @@ export default function LevelUpModal({
                                         <MaterialCommunityIcons
                                             name="chevron-right"
                                             size={16}
-                                            color={Colors.textPrimary}
+                                            color="#FFFFFF"
                                         />
                                         <Text style={styles.exerciseName}>{exercise}</Text>
                                     </View>
@@ -125,7 +129,7 @@ export default function LevelUpModal({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, shadows: any) => StyleSheet.create({
     backdrop: {
         flex: 1,
         justifyContent: 'center',
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
         maxWidth: 400,
         borderRadius: 24,
         overflow: 'hidden',
-        ...Shadows.card,
+        ...shadows.card,
     },
     gradient: {
         padding: Spacing.xxl,
@@ -149,14 +153,14 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: '#FFFFFF', // Text on gradient
         marginBottom: Spacing.s,
         textAlign: 'center',
     },
     levelText: {
         fontSize: 18,
         fontWeight: '600',
-        color: Colors.textPrimary,
+        color: '#FFFFFF', // Text on gradient
         marginBottom: Spacing.xl,
         textAlign: 'center',
     },
@@ -170,7 +174,7 @@ const styles = StyleSheet.create({
     unlockedTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         marginBottom: Spacing.s,
     },
     exerciseItem: {
@@ -180,12 +184,12 @@ const styles = StyleSheet.create({
     },
     exerciseName: {
         fontSize: 14,
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         marginLeft: Spacing.xs,
     },
     encouragement: {
         fontSize: 14,
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         textAlign: 'center',
         marginBottom: Spacing.xl,
         opacity: 0.9,
@@ -196,12 +200,12 @@ const styles = StyleSheet.create({
         paddingVertical: Spacing.m,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: Colors.textPrimary,
+        borderColor: '#FFFFFF',
     },
     buttonText: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: '#FFFFFF',
         letterSpacing: 1,
     },
 });

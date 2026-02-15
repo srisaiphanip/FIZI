@@ -62,6 +62,7 @@ class AuthService {
                 level: 1,
                 xp: 0,
                 totalWorkouts: 0,
+                notificationsEnabled: true,
             };
 
             // Add photoURL only if it exists
@@ -186,6 +187,7 @@ class AuthService {
                     level: data.level || 1,
                     xp: data.xp || 0,
                     totalWorkouts: data.totalWorkouts || 0,
+                    notificationsEnabled: data.notificationsEnabled !== undefined ? data.notificationsEnabled : true,
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
                     updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
                 };
@@ -249,6 +251,24 @@ class AuthService {
             });
         } catch (error) {
             console.error('Error updating push token:', error);
+        }
+    }
+
+    /**
+     * Update user's notification preference in Firestore
+     */
+    async updateNotificationPreference(enabled: boolean): Promise<void> {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const docRef = doc(db, 'users', user.uid);
+            await updateDoc(docRef, {
+                notificationsEnabled: enabled,
+                updatedAt: serverTimestamp(),
+            });
+        } catch (error) {
+            console.error('Error updating notification preference:', error);
         }
     }
 

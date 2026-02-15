@@ -7,6 +7,7 @@ import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { fetchWorkoutStats } from '../store/slices/workoutSlice';
 import { fetchWorkoutPlan, fetchCustomPlans } from '../store/slices/workoutPlanSlice';
+import { setActiveHomeTab, setWorkScrollOffset, setDietScrollOffset } from '../store/slices/uiSlice';
 import MotivationalTip from '../components/MotivationalTip';
 import { Spacing, Shadows, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
@@ -36,11 +37,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const { user } = useAppSelector((state) => state.auth);
     const { stats } = useAppSelector((state) => state.workout);
     const { currentPlan, customPlans, todaysWorkout, recoveryStatus, loading: planLoading } = useAppSelector((state) => state.workoutPlan);
+    const { activeHomeTab, workScrollOffset, dietScrollOffset } = useAppSelector((state) => state.ui);
     const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
     const scrollViewRef = React.useRef<ScrollView>(null);
     const scheduleLayoutY = React.useRef<number>(0);
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
-    const [selectedTab, setSelectedTab] = useState<'profile' | 'work' | 'diet'>('work');
+
+    // Derived selectedTab from Redux
+    const selectedTab = activeHomeTab;
+    const setSelectedTab = (tab: 'profile' | 'work' | 'diet') => dispatch(setActiveHomeTab(tab));
+
     const horizontalScrollRef = React.useRef<ScrollView>(null);
     const screenWidth = Dimensions.get('window').width;
 
@@ -104,12 +110,23 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         }
     }, [dispatch, user?.uid]);
 
-    // Set initial scroll position to 'work' tab
+    // Set initial scroll position based on persisted tab
     useEffect(() => {
+        const tabs: ('profile' | 'work' | 'diet')[] = ['profile', 'work', 'diet'];
+        const index = tabs.indexOf(activeHomeTab);
         setTimeout(() => {
-            horizontalScrollRef.current?.scrollTo({ x: screenWidth, animated: false });
+            horizontalScrollRef.current?.scrollTo({ x: index * screenWidth, animated: false });
         }, 100);
-    }, []);
+    }, []); // Only run on mount, relies on persisted activeHomeTab
+
+    // Restore Work Tab Scroll Position
+    useEffect(() => {
+        if (selectedTab === 'work' && workScrollOffset > 0) {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollTo({ y: workScrollOffset, animated: false });
+            }, 100);
+        }
+    }, [selectedTab]);
 
     const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -375,7 +392,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         ref={scrollViewRef}
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.scrollContent}
-                        onScroll={handleVerticalScroll}
+                        onScroll={(e) => {
+                            handleVerticalScroll(e);
+                            // Debounce or just save on momentum end could be better for perf, but simple set for now
+                        }}
+                        onMomentumScrollEnd={(e) => {
+                            dispatch(setWorkScrollOffset(e.nativeEvent.contentOffset.y));
+                        }}
+                        onScrollEndDrag={(e) => {
+                            dispatch(setWorkScrollOffset(e.nativeEvent.contentOffset.y));
+                        }}
                         scrollEventThrottle={16}
                         directionalLockEnabled={true}
                     >
@@ -409,7 +435,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.dietScrollContent}
-                        onScroll={handleVerticalScroll}
+                        onScroll={(e) => {
+                            handleVerticalScroll(e);
+                        }}
+                        onMomentumScrollEnd={(e) => {
+                            dispatch(setDietScrollOffset(e.nativeEvent.contentOffset.y));
+                        }}
+                        onScrollEndDrag={(e) => {
+                            dispatch(setDietScrollOffset(e.nativeEvent.contentOffset.y));
+                        }}
+                        // Initial scroll is tricky for non-ref'd views or conditional rendering
+                        // For DietTab specifically, we might need a ref if we want to restore its position too
+                        // For now adding listener
                         scrollEventThrottle={16}
                         directionalLockEnabled={true}
                     >

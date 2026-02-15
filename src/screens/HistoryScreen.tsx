@@ -19,6 +19,7 @@ import {
     fetchWorkoutStats,
     fetchPersonalBests
 } from '../store/slices/workoutSlice';
+import { setHistoryScrollOffset } from '../store/slices/uiSlice';
 import { workoutService } from '../services/WorkoutService';
 import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
@@ -34,6 +35,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const { history, stats, personalBests, loading, error } = useAppSelector(
         (state) => state.workout
     );
+    const { historyScrollOffset } = useAppSelector((state) => state.ui);
+    const scrollViewRef = React.useRef<ScrollView>(null);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'all'>('week');
     const [weeklyStats, setWeeklyStats] = useState<{ date: string; calories: number; duration: number }[]>([]);
@@ -42,7 +45,13 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
     useEffect(() => {
         loadData();
-    }, [selectedPeriod, graphPeriod]);
+        // Restore scroll position
+        if (historyScrollOffset > 0) {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollTo({ y: historyScrollOffset, animated: false });
+            }, 100);
+        }
+    }, []);
 
     const loadData = async () => {
         try {
@@ -103,10 +112,18 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
             </View>
 
             <ScrollView
+                ref={scrollViewRef}
                 style={styles.content}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryStart} />
                 }
+                onMomentumScrollEnd={(e) => {
+                    dispatch(setHistoryScrollOffset(e.nativeEvent.contentOffset.y));
+                }}
+                onScrollEndDrag={(e) => {
+                    dispatch(setHistoryScrollOffset(e.nativeEvent.contentOffset.y));
+                }}
+                scrollEventThrottle={16}
             >
                 {/* Weekly Activity Graph */}
                 <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.graphCard}>

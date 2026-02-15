@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Gradients, Spacing, Layout, Shadows } from '../theme/Theme';
+import { useTheme } from '../hooks/useTheme';
 
 interface CustomAlertButton {
     text: string;
@@ -36,6 +37,8 @@ export default function CustomAlert({
     buttons,
     onDismiss,
 }: CustomAlertProps) {
+    const { colors, gradients, shadows, isDark } = useTheme();
+    const styles = React.useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -73,14 +76,14 @@ export default function CustomAlert({
     const getIconConfig = () => {
         switch (type) {
             case 'error':
-                return { name: 'alert-circle', color: Colors.accentError };
+                return { name: 'alert-circle', color: colors.accentError };
             case 'success':
-                return { name: 'check-circle', color: Colors.accentSuccess };
+                return { name: 'check-circle', color: colors.accentSuccess };
             case 'warning':
                 return { name: 'alert', color: '#FFB800' };
             case 'info':
             default:
-                return { name: 'information', color: Colors.accentCyan };
+                return { name: 'information', color: colors.accentCyan };
         }
     };
 
@@ -105,7 +108,7 @@ export default function CustomAlert({
                                 },
                             ]}
                         >
-                            <BlurView intensity={30} tint="dark" style={styles.alertCard}>
+                            <BlurView intensity={30} tint={isDark ? "dark" : "light"} style={styles.alertCard}>
                                 {/* Icon */}
                                 <View style={styles.iconContainer}>
                                     <MaterialCommunityIcons
@@ -141,7 +144,7 @@ export default function CustomAlert({
                                                 </View>
                                             ) : (
                                                 <LinearGradient
-                                                    colors={Gradients.primary}
+                                                    colors={gradients.primary}
                                                     start={{ x: 0, y: 0 }}
                                                     end={{ x: 1, y: 1 }}
                                                     style={styles.primaryButton}
@@ -163,7 +166,7 @@ export default function CustomAlert({
     );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: any, shadows: any) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -179,8 +182,8 @@ const styles = StyleSheet.create({
         borderRadius: Layout.borderRadius.l,
         padding: Spacing.xl,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: Colors.backgroundLight,
+        borderColor: colors.glassBorder,
+        backgroundColor: colors.cardSurface, // Use cardSurface for better contrast
         overflow: 'hidden',
     },
     iconContainer: {
@@ -190,13 +193,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: 'bold',
-        color: Colors.textPrimary,
+        color: colors.textPrimary,
         textAlign: 'center',
         marginBottom: Spacing.s,
     },
     message: {
         fontSize: 16,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         textAlign: 'center',
         marginBottom: Spacing.xl,
         lineHeight: 24,
@@ -211,10 +214,10 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         borderRadius: Layout.borderRadius.m,
         alignItems: 'center',
-        ...Shadows.glow,
+        ...shadows.glow,
     },
     primaryButtonText: {
-        color: Colors.textPrimary,
+        color: '#FFFFFF', // Keep white for primary button usually
         fontSize: 16,
         fontWeight: 'bold',
     },
@@ -222,12 +225,12 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         borderRadius: Layout.borderRadius.m,
         alignItems: 'center',
-        backgroundColor: Colors.glassSurface,
+        backgroundColor: colors.glassSurface,
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
+        borderColor: colors.glassBorder,
     },
     cancelButtonText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 16,
         fontWeight: '600',
     },

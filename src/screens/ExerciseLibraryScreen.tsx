@@ -8,10 +8,11 @@ import {
     Image,
     TextInput
 } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { RootState } from '../store';
+import { setExerciseLibraryScrollOffset } from '../store/slices/uiSlice';
 import { exercises } from '../models/exercises';
 import { Spacing, Layout, Shadows, ThemeColorsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
@@ -24,7 +25,11 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
     const { colors, gradients, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const { user } = useSelector((state: RootState) => state.auth);
+    const { exerciseLibraryScrollOffset } = useSelector((state: RootState) => state.ui);
+    const dispatch = useDispatch();
+    const startDate = React.useRef(Date.now());
     const [searchQuery, setSearchQuery] = useState('');
+    const scrollViewRef = React.useRef<ScrollView>(null);
     const [selectedCategory, setSelectedCategory] = useState<'all' | 'chest' | 'legs' | 'back' | 'abs' | 'arms'>('all');
 
     const userLevel = user?.progressSystem?.currentLevel || 1;
@@ -37,6 +42,15 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
             return matchesSearch && matchesCategory;
         }).sort((a, b) => a.unlockLevel - b.unlockLevel);
     }, [searchQuery, selectedCategory]);
+
+    // Restore scroll position
+    React.useEffect(() => {
+        if (exerciseLibraryScrollOffset > 0) {
+            setTimeout(() => {
+                scrollViewRef.current?.scrollTo({ y: exerciseLibraryScrollOffset, animated: false });
+            }, 100);
+        }
+    }, []);
 
     const categories = [
         { id: 'all', label: 'All', icon: '🔍' },
@@ -88,7 +102,18 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
                 ))}
             </ScrollView>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                ref={scrollViewRef}
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => {
+                    dispatch(setExerciseLibraryScrollOffset(e.nativeEvent.contentOffset.y));
+                }}
+                onScrollEndDrag={(e) => {
+                    dispatch(setExerciseLibraryScrollOffset(e.nativeEvent.contentOffset.y));
+                }}
+                scrollEventThrottle={16}
+            >
                 <View style={styles.grid}>
                     {filteredExercises.map(ex => {
                         const isUnlocked = ex.unlockLevel <= userLevel;
