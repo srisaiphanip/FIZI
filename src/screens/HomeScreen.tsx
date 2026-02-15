@@ -22,6 +22,7 @@ import { WeeklySchedule } from '../components/home/WeeklySchedule';
 import { getSimplifiedFocus } from '../utils/workoutUtils';
 import { WorkTab } from '../components/home/WorkTab';
 import { DietTab } from '../components/home/DietTab';
+import { PremiumGate } from '../components/PremiumGate';
 
 
 interface HomeScreenProps {
@@ -454,7 +455,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         <Text style={styles.greeting}>
                             HELLO, {(user?.displayName || 'CHAMPION').toUpperCase()}!
                         </Text>
-                        <DietTab user={user} />
+                        <PremiumGate featureName="Smart Diet" navigation={navigation}>
+                            <DietTab user={user} />
+                        </PremiumGate>
                     </ScrollView>
                 </View>
             </ScrollView>

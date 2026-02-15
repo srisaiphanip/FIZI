@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Spacing, Shadows, Layout, ThemeColorsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
+import { PremiumGate } from '../components/PremiumGate';
 import { getExerciseById } from '../models/exercises';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { saveWorkout } from '../store/slices/workoutSlice';
@@ -236,26 +237,51 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
             {/* Footer with Actions */}
             <View style={styles.footer}>
-                <TouchableOpacity
-                    onPress={handleStart}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient
-                        colors={gradients.primary}
-                        style={styles.startButton}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
+                {exercise.trackingMode === 'ai_reps' || exercise.trackingMode === 'ai_timer' ? (
+                    <PremiumGate
+                        featureName="AI Form Tracking"
+                        navigation={navigation}
+                        lockType="overlay"
                     >
-                        <MaterialCommunityIcons
-                            name={exercise.trackingMode === 'timer_only' ? 'timer-play-outline' : 'play-circle-outline'}
-                            size={28}
-                            color="white"
-                        />
-                        <Text style={styles.startButtonText}>
-                            {exercise.trackingMode === 'timer_only' ? 'Start Timer' : 'Start Exercise'}
-                        </Text>
-                    </LinearGradient>
-                </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={handleStart}
+                            activeOpacity={0.8}
+                        >
+                            <LinearGradient
+                                colors={gradients.primary}
+                                style={styles.startButton}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                            >
+                                <MaterialCommunityIcons
+                                    name="play-circle-outline"
+                                    size={28}
+                                    color="white"
+                                />
+                                <Text style={styles.startButtonText}>Start Exercise</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </PremiumGate>
+                ) : (
+                    <TouchableOpacity
+                        onPress={handleStart}
+                        activeOpacity={0.8}
+                    >
+                        <LinearGradient
+                            colors={gradients.primary}
+                            style={styles.startButton}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        >
+                            <MaterialCommunityIcons
+                                name="timer-play-outline"
+                                size={28}
+                                color="white"
+                            />
+                            <Text style={styles.startButtonText}>Start Timer</Text>
+                        </LinearGradient>
+                    </TouchableOpacity>
+                )}
 
 
                 {/* Skip button for all exercises */}

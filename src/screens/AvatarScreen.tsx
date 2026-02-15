@@ -45,6 +45,7 @@ import { exercises } from '../models/exercises'; // Import exercises data
 import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { PremiumGate } from '../components/PremiumGate';
 
 const COMMON_HEALTH_ISSUES = [
     'knee_pain', 'lower_back_pain', 'shoulder_injury', 'wrist_pain',
@@ -929,56 +930,58 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                 </BlurView>
 
                 {/* Body Metrics */}
-                <BlurView intensity={15} tint={isDark ? "light" : "dark"} style={styles.metricsCard}>
-                    <View style={styles.metricsHeader}>
-                        <Text style={styles.sectionTitle}>Body Metrics</Text>
-                        <TouchableOpacity onPress={() => setShowMetricsModal(true)}>
-                            <Text style={styles.editButton}>Edit</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {
-                        avatarState.bodyMetrics.startWeight ? (
-                            <View style={styles.metricsContent}>
-                                <View style={styles.metricItem}>
-                                    <Text style={styles.metricLabel}>Start</Text>
-                                    <Text style={styles.metricValue}>
-                                        {avatarState.bodyMetrics.startWeight} <Text style={styles.unit}>kg</Text>
-                                    </Text>
-                                </View>
-                                <View style={styles.metricArrow}>
-                                    <Text style={styles.arrowText}>→</Text>
-                                </View>
-                                <View style={styles.metricItem}>
-                                    <Text style={styles.metricLabel}>Current</Text>
-                                    <Text style={styles.metricValue}>
-                                        {avatarState.bodyMetrics.currentWeight || '--'} <Text style={styles.unit}>kg</Text>
-                                    </Text>
-                                </View>
-                                {avatarState.bodyMetrics.goalWeight && (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <View style={styles.metricArrow}>
-                                            <Text style={styles.arrowText}>→</Text>
-                                        </View>
-                                        <View style={styles.metricItem}>
-                                            <Text style={styles.metricLabel}>Goal</Text>
-                                            <Text style={[styles.metricValue, styles.goalValue]}>
-                                                {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
-                                            </Text>
-                                        </View>
-                                    </View>
-                                )}
-                            </View>
-                        ) : (
-                            <TouchableOpacity
-                                style={styles.addMetricsButton}
-                                onPress={() => setShowMetricsModal(true)}
-                            >
-                                <Text style={styles.addMetricsText}>+ Add your body metrics</Text>
+                <PremiumGate featureName="Advanced Body Metrics" navigation={navigation} lockType="overlay">
+                    <BlurView intensity={15} tint={isDark ? "light" : "dark"} style={styles.metricsCard}>
+                        <View style={styles.metricsHeader}>
+                            <Text style={styles.sectionTitle}>Body Metrics</Text>
+                            <TouchableOpacity onPress={() => setShowMetricsModal(true)}>
+                                <Text style={styles.editButton}>Edit</Text>
                             </TouchableOpacity>
-                        )
-                    }
-                </BlurView>
+                        </View>
+
+                        {
+                            avatarState.bodyMetrics.startWeight ? (
+                                <View style={styles.metricsContent}>
+                                    <View style={styles.metricItem}>
+                                        <Text style={styles.metricLabel}>Start</Text>
+                                        <Text style={styles.metricValue}>
+                                            {avatarState.bodyMetrics.startWeight} <Text style={styles.unit}>kg</Text>
+                                        </Text>
+                                    </View>
+                                    <View style={styles.metricArrow}>
+                                        <Text style={styles.arrowText}>→</Text>
+                                    </View>
+                                    <View style={styles.metricItem}>
+                                        <Text style={styles.metricLabel}>Current</Text>
+                                        <Text style={styles.metricValue}>
+                                            {avatarState.bodyMetrics.currentWeight || '--'} <Text style={styles.unit}>kg</Text>
+                                        </Text>
+                                    </View>
+                                    {avatarState.bodyMetrics.goalWeight && (
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <View style={styles.metricArrow}>
+                                                <Text style={styles.arrowText}>→</Text>
+                                            </View>
+                                            <View style={styles.metricItem}>
+                                                <Text style={styles.metricLabel}>Goal</Text>
+                                                <Text style={[styles.metricValue, styles.goalValue]}>
+                                                    {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    )}
+                                </View>
+                            ) : (
+                                <TouchableOpacity
+                                    style={styles.addMetricsButton}
+                                    onPress={() => setShowMetricsModal(true)}
+                                >
+                                    <Text style={styles.addMetricsText}>+ Add your body metrics</Text>
+                                </TouchableOpacity>
+                            )
+                        }
+                    </BlurView>
+                </PremiumGate>
 
                 {/* Achievements */}
                 <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.achievementsCard}>

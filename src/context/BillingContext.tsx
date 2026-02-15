@@ -205,6 +205,12 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
         setLoading(true);
         try {
             const purchases = await getAvailablePurchases();
+
+            if (purchases === null) {
+                Alert.alert('Error', 'Could not fetch purchases. Please try again later.');
+                return;
+            }
+
             // Check if user has active subscription (using p.productId because Purchase object still has productId)
             // Wait, types.ts says PurchaseCommon has productId.
             const hasPremium = purchases.find((p: any) => SUBSCRIPTION_IDS.includes(p.productId));
@@ -228,12 +234,12 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
 
     // Helper to get available purchases (for restore/check)
     const getAvailablePurchases = async () => {
-        if (!RNIap) return [];
+        if (!RNIap) return null;
         try {
             return await RNIap.getAvailablePurchases();
         } catch (error) {
             console.warn('getAvailablePurchases error', error);
-            return [];
+            return null; // Return null on error to distinguish from "no purchases"
         }
     }
 
@@ -247,6 +253,10 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
 
         // 2. Verify with store (async)
         const purchases = await getAvailablePurchases();
+
+        // If query failed (null), stop here and rely on local storage (don't revoke)
+        if (purchases === null) return;
+
         // Check productId (Purchase object validation)
         const hasPremium = purchases.some((p: any) => SUBSCRIPTION_IDS.includes(p.productId));
 
@@ -254,13 +264,10 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
             setPurchased(true);
             await AsyncStorage.setItem('is_premium', 'true');
         } else {
-            // Only invalidating if we are sure (e.g., expiration check). 
-            // For now, if getAvailablePurchases returns empty, it implies no active sub.
-            // However, be careful not to lock user out offline.
-            // Ideally, verify receipt with backend.
+            // Purchases fetched successfully but no active subscription found -> Revoke
             if (connected) {
-                // setPurchased(false); 
-                // AsyncStorage.removeItem('is_premium');
+                setPurchased(false);
+                await AsyncStorage.removeItem('is_premium');
             }
         }
     };
