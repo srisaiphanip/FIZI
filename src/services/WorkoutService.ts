@@ -242,12 +242,12 @@ class WorkoutService {
                 exerciseBreakdown[exId].reps += data.reps || 0;
             });
 
-            console.log('[WorkoutService] Stats calculated:', {
-                totalWorkouts,
-                totalReps,
-                totalDuration,
-                avgScore: totalWorkouts > 0 ? Math.round(totalFormScore / totalWorkouts) : 0
-            });
+            // console.log('[WorkoutService] Stats calculated:', {
+            //     totalWorkouts,
+            //     totalReps,
+            //     totalDuration,
+            //     avgScore: totalWorkouts > 0 ? Math.round(totalFormScore / totalWorkouts) : 0
+            // });
 
             return {
                 totalWorkouts,

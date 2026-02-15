@@ -284,7 +284,7 @@ class AuthService {
             await updateDoc(docRef, {
                 lastActiveAt: serverTimestamp(),
             });
-            console.log('Last active timestamp updated');
+
         } catch (error) {
             console.error('Error updating last active timestamp:', error);
         }

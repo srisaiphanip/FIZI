@@ -30,16 +30,8 @@ export const ExerciseTimer: React.FC<ExerciseTimerProps> = ({
     useEffect(() => {
         const loadSound = async () => {
             try {
-                // Try to load completion sound if it exists
-                // If the sound file doesn't exist, just continue without it
-                // const { sound } = await Audio.Sound.createAsync(
-                //     require('../../assets/sounds/complete.mp3'),
-                //     { shouldPlay: false }
-                // );
-                // soundRef.current = sound;
             } catch (error) {
                 // Sound file not found - continue without audio feedback
-                console.log('Completion sound not available');
             }
         };
         loadSound();

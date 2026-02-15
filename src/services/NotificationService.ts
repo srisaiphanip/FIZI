@@ -38,7 +38,7 @@ class NotificationService {
         let token;
 
         if (!Device.isDevice) {
-            console.log('Must use physical device for Push Notifications');
+
             return undefined;
         }
 
@@ -61,7 +61,7 @@ class NotificationService {
             })).data;
 
             if (token) {
-                console.log('🚀 FIZI Push Token:', token);
+
                 await authService.updatePushToken(token);
             }
         } catch (e) {

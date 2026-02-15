@@ -89,7 +89,7 @@ class FeedbackService {
     vibrate(pattern: keyof typeof VIBRATION_PATTERNS = 'medium'): void {
         if (!AppConfig.features.enableHapticFeedback) return;
         if (Platform.OS === 'web') {
-            console.log('[Feedback] Haptic (web):', pattern);
+
             return;
         }
 

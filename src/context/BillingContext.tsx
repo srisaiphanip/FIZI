@@ -15,7 +15,7 @@ let RNIap: any;
 try {
     RNIap = require('react-native-iap');
 } catch (e) {
-    console.log('react-native-iap not available (likely Expo Go)');
+
 }
 
 interface BillingContextType {
@@ -76,7 +76,7 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
 
         const initializeBilling = async () => {
             if (!RNIap) {
-                console.log('Running in Expo Go or non-native env. Using mock data.');
+
                 setProducts(MOCK_PRODUCTS); // Set mock products so UI shows up
                 return;
             }
@@ -89,7 +89,7 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
                     await checkSubscriptionStatus(); // Check if already purchased
                 }
             } catch (err) {
-                console.log('Billing initialization failed:', err);
+
             }
         };
 
