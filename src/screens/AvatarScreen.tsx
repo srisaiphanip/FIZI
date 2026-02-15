@@ -575,6 +575,37 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
 
 
                 {/* User Info Section */}
+                {/* Premium Subscription Card */}
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('Subscription')}
+                    activeOpacity={0.9}
+                    style={{ marginBottom: 15 }}
+                >
+                    <LinearGradient
+                        colors={['#FFD700', '#FFA500']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[styles.menuCard, { borderColor: '#FFD700', borderWidth: 1 }]}
+                    >
+                        <View style={styles.menuItem}>
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                                <MaterialCommunityIcons name="crown" size={24} color="#FFF" />
+                            </View>
+                            <View style={styles.userInfoTextContainer}>
+                                <Text style={[styles.userInfoTitle, { color: '#000', fontWeight: 'bold' }]}>Go Premium</Text>
+                                <Text style={[styles.userInfoSubtitle, { color: 'rgba(0,0,0,0.7)' }]}>Unlock AI Analysis & More</Text>
+                            </View>
+                            <View style={{
+                                backgroundColor: 'rgba(0,0,0,0.1)',
+                                borderRadius: 12,
+                                padding: 6
+                            }}>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#000" />
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+
                 {/* User Info Section */}
                 <TouchableOpacity
                     onPress={() => setShowUserInfoModal(true)}

@@ -36,6 +36,13 @@
         "projectId": "4362db1a-f495-48f5-8129-1dfa113c7b85"
       }
     },
-    "plugins": []
+    "plugins": [
+      [
+        "react-native-iap",
+        {
+          "paymentProvider": "Play Store"
+        }
+      ]
+    ]
   }
 }

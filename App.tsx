@@ -7,6 +7,7 @@ import { store, RootState } from './src/store';
 import { auth } from './src/services/firebaseConfig';
 import { authService } from './src/services/authService';
 import { setUser } from './src/store/slices/authSlice';
+import { BillingProvider } from './src/context/BillingContext';
 import { View, Text, BackHandler } from 'react-native';
 import { useAppDispatch } from './src/hooks/reduxHooks';
 
@@ -24,6 +25,7 @@ import ExerciseInstructionsScreen from './src/screens/ExerciseInstructionsScreen
 import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import ExerciseLibraryScreen from './src/screens/ExerciseLibraryScreen';
 import CustomPlanBuilderScreen from './src/screens/CustomPlanBuilderScreen';
+import SubscriptionScreen from './src/screens/SubscriptionScreen';
 
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
@@ -31,7 +33,7 @@ import FAQScreen from './src/screens/FAQScreen';
 import { notificationService } from './src/services/NotificationService';
 import * as Notifications from 'expo-notifications';
 
-export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder' | 'FAQ';
+export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder' | 'FAQ' | 'Subscription';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -158,7 +160,7 @@ function AppContent() {
 
     // 2. Authenticated State - Manual Navigation Check
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage' || currentScreen === 'CustomPlanBuilder') {
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage' || currentScreen === 'CustomPlanBuilder' || currentScreen === 'Subscription' || currentScreen === 'FAQ') {
       return;
     }
 
@@ -268,6 +270,8 @@ function AppContent() {
         return <CustomPlanBuilderScreen navigation={navigation} route={{ params: navigation.params }} />;
       case 'FAQ':
         return <FAQScreen navigation={navigation} />;
+      case 'Subscription':
+        return <SubscriptionScreen navigation={navigation} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }
@@ -288,7 +292,9 @@ export default function App() {
   return (
     <Provider store={store}>
       <ErrorBoundary>
-        <AppContent />
+        <BillingProvider>
+          <AppContent />
+        </BillingProvider>
       </ErrorBoundary>
     </Provider>
   );
