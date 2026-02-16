@@ -28,6 +28,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
+import { useBilling } from '../context/BillingContext';
+import { useToast } from '../context/ToastContext';
 import { RootState } from '../store'; // Added RootState import
 import { uploadPhoto, signOut, updateProfile, changePassword } from '../store/slices/authSlice';
 import { setAvatarScrollOffset } from '../store/slices/uiSlice';
@@ -42,7 +44,7 @@ import {
 } from '../services/AvatarService';
 import { feetToCm, metersToCm, cmToFeet, cmToMeters, formatHeight } from '../utils/unitConversion';
 import { exercises } from '../models/exercises'; // Import exercises data
-import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType, Typography } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PremiumGate } from '../components/PremiumGate';
@@ -70,6 +72,7 @@ interface AvatarScreenProps {
 export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScreenProps) {
     const dispatch = useAppDispatch();
     const { colors, gradients, shadows, isDark, toggleTheme } = useTheme();
+    const { purchased } = useBilling();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const { user, loading: authLoading } = useAppSelector((state: RootState) => state.auth); // Modified to use RootState
     const { notificationsEnabled } = useAppSelector((state: RootState) => state.settings); // Added settings state
@@ -78,6 +81,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     const scrollViewRef = React.useRef<ScrollView>(null);
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
     const [loading, setLoading] = useState(true);
+    const { showToast } = useToast();
     const [showMetricsModal, setShowMetricsModal] = useState(false);
     const [showUserInfoModal, setShowUserInfoModal] = useState(false);
     const [currentWeight, setCurrentWeight] = useState('');
@@ -154,11 +158,12 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const uri = result.assets[0].uri;
+                showToast('Uploading photo...', 'info');
                 await dispatch(uploadPhoto(uri)).unwrap();
-                Alert.alert('Success', 'Profile photo updated!');
+                showToast('Profile photo updated!', 'success');
             }
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to update photo');
+            showToast(error.message || 'Failed to update photo', 'error');
         }
     };
 
@@ -167,7 +172,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
         const goal = parseFloat(goalWeight);
 
         if (isNaN(weight) || weight <= 0) {
-            Alert.alert('Invalid Weight', 'Please enter a valid weight');
+            showToast('Please enter a valid weight', 'warning');
             return;
         }
 
@@ -188,7 +193,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                 message: "Join me on FIZI! It's an AI-powered personal trainer that adapts to your progress. Download here: https://play.google.com/store/apps/details?id=com.maheshchalla.fizi&pcampaignid=web_share",
             });
         } catch (error: any) {
-            Alert.alert('Error', error.message);
+            showToast(error.message, 'error');
         }
     };
 
@@ -204,9 +209,9 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     onPress: async () => {
                         try {
                             await dispatch(signOut()).unwrap();
-                            // Navigation to Auth stack is handled automatically
+                            showToast('Signed out successfully', 'success');
                         } catch (error: any) {
-                            Alert.alert('Error', error.message || 'Failed to sign out');
+                            showToast(error.message || 'Failed to sign out', 'error');
                         }
                     }
                 }
@@ -216,23 +221,23 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
 
     const handleChangePassword = async () => {
         if (!currentPassword || !newPassword || !confirmPassword) {
-            Alert.alert('Error', 'Please fill in all fields');
+            showToast('Please fill in all fields', 'warning');
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            Alert.alert('Error', 'New passwords do not match');
+            showToast('New passwords do not match', 'warning');
             return;
         }
 
         if (newPassword.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters');
+            showToast('Password must be at least 6 characters', 'warning');
             return;
         }
 
         try {
             await dispatch(changePassword({ current: currentPassword, new: newPassword })).unwrap();
-            Alert.alert('Success', 'Password changed successfully');
+            showToast('Password changed successfully', 'success');
             setShowChangePasswordModal(false);
             setCurrentPassword('');
             setNewPassword('');
@@ -246,7 +251,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
             } else if (message.includes('requires-recent-login')) {
                 message = 'Please sign out and sign in again to change your password';
             }
-            Alert.alert('Error', message);
+            showToast(message, 'error');
         }
     };
 
@@ -306,7 +311,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
             setSuccessType('profile');
             setShowSuccessModal(true);
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to update profile');
+            showToast(error.message || 'Failed to update profile', 'error');
         }
     };
 
@@ -521,11 +526,26 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     <View style={styles.avatarContent}>
                         <View style={styles.avatarContainer}>
                             <LinearGradient
-                                colors={[colors.accentCyan, colors.primaryStart]}
+                                colors={purchased ? ['#FFD700', '#FFA500'] : [colors.accentCyan, colors.primaryStart]}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 1 }}
                                 style={styles.avatarRing}
                             >
+                                {purchased && (
+                                    <View style={{
+                                        position: 'absolute',
+                                        top: -12,
+                                        zIndex: 10,
+                                        alignSelf: 'center',
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.3,
+                                        shadowRadius: 3,
+                                        elevation: 5
+                                    }}>
+                                        <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
+                                    </View>
+                                )}
                                 {user?.photoURL ? (
                                     <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
                                 ) : (
@@ -546,7 +566,10 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                         </View>
 
                         <View style={styles.userInfoSection}>
-                            <Text style={styles.userName}>{user?.displayName || 'Champion'}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                                <Text style={styles.userName}>{user?.displayName || 'Champion'}</Text>
+                                {purchased && <MaterialCommunityIcons name="crown" size={20} color="#FFD700" />}
+                            </View>
                             <Text style={styles.userTitle}>{avatarState.levelName}</Text>
 
                             <View style={styles.statsRow}>
@@ -583,25 +606,29 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     style={{ marginBottom: 15 }}
                 >
                     <LinearGradient
-                        colors={['#FFD700', '#FFA500']}
+                        colors={purchased ? ['rgba(255, 215, 0, 0.15)', 'rgba(255, 215, 0, 0.05)'] : ['#FFD700', '#FFA500']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={[styles.menuCard, { borderColor: '#FFD700', borderWidth: 1 }]}
+                        style={[styles.menuCard, { borderColor: purchased ? '#FFD700' : '#FFD700', borderWidth: 1 }]}
                     >
                         <View style={styles.menuItem}>
-                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                                <MaterialCommunityIcons name="crown" size={24} color="#FFF" />
+                            <View style={[styles.menuIconContainer, { backgroundColor: purchased ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255,255,255,0.2)' }]}>
+                                <MaterialCommunityIcons name="crown" size={24} color={purchased ? '#FFD700' : '#FFF'} />
                             </View>
                             <View style={styles.userInfoTextContainer}>
-                                <Text style={[styles.userInfoTitle, { color: '#000', fontWeight: 'bold' }]}>Go Premium</Text>
-                                <Text style={[styles.userInfoSubtitle, { color: 'rgba(0,0,0,0.7)' }]}>Unlock AI Analysis & More</Text>
+                                <Text style={[styles.userInfoTitle, { color: purchased ? colors.textPrimary : '#000', fontWeight: 'bold' }]}>
+                                    {purchased ? 'Premium Member' : 'Go Premium'}
+                                </Text>
+                                <Text style={[styles.userInfoSubtitle, { color: purchased ? colors.textSecondary : 'rgba(0,0,0,0.7)' }]}>
+                                    {purchased ? 'Manage Subscription' : 'Unlock AI Analysis & More'}
+                                </Text>
                             </View>
                             <View style={{
-                                backgroundColor: 'rgba(0,0,0,0.1)',
+                                backgroundColor: purchased ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : 'rgba(0,0,0,0.1)',
                                 borderRadius: 12,
                                 padding: 6
                             }}>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color="#000" />
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={purchased ? colors.textTertiary : '#000'} />
                             </View>
                         </View>
                     </LinearGradient>
@@ -720,30 +747,46 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                                             ✨ Your AI plan adapts to your progress automatically.
                                         </Text>
                                     </View>
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, { backgroundColor: 'transparent', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder }]}
-                                        onPress={() => {
-                                            if (customPlans.length > 0 && user?.uid) {
-                                                const latestPlan = customPlans[0];
-                                                dispatch(switchActivePlan({
-                                                    userId: user.uid,
-                                                    planId: latestPlan.id,
-                                                    planType: 'custom'
-                                                }));
-                                            } else {
-                                                navigation.navigate('CustomPlanBuilder');
-                                            }
-                                        }}
-                                    >
-                                        <MaterialCommunityIcons
-                                            name={customPlans.length > 0 ? "swap-horizontal" : "plus-circle-outline"}
-                                            size={20}
-                                            color={colors.textSecondary}
-                                        />
-                                        <Text style={{ color: colors.textSecondary, marginLeft: 8, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                            {customPlans.length > 0 ? 'Switch to Custom Plan' : 'Create New From Scratch'}
-                                        </Text>
-                                    </TouchableOpacity>
+                                    {customPlans.length > 0 ? (
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, { backgroundColor: 'transparent', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder }]}
+                                            onPress={() => {
+                                                if (user?.uid) {
+                                                    const latestPlan = customPlans[0];
+                                                    dispatch(switchActivePlan({
+                                                        userId: user.uid,
+                                                        planId: latestPlan.id,
+                                                        planType: 'custom'
+                                                    }));
+                                                }
+                                            }}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="swap-horizontal"
+                                                size={20}
+                                                color={colors.textSecondary}
+                                            />
+                                            <Text style={{ color: colors.textSecondary, marginLeft: 8, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                Switch to Custom Plan
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <PremiumGate featureName="Custom Plans" navigation={navigation} variant="compact">
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, { backgroundColor: 'transparent', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder }]}
+                                                onPress={() => navigation.navigate('CustomPlanBuilder')}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name="plus-circle-outline"
+                                                    size={20}
+                                                    color={colors.textSecondary}
+                                                />
+                                                <Text style={{ color: colors.textSecondary, marginLeft: 8, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                    Create New From Scratch
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </PremiumGate>
+                                    )}
 
 
                                 </View>
@@ -758,12 +801,16 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                                 {customPlans.length} custom {customPlans.length === 1 ? 'plan' : 'plans'}
                             </Text>
                         </View>
-                        <TouchableOpacity
-                            style={styles.createPlanButton}
-                            onPress={() => navigation.navigate('CustomPlanBuilder')}
-                        >
-                            <MaterialCommunityIcons name="plus" size={24} color="#000" />
-                        </TouchableOpacity>
+                        <View style={{ overflow: 'hidden', borderRadius: 20 }}>
+                            <PremiumGate featureName="Custom Plans" navigation={navigation} variant="icon">
+                                <TouchableOpacity
+                                    style={styles.createPlanButton}
+                                    onPress={() => navigation.navigate('CustomPlanBuilder')}
+                                >
+                                    <MaterialCommunityIcons name="plus" size={24} color="#000" />
+                                </TouchableOpacity>
+                            </PremiumGate>
+                        </View>
                     </View>
 
                     {customPlans.length > 0 ? (
@@ -930,58 +977,56 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                 </BlurView>
 
                 {/* Body Metrics */}
-                <PremiumGate featureName="Advanced Body Metrics" navigation={navigation} lockType="overlay">
-                    <BlurView intensity={15} tint={isDark ? "light" : "dark"} style={styles.metricsCard}>
-                        <View style={styles.metricsHeader}>
-                            <Text style={styles.sectionTitle}>Body Metrics</Text>
-                            <TouchableOpacity onPress={() => setShowMetricsModal(true)}>
-                                <Text style={styles.editButton}>Edit</Text>
-                            </TouchableOpacity>
-                        </View>
+                <BlurView intensity={15} tint={isDark ? "light" : "dark"} style={styles.metricsCard}>
+                    <View style={styles.metricsHeader}>
+                        <Text style={styles.sectionTitle}>Body Metrics</Text>
+                        <TouchableOpacity onPress={() => setShowMetricsModal(true)}>
+                            <Text style={styles.editButton}>Edit</Text>
+                        </TouchableOpacity>
+                    </View>
 
-                        {
-                            avatarState.bodyMetrics.startWeight ? (
-                                <View style={styles.metricsContent}>
-                                    <View style={styles.metricItem}>
-                                        <Text style={styles.metricLabel}>Start</Text>
-                                        <Text style={styles.metricValue}>
-                                            {avatarState.bodyMetrics.startWeight} <Text style={styles.unit}>kg</Text>
-                                        </Text>
-                                    </View>
-                                    <View style={styles.metricArrow}>
-                                        <Text style={styles.arrowText}>→</Text>
-                                    </View>
-                                    <View style={styles.metricItem}>
-                                        <Text style={styles.metricLabel}>Current</Text>
-                                        <Text style={styles.metricValue}>
-                                            {avatarState.bodyMetrics.currentWeight || '--'} <Text style={styles.unit}>kg</Text>
-                                        </Text>
-                                    </View>
-                                    {avatarState.bodyMetrics.goalWeight && (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                            <View style={styles.metricArrow}>
-                                                <Text style={styles.arrowText}>→</Text>
-                                            </View>
-                                            <View style={styles.metricItem}>
-                                                <Text style={styles.metricLabel}>Goal</Text>
-                                                <Text style={[styles.metricValue, styles.goalValue]}>
-                                                    {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    )}
+                    {
+                        avatarState.bodyMetrics.startWeight ? (
+                            <View style={styles.metricsContent}>
+                                <View style={styles.metricItem}>
+                                    <Text style={styles.metricLabel}>Start</Text>
+                                    <Text style={styles.metricValue}>
+                                        {avatarState.bodyMetrics.startWeight} <Text style={styles.unit}>kg</Text>
+                                    </Text>
                                 </View>
-                            ) : (
-                                <TouchableOpacity
-                                    style={styles.addMetricsButton}
-                                    onPress={() => setShowMetricsModal(true)}
-                                >
-                                    <Text style={styles.addMetricsText}>+ Add your body metrics</Text>
-                                </TouchableOpacity>
-                            )
-                        }
-                    </BlurView>
-                </PremiumGate>
+                                <View style={styles.metricArrow}>
+                                    <Text style={styles.arrowText}>→</Text>
+                                </View>
+                                <View style={styles.metricItem}>
+                                    <Text style={styles.metricLabel}>Current</Text>
+                                    <Text style={styles.metricValue}>
+                                        {avatarState.bodyMetrics.currentWeight || '--'} <Text style={styles.unit}>kg</Text>
+                                    </Text>
+                                </View>
+                                {avatarState.bodyMetrics.goalWeight && (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={styles.metricArrow}>
+                                            <Text style={styles.arrowText}>→</Text>
+                                        </View>
+                                        <View style={styles.metricItem}>
+                                            <Text style={styles.metricLabel}>Goal</Text>
+                                            <Text style={[styles.metricValue, styles.goalValue]}>
+                                                {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
+                                            </Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </View>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.addMetricsButton}
+                                onPress={() => setShowMetricsModal(true)}
+                            >
+                                <Text style={styles.addMetricsText}>+ Add your body metrics</Text>
+                            </TouchableOpacity>
+                        )
+                    }
+                </BlurView>
 
                 {/* Achievements */}
                 <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.achievementsCard}>
@@ -2399,8 +2444,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     },
 
     modalTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        ...Typography.h3,
         color: colors.textPrimary,
         marginBottom: 20,
         textAlign: 'center',
@@ -2409,11 +2453,13 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         marginBottom: 16,
     },
     inputLabel: {
+        ...Typography.caption,
         color: colors.textSecondary,
         fontSize: 14,
         marginBottom: 8,
     },
     input: {
+        ...Typography.body,
         backgroundColor: 'rgba(0, 0, 0, 0.2)',
         borderRadius: 12,
         padding: 16,
@@ -2435,6 +2481,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         alignItems: 'center',
     },
     cancelButtonText: {
+        ...Typography.body,
         color: colors.textPrimary,
         fontWeight: '600',
         fontSize: 16,
@@ -2447,6 +2494,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         marginBottom: 10,
     },
     disclaimerText: {
+        ...Typography.caption,
         color: colors.textTertiary,
         fontSize: 11,
         textAlign: 'center',
@@ -2460,6 +2508,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         alignItems: 'center',
     },
     saveButtonText: {
+        ...Typography.body,
         color: 'white',
         fontSize: 16,
         ...shadows.glow,
@@ -2487,6 +2536,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         marginRight: 16,
     },
     menuItemText: {
+        ...Typography.body,
         flex: 1,
         fontSize: 16,
         color: colors.textPrimary,
@@ -2494,13 +2544,10 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         letterSpacing: 0.3,
     },
     sectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
+        ...Typography.overline,
         color: colors.textSecondary,
         marginBottom: 8,
         marginTop: 16,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
     },
 
     // User Info Styles
@@ -2521,11 +2568,13 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         flex: 1,
     },
     userInfoTitle: {
+        ...Typography.body,
         color: colors.textPrimary,
         fontSize: 16,
         fontWeight: '700',
     },
     userInfoSubtitle: {
+        ...Typography.caption,
         color: colors.textTertiary,
         fontSize: 12,
         marginTop: 2,
@@ -2553,11 +2602,8 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         padding: 4,
     },
     modalSectionTitle: {
-        color: colors.accentCyan,
-        fontSize: 12,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
+        ...Typography.overline,
+        color: colors.textSecondary,
         marginTop: 16,
         marginBottom: 12,
         borderBottomWidth: 1,
@@ -2573,20 +2619,22 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         borderBottomColor: 'rgba(255, 255, 255, 0.05)',
     },
     infoLabel: {
-        color: colors.textSecondary,
+        ...Typography.body,
         fontSize: 14,
+        color: colors.textSecondary,
         flex: 1,
     },
     infoValue: {
-        color: colors.textPrimary,
+        ...Typography.body,
         fontSize: 14,
+        color: colors.textPrimary,
         fontWeight: '600',
         textAlign: 'right',
         flex: 1.5,
     },
     editInput: {
+        ...Typography.body,
         color: colors.textPrimary,
-        fontSize: 16,
         fontWeight: '600',
         borderBottomWidth: 1,
         borderBottomColor: colors.primaryStart,

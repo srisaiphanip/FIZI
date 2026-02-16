@@ -287,13 +287,16 @@ function AppContent() {
 
 // Import components
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { ToastProvider } from './src/context/ToastContext';
 
 export default function App() {
   return (
     <Provider store={store}>
       <ErrorBoundary>
         <BillingProvider>
-          <AppContent />
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </BillingProvider>
       </ErrorBoundary>
     </Provider>

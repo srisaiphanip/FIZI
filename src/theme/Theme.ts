@@ -1,6 +1,7 @@
 /**
  * Premium Design System
  */
+import { Platform } from 'react-native';
 
 export const DarkColors = {
     // Backgrounds
@@ -170,5 +171,49 @@ export const Layout = {
         l: 32,
         xl: 48,
         round: 9999,
+    }
+};
+
+export const Typography = {
+    fontFamily: {
+        serif: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
+        sans: Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' }),
+    },
+    h1: {
+        fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
+        fontSize: 32,
+        fontWeight: '700' as const,
+        letterSpacing: 0.5,
+    },
+    h2: {
+        fontFamily: Platform.select({ ios: 'Georgia', android: 'serif', default: 'serif' }),
+        fontSize: 24,
+        fontWeight: '600' as const,
+        letterSpacing: 0.25,
+    },
+    h3: {
+        fontFamily: Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' }),
+        fontSize: 20,
+        fontWeight: '600' as const,
+        letterSpacing: 0,
+    },
+    body: {
+        fontFamily: Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' }),
+        fontSize: 16,
+        fontWeight: '400' as const,
+        lineHeight: 24,
+    },
+    caption: {
+        fontFamily: Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' }),
+        fontSize: 12,
+        fontWeight: '400' as const,
+        color: 'rgba(255,255,255,0.6)',
+    },
+    overline: {
+        fontFamily: Platform.select({ ios: 'System', android: 'sans-serif', default: 'sans-serif' }),
+        fontSize: 11,
+        fontWeight: '700' as const,
+        letterSpacing: 1.5, // Wide tracking for "classic" feel
+        textTransform: 'uppercase' as const,
     }
 };

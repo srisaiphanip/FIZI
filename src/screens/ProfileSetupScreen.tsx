@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -9,8 +9,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
-    Alert,
     BackHandler,
+    Animated, // Added Animated
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 const TypedSlider = Slider as any;
@@ -434,10 +434,34 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     },
 });
 
+import { useToast } from '../context/ToastContext';
+
 export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenProps) {
     const { colors, gradients, shadows, isDark } = useTheme();
+    const { showToast } = useToast();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const dispatch = useAppDispatch();
+
+    // Animation Values
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(50)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+                toValue: 0,
+                tension: 50,
+                friction: 7,
+                useNativeDriver: true,
+            })
+        ]).start();
+    }, []);
+
     const { user, loading } = useAppSelector((state) => state.auth);
 
     // Multi-step state
@@ -511,14 +535,14 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
         // Validation for each step
         if (currentStep === 1) {
             if (!age || !weight || !height) {
-                Alert.alert('Error', 'Please fill in all fields');
+                showToast('Please fill in all fields', 'warning');
                 return;
             }
             const ageNum = parseInt(age);
             const weightNum = parseFloat(weight);
             const heightNum = getHeightInCm(); // Use converted value
             if (ageNum <= 0 || weightNum <= 0 || heightNum <= 0) {
-                Alert.alert('Error', 'Please enter valid numbers');
+                showToast('Please enter valid numbers', 'warning');
                 return;
             }
 
@@ -710,10 +734,10 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
             await dispatch(regenerateUserPlan(fullProfile)).unwrap();
 
             setGeneratingPlan(false);
-            setShowSuccessModal(true);
+            setShowSuccessModal(true); // Keeping modal for success as it's a major milestone
         } catch (error: any) {
             setGeneratingPlan(false);
-            Alert.alert('Error', error.message || 'Failed to complete setup');
+            showToast(error.message || 'Failed to complete setup', 'error');
         }
     };
 
@@ -1258,8 +1282,15 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
                 >
-                    <View style={styles.content}>
+                    <Animated.View style={[
+                        styles.content,
+                        {
+                            opacity: fadeAnim,
+                            transform: [{ translateY: slideAnim }]
+                        }
+                    ]}>
                         <View style={styles.header}>
                             <Text style={styles.title}>Complete Your Profile</Text>
                             <Text style={styles.subtitle}>
@@ -1301,7 +1332,7 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </Animated.View>
                 </ScrollView>
             </KeyboardAvoidingView>
 

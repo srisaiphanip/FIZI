@@ -9,6 +9,7 @@ import { WeeklySchedule } from './WeeklySchedule';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getSimplifiedFocus } from '../../utils/workoutUtils';
 import { useTheme } from '../../hooks/useTheme';
+import { useBilling } from '../../context/BillingContext';
 import { AvatarState } from '../../services/AvatarService';
 
 interface WorkTabProps {
@@ -49,6 +50,7 @@ export function WorkTab({
     styles,
 }: WorkTabProps) {
     const { colors } = useTheme();
+    const { purchased } = useBilling();
 
     return (
         <>
@@ -61,6 +63,7 @@ export function WorkTab({
                     level={avatarState?.level || user?.progressSystem?.currentLevel || user?.level || 1}
                     xp={avatarState?.xp || user?.progressSystem?.currentXP || user?.xp || 0}
                     totalWorkouts={avatarState?.totalWorkouts || user?.progressSystem?.totalWorkoutsCompleted || user?.totalWorkouts || 0}
+                    purchased={purchased}
                 />
             </TouchableOpacity>
 

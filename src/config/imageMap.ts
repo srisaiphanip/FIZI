@@ -21,6 +21,8 @@ export const EXERCISE_IMAGES: Record<string, any> = {
 
     // Advanced / Machine / Other
     'db_shoulder_press': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767027972/db-shoulder-press_lm8mkh.png",
+    'db_hammer_curl': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767027803/bicep-curls_upoegx.jpg", // Placeholder using bicep curls
+    'db_tricep_extension': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767028038/tricep-dips_lwrclh.png", // Placeholder using tricep dips
     'rb_row': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767028012/rb-row_niabra.png",
     'rb_chest_press': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767028014/rb-chest-press_pihifc.png",
     'pb_pullup_standard': "https://res.cloudinary.com/ddtslpjdf/image/upload/v1767027998/pullups_mv1rxw.png",

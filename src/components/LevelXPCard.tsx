@@ -11,9 +11,10 @@ interface LevelXPCardProps {
     level: number;
     xp: number;
     totalWorkouts: number;
+    purchased?: boolean;
 }
 
-export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardProps) {
+export default function LevelXPCard({ level, xp, totalWorkouts, purchased = false }: LevelXPCardProps) {
     const { colors, gradients, shadows, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
 
@@ -54,9 +55,11 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
         <View style={styles.cardContainer}>
             {/* Main Gradient Background */}
             <LinearGradient
-                colors={isDark
-                    ? ['rgba(20, 20, 30, 0.8)', 'rgba(30, 30, 45, 0.9)']
-                    : ['rgba(255, 255, 255, 0.85)', 'rgba(240, 245, 255, 0.9)']}
+                colors={purchased
+                    ? ['#FFD700', '#FFA500'] // Gold gradient for premium
+                    : isDark
+                        ? ['rgba(20, 20, 30, 0.8)', 'rgba(30, 30, 45, 0.9)']
+                        : ['rgba(255, 255, 255, 0.85)', 'rgba(240, 245, 255, 0.9)']}
                 style={StyleSheet.absoluteFill}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -75,11 +78,11 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
             <View style={styles.content}>
                 <View style={styles.header}>
                     <View>
-                        <Text style={styles.label}>Current Rank</Text>
+                        <Text style={[styles.label, purchased && { color: 'rgba(0,0,0,0.6)' }]}>Current Rank</Text>
                         <View style={styles.levelNameContainer}>
-                            <Text style={styles.levelName}>{currentLevelName}</Text>
-                            <View style={styles.levelPill}>
-                                <Text style={styles.levelPillText}>Lvl {level}</Text>
+                            <Text style={[styles.levelName, purchased && { color: '#000', textShadowColor: 'rgba(255,255,255,0.3)' }]}>{currentLevelName}</Text>
+                            <View style={[styles.levelPill, purchased && { backgroundColor: 'rgba(255,255,255,0.3)', borderColor: 'rgba(0,0,0,0.1)' }]}>
+                                <Text style={[styles.levelPillText, purchased && { color: '#000' }]}>Lvl {level}</Text>
                             </View>
                         </View>
                     </View>
@@ -87,10 +90,10 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
                     {/* Level Icon with Glow Ring */}
                     <View style={styles.iconContainer}>
                         <LinearGradient
-                            colors={[colors.accentCyan + '40', 'transparent']}
+                            colors={purchased ? ['rgba(255,255,255,0.5)', 'transparent'] : [colors.accentCyan + '40', 'transparent']}
                             style={styles.iconGlow}
                         />
-                        <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.iconCircle}>
+                        <BlurView intensity={purchased ? 0 : 20} tint={isDark ? "light" : "dark"} style={[styles.iconCircle, purchased && { borderColor: 'rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                             <Text style={styles.emoji}>{currentLevelIcon}</Text>
                         </BlurView>
                     </View>
@@ -99,14 +102,14 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
                 {/* Main Progress Bar */}
                 <View style={styles.progressSection}>
                     <View style={styles.progressHeader}>
-                        <Text style={styles.xpLabel}>XP Progress</Text>
-                        <Text style={styles.xpValue}>{getXPText()}</Text>
+                        <Text style={[styles.xpLabel, purchased && { color: 'rgba(0,0,0,0.7)' }]}>XP Progress</Text>
+                        <Text style={[styles.xpValue, purchased && { color: '#000' }]}>{getXPText()}</Text>
                     </View>
 
-                    <View style={styles.barContainer}>
+                    <View style={[styles.barContainer, purchased && { backgroundColor: 'rgba(0,0,0,0.1)', borderColor: 'rgba(0,0,0,0.05)' }]}>
                         <View style={styles.barBg}>
                             <LinearGradient
-                                colors={gradients.primary}
+                                colors={purchased ? ['#000', '#333'] : gradients.primary}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={[
@@ -121,14 +124,16 @@ export default function LevelXPCard({ level, xp, totalWorkouts }: LevelXPCardPro
                 {/* Footer Stats */}
                 <View style={styles.footer}>
                     <LinearGradient
-                        colors={isDark
-                            ? [colors.cardSurface, colors.cardSurface]
-                            : ['rgba(255,255,255, 0.5)', 'rgba(255,255,255, 0.2)']}
-                        style={styles.statBadge}
+                        colors={purchased
+                            ? ['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']
+                            : isDark
+                                ? [colors.cardSurface, colors.cardSurface]
+                                : ['rgba(255,255,255, 0.5)', 'rgba(255,255,255, 0.2)']}
+                        style={[styles.statBadge, purchased && { borderColor: 'rgba(0,0,0,0.1)' }]}
                     >
-                        <MaterialCommunityIcons name="trophy-outline" size={16} color={colors.accentYellow} />
-                        <Text style={styles.statLabel}>Total Workouts</Text>
-                        <Text style={styles.statValue}>{totalWorkouts}</Text>
+                        <MaterialCommunityIcons name="trophy-outline" size={16} color={purchased ? '#000' : colors.accentYellow} />
+                        <Text style={[styles.statLabel, purchased && { color: 'rgba(0,0,0,0.7)' }]}>Total Workouts</Text>
+                        <Text style={[styles.statValue, purchased && { color: '#000' }]}>{totalWorkouts}</Text>
                     </LinearGradient>
                 </View>
             </View>
@@ -171,7 +176,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     levelName: {
         fontSize: 32,
         fontWeight: '900',
-        color: colors.textPrimary,
+        color: colors.textPrimary, // Will override inline for purchased
         letterSpacing: -0.5,
         textShadowColor: colors.backgroundDarker,
         textShadowOffset: { width: 0, height: 2 },

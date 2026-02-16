@@ -14,6 +14,7 @@ import { useTheme } from '../hooks/useTheme';
 import { seedAllInstructions } from '../store/slices/exerciseSlice';
 import { ExerciseInstructions, WorkoutSession } from '../types';
 import { setRecoveryStatus, updatePlanLevel, regenerateUserPlan } from '../store/slices/workoutPlanSlice';
+import { useBilling } from '../context/BillingContext';
 import { avatarService, AvatarState, AVATAR_LEVELS } from '../services/AvatarService';
 import LevelXPCard from '../components/LevelXPCard';
 import { HomeHeader } from '../components/home/HomeHeader';
@@ -36,6 +37,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const { colors, gradients, shadows, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows, isDark), [colors, shadows, isDark]);
     const { user } = useAppSelector((state) => state.auth);
+    const { purchased } = useBilling();
     const { stats } = useAppSelector((state) => state.workout);
     const { currentPlan, customPlans, todaysWorkout, recoveryStatus, loading: planLoading } = useAppSelector((state) => state.workoutPlan);
     const { activeHomeTab, workScrollOffset, dietScrollOffset } = useAppSelector((state) => state.ui);
@@ -432,7 +434,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 </View>
 
                 {/* 3. Diet Tab (Right) */}
-                <View style={{ width: screenWidth }}>
+                <View style={{ width: screenWidth, flex: 1 }}>
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={styles.dietScrollContent}
@@ -455,7 +457,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         <Text style={styles.greeting}>
                             HELLO, {(user?.displayName || 'CHAMPION').toUpperCase()}!
                         </Text>
-                        <PremiumGate featureName="Smart Diet" navigation={navigation}>
+                        <PremiumGate
+                            featureName="Smart Diet"
+                            navigation={navigation}
+                            description="Personalized meal plans and macro tracking to fuel your fitness journey."
+                            backgroundImage={{ uri: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?q=80&w=1000&auto=format&fit=crop' }}
+                        >
                             <DietTab user={user} />
                         </PremiumGate>
                     </ScrollView>
@@ -534,6 +541,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         paddingHorizontal: Spacing.s,
         paddingTop: 10,
         paddingBottom: 100,
+        flexGrow: 1,
     },
     topSpacing: {
         height: 50,

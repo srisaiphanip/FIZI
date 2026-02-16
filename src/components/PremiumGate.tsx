@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, ImageSourcePropType } from 'react-native';
 import { useBilling } from '../context/BillingContext';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -10,15 +10,21 @@ import { Spacing, Layout } from '../theme/Theme';
 interface PremiumGateProps {
     children: ReactNode;
     featureName?: string;
+    description?: string;
     navigation: any;
     lockType?: 'overlay' | 'replacement'; // 'overlay' blurs content, 'replacement' completely hides it
+    variant?: 'default' | 'compact' | 'icon';
+    backgroundImage?: ImageSourcePropType;
 }
 
 export const PremiumGate = ({
     children,
     featureName = 'Premium Feature',
+    description,
     navigation,
-    lockType = 'replacement'
+    lockType = 'replacement',
+    variant = 'default',
+    backgroundImage
 }: PremiumGateProps) => {
     const { purchased } = useBilling();
     const { colors, gradients, isDark } = useTheme();
@@ -40,6 +46,7 @@ export const PremiumGate = ({
                         navigation={navigation}
                         colors={colors}
                         gradients={gradients}
+                        variant={variant}
                     />
                 </View>
             </View>
@@ -47,49 +54,119 @@ export const PremiumGate = ({
     }
 
     // Default 'replacement' mode
-    return (
-        <View style={[styles.container, { backgroundColor: colors.backgroundDark }]}>
+    if (variant === 'compact') {
+        return (
             <LockContent
                 featureName={featureName}
                 navigation={navigation}
                 colors={colors}
                 gradients={gradients}
+                variant={variant}
             />
+        );
+    }
+
+    const containerStyle = variant === 'icon'
+        ? { backgroundColor: 'transparent', padding: 0 }
+        : [styles.container, { backgroundColor: colors.backgroundDark }];
+
+    return (
+        <View style={containerStyle}>
+            {backgroundImage ? (
+                <ImageBackground source={backgroundImage} style={StyleSheet.absoluteFill} resizeMode="cover">
+                    <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+                    <LinearGradient
+                        colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+                        style={StyleSheet.absoluteFill}
+                    />
+                    <LockContent
+                        featureName={featureName}
+                        description={description}
+                        navigation={navigation}
+                        colors={colors}
+                        gradients={gradients}
+                        variant={variant}
+                    />
+                </ImageBackground>
+            ) : (
+                <LockContent
+                    featureName={featureName}
+                    description={description}
+                    navigation={navigation}
+                    colors={colors}
+                    gradients={gradients}
+                    variant={variant}
+                />
+            )}
         </View>
     );
 };
 
-const LockContent = ({ featureName, navigation, colors, gradients }: any) => (
-    <View style={styles.lockContent}>
-        <LinearGradient
-            colors={[colors.accentYellow + '40', colors.accentYellow + '10']}
-            style={styles.iconContainer}
-        >
-            <MaterialCommunityIcons name="lock" size={32} color={colors.accentYellow} />
-        </LinearGradient>
-
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{featureName}</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Unlock this feature with FIZI Premium
-        </Text>
-
-        <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate('Subscription')}
-            activeOpacity={0.8}
-        >
-            <LinearGradient
-                colors={gradients.gold}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.buttonGradient}
+const LockContent = ({ featureName, description, navigation, colors, gradients, variant }: any) => {
+    if (variant === 'icon') {
+        return (
+            <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => navigation.navigate('Subscription')}
+                activeOpacity={0.8}
             >
-                <Text style={styles.buttonText}>Unlock Now</Text>
-                <MaterialCommunityIcons name="arrow-right" size={16} color="#000" />
+                <MaterialCommunityIcons name="lock" size={20} color={colors.textPrimary} />
+            </TouchableOpacity>
+        );
+    }
+
+    if (variant === 'compact') {
+        return (
+            <TouchableOpacity
+                style={styles.compactButton}
+                onPress={() => navigation.navigate('Subscription')}
+                activeOpacity={0.8}
+            >
+                <LinearGradient
+                    colors={gradients.gold}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.compactGradient}
+                >
+                    <MaterialCommunityIcons name="lock" size={18} color="#000" />
+                    <Text style={styles.compactText}>Unlock {featureName}</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+        );
+    }
+
+    return (
+        <View style={styles.lockContent}>
+            <LinearGradient
+                colors={[colors.accentYellow + '40', colors.accentYellow + '10']}
+                style={styles.iconContainer}
+            >
+                <MaterialCommunityIcons name="lock" size={32} color={colors.accentYellow} />
             </LinearGradient>
-        </TouchableOpacity>
-    </View>
-);
+
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{featureName}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                {description || "Unlock this feature with FIZI Premium"}
+            </Text>
+
+            <TouchableOpacity
+                style={styles.button}
+                onPress={() => navigation.navigate('Subscription')}
+                activeOpacity={0.8}
+            >
+                <LinearGradient
+                    colors={gradients.gold}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.buttonGradient}
+                >
+                    <Text style={styles.buttonText}>Unlock Now</Text>
+                    <MaterialCommunityIcons name="arrow-right" size={16} color="#000" />
+                </LinearGradient>
+            </TouchableOpacity>
+        </View>
+    );
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -145,5 +222,40 @@ const styles = StyleSheet.create({
         color: '#000',
         fontWeight: 'bold',
         fontSize: 16,
-    }
+    },
+    // Compact styles
+    compactContainer: {
+        padding: Spacing.s,
+    },
+    compactButton: {
+        borderRadius: Layout.borderRadius.l,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        width: '100%',
+        marginTop: 10,  // Add some spacing if needed, though replacement usually consumes space
+    },
+    compactGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center', // Center content
+        paddingHorizontal: Spacing.l,
+        height: 64, // Match standard button height
+        borderRadius: Layout.borderRadius.l,
+        gap: 8,
+    },
+    compactText: {
+        color: '#000',
+        fontWeight: 'bold',
+        marginLeft: 8,
+        fontSize: 14,
+    },
+    iconButton: {
+        width: 32,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });

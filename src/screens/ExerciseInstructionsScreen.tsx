@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Alert } from 'react-native';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Animated } from 'react-native';
 
 import { getExerciseImage } from '../config/imageMap';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,11 +8,13 @@ import { BlurView } from 'expo-blur';
 import { Spacing, Shadows, Layout, ThemeColorsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
 import { PremiumGate } from '../components/PremiumGate';
+import { GlassView } from '../components/GlassView';
 import { getExerciseById } from '../models/exercises';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { saveWorkout } from '../store/slices/workoutSlice';
 import { updateExerciseCompletion } from '../store/slices/workoutPlanSlice';
 import { avatarService } from '../services/AvatarService';
+import { useToast } from '../context/ToastContext';
 
 interface ExerciseInstructionsScreenProps {
     navigation: any;
@@ -22,6 +24,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstructionsScreenProps) {
     const { colors, gradients, isDark } = useTheme();
+    const { showToast } = useToast();
     const styles = useMemo(() => createStyles(colors), [colors]);
     const dispatch = useAppDispatch();
     const { currentPlan } = useAppSelector((state) => state.workoutPlan);
@@ -30,6 +33,26 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
     const exercise = getExerciseById(exerciseId);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [completionStats, setCompletionStats] = useState({ totalReps: 0, calories: 0 });
+
+    // Animation Values
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(50)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+                toValue: 0,
+                tension: 50,
+                friction: 7,
+                useNativeDriver: true,
+            })
+        ]).start();
+    }, []);
 
     if (!exercise) {
         return (
@@ -112,127 +135,129 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
 
         } catch (error) {
             console.error('Failed to log skipped workout:', error);
-            Alert.alert('Error', 'Failed to save workout progress.');
+            showToast('Failed to save workout progress.', 'error');
         }
     };
 
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-                {/* Back Button */}
-                <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.headerBackButton}>
-                    <MaterialCommunityIcons name="chevron-left" size={32} color={colors.textPrimary} />
-                </TouchableOpacity>
+                <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+                    {/* Back Button */}
+                    <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.headerBackButton}>
+                        <MaterialCommunityIcons name="chevron-left" size={32} color={colors.textPrimary} />
+                    </TouchableOpacity>
 
-                {/* Hero Section */}
-                <View style={styles.heroSection}>
-                    <MaterialCommunityIcons
-                        name="dumbbell"
-                        size={80}
-                        color={colors.primaryStart}
-                        style={styles.heroIcon}
-                    />
-                    <Text style={styles.exerciseName}>{exercise.name}</Text>
-                    <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryText}>{exercise.category.toUpperCase()}</Text>
-                    </View>
-
-                    {/* Tracking Mode Badge */}
-                    <View style={[
-                        styles.trackingModeBadge,
-                        exercise.trackingMode === 'ai_reps' && styles.trackingModeAI,
-                        exercise.trackingMode === 'ai_timer' && styles.trackingModeAITimer,
-                        exercise.trackingMode === 'timer_only' && styles.trackingModeTimer
-                    ]}>
+                    {/* Hero Section */}
+                    <View style={styles.heroSection}>
                         <MaterialCommunityIcons
-                            name={
-                                exercise.trackingMode === 'timer_only' ? 'timer-outline' :
-                                    exercise.trackingMode === 'ai_timer' ? 'timer-check-outline' :
-                                        'camera-enhance-outline'
-                            }
-                            size={16}
-                            color={
-                                exercise.trackingMode === 'timer_only' ? colors.accentWarning :
-                                    colors.accentCyan
-                            }
+                            name="dumbbell"
+                            size={80}
+                            color={colors.primaryStart}
+                            style={styles.heroIcon}
                         />
-                        <Text style={[
-                            styles.trackingModeText,
-                            exercise.trackingMode === 'timer_only' && styles.trackingModeTextTimer
+                        <Text style={styles.exerciseName}>{exercise.name}</Text>
+                        <View style={styles.categoryBadge}>
+                            <Text style={styles.categoryText}>{exercise.category.toUpperCase()}</Text>
+                        </View>
+
+                        {/* Tracking Mode Badge */}
+                        <View style={[
+                            styles.trackingModeBadge,
+                            exercise.trackingMode === 'ai_reps' && styles.trackingModeAI,
+                            exercise.trackingMode === 'ai_timer' && styles.trackingModeAITimer,
+                            exercise.trackingMode === 'timer_only' && styles.trackingModeTimer
                         ]}>
-                            {exercise.trackingMode === 'ai_reps' && 'AI Rep Counting'}
-                            {exercise.trackingMode === 'ai_timer' && 'AI Form Check + Timer'}
-                            {exercise.trackingMode === 'timer_only' && 'Timer Based'}
-                        </Text>
+                            <MaterialCommunityIcons
+                                name={
+                                    exercise.trackingMode === 'timer_only' ? 'timer-outline' :
+                                        exercise.trackingMode === 'ai_timer' ? 'timer-check-outline' :
+                                            'camera-enhance-outline'
+                                }
+                                size={16}
+                                color={
+                                    exercise.trackingMode === 'timer_only' ? colors.accentWarning :
+                                        colors.accentCyan
+                                }
+                            />
+                            <Text style={[
+                                styles.trackingModeText,
+                                exercise.trackingMode === 'timer_only' && styles.trackingModeTextTimer
+                            ]}>
+                                {exercise.trackingMode === 'ai_reps' && 'AI Rep Counting'}
+                                {exercise.trackingMode === 'ai_timer' && 'AI Form Check + Timer'}
+                                {exercise.trackingMode === 'timer_only' && 'Timer Based'}
+                            </Text>
+                        </View>
                     </View>
-                </View>
 
-                {/* Description */}
-                <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <MaterialCommunityIcons name="information-outline" size={24} color={colors.accentCyan} />
-                        <Text style={styles.cardTitle}>About Exercise</Text>
-                    </View>
-                    <Text style={styles.descriptionText}>{exercise.description || "Perfect your form with AI-powered correction."}</Text>
-                </BlurView>
-
-                {/* Form Reference Image */}
-                {getExerciseImage(exerciseId) && (
-                    <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={styles.referenceImageCard}>
+                    {/* Description */}
+                    <GlassView style={styles.card}>
                         <View style={styles.cardHeader}>
-                            <MaterialCommunityIcons name="image-outline" size={24} color={colors.accentCyan} />
-                            <Text style={styles.cardTitle}>Form Reference</Text>
+                            <MaterialCommunityIcons name="information-outline" size={24} color={colors.accentCyan} />
+                            <Text style={styles.cardTitle}>About Exercise</Text>
                         </View>
-                        <View style={styles.imageContainer}>
-                            <Image
-                                source={getExerciseImage(exerciseId)}
-                                style={styles.referenceImage}
-                                resizeMode="contain"
-                            />
-                            {/* Logo Watermark */}
-                            <Image
-                                source={getExerciseImage('app-logo')}
-                                style={styles.logoWatermark}
-                                resizeMode="contain"
-                            />
-                        </View>
-                    </BlurView>
-                )}
+                        <Text style={styles.descriptionText}>{exercise.description || "Perfect your form with AI-powered correction."}</Text>
+                    </GlassView>
 
-                {/* Steps */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Execution Steps</Text>
-                    <View style={styles.stepsTextContainer}>
-                        {(exercise.instructions || exercise.steps)?.map((step: string, index: number) => (
-                            <View key={index} style={styles.bulletPointRow}>
-                                <Text style={styles.bulletPoint}>•</Text>
-                                <Text style={styles.stepTextSimple}>{step}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Tips */}
-                {exercise.tips && exercise.tips.length > 0 && (
-                    <View style={styles.section}>
-                        <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.tipsCard}>
+                    {/* Form Reference Image */}
+                    {getExerciseImage(exerciseId) && (
+                        <GlassView style={styles.referenceImageCard}>
                             <View style={styles.cardHeader}>
-                                <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={colors.accentYellow} />
-                                <Text style={styles.cardTitle}>Pro Tips</Text>
+                                <MaterialCommunityIcons name="image-outline" size={24} color={colors.accentCyan} />
+                                <Text style={styles.cardTitle}>Form Reference</Text>
                             </View>
-                            <View style={styles.tipsList}>
-                                {exercise.tips.map((tip, index) => (
-                                    <View key={index} style={styles.tipRow}>
-                                        <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.accentSuccess} style={{ marginTop: 2 }} />
-                                        <Text style={styles.tipText}>{tip}</Text>
-                                    </View>
-                                ))}
+                            <View style={styles.imageContainer}>
+                                <Image
+                                    source={getExerciseImage(exerciseId)}
+                                    style={styles.referenceImage}
+                                    resizeMode="contain"
+                                />
+                                {/* Logo Watermark */}
+                                <Image
+                                    source={getExerciseImage('app-logo')}
+                                    style={styles.logoWatermark}
+                                    resizeMode="contain"
+                                />
                             </View>
-                        </BlurView>
-                    </View>
-                )}
+                        </GlassView>
+                    )}
 
-                <View style={{ height: 160 }} />
+                    {/* Steps */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Execution Steps</Text>
+                        <View style={styles.stepsTextContainer}>
+                            {(exercise.instructions || exercise.steps)?.map((step: string, index: number) => (
+                                <View key={index} style={styles.bulletPointRow}>
+                                    <Text style={styles.bulletPoint}>•</Text>
+                                    <Text style={styles.stepTextSimple}>{step}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+
+                    {/* Tips */}
+                    {exercise.tips && exercise.tips.length > 0 && (
+                        <View style={styles.section}>
+                            <GlassView tint={isDark ? "light" : "dark"} style={styles.tipsCard}>
+                                <View style={styles.cardHeader}>
+                                    <MaterialCommunityIcons name="lightbulb-on-outline" size={24} color={colors.accentYellow} />
+                                    <Text style={styles.cardTitle}>Pro Tips</Text>
+                                </View>
+                                <View style={styles.tipsList}>
+                                    {exercise.tips.map((tip, index) => (
+                                        <View key={index} style={styles.tipRow}>
+                                            <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.accentSuccess} style={{ marginTop: 2 }} />
+                                            <Text style={styles.tipText}>{tip}</Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            </GlassView>
+                        </View>
+                    )}
+
+                    <View style={{ height: 160 }} />
+                </Animated.View>
             </ScrollView>
 
             {/* Footer with Actions */}
@@ -241,7 +266,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     <PremiumGate
                         featureName="AI Form Tracking"
                         navigation={navigation}
-                        lockType="overlay"
+                        variant="compact"
                     >
                         <TouchableOpacity
                             onPress={handleStart}
@@ -426,12 +451,8 @@ const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
         color: colors.accentWarning,
     },
     card: {
-        borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
-        borderWidth: 1,
-        borderColor: colors.glassBorder,
         marginBottom: Spacing.xl,
-        overflow: 'hidden',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -509,11 +530,7 @@ const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
         lineHeight: 22,
     },
     tipsCard: {
-        borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
-        borderWidth: 1,
-        borderColor: colors.glassBorder,
-        overflow: 'hidden',
     },
     tipsList: {
         gap: Spacing.m,
@@ -532,12 +549,8 @@ const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
 
     // Reference Image Card
     referenceImageCard: {
-        borderRadius: Layout.borderRadius.l,
         padding: Spacing.l,
-        borderWidth: 1,
-        borderColor: colors.glassBorder,
         marginBottom: Spacing.xl,
-        overflow: 'hidden',
         alignItems: 'center',
     },
     referenceImage: {

@@ -12,7 +12,7 @@ import { Spacing, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/The
 const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     const { colors, gradients, shadows, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
-    const [selectedPlanId, setSelectedPlanId] = useState<'fizi_premium_3month' | 'fizi_premium_1year'>('fizi_premium_3month');
+    const [selectedPlanId, setSelectedPlanId] = useState<'fizi_premium_3month'>('fizi_premium_3month');
 
     const {
         products,
@@ -46,7 +46,6 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     };
 
     const price3Month = getPrice('fizi_premium_3month', '₹299');
-    const price1Year = getPrice('fizi_premium_1year', '₹999');
 
     const handleSubscribe = async () => {
         if (purchased) {
@@ -112,64 +111,34 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     <View style={styles.plansContainer}>
                         {/* 3 Month Plan */}
                         <TouchableOpacity
-                            onPress={() => setSelectedPlanId('fizi_premium_3month')}
-                            activeOpacity={0.9}
+                            activeOpacity={1}
                             style={[
                                 styles.planCard,
-                                selectedPlanId === 'fizi_premium_3month' && styles.selectedPlanCard
+                                styles.selectedPlanCard
                             ]}
                         >
                             <LinearGradient
-                                colors={selectedPlanId === 'fizi_premium_3month' ? gradients.primary : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.05)']}
+                                colors={gradients.primary}
                                 style={styles.planCardGradient}
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                             >
                                 <View style={styles.checkBox}>
                                     <MaterialCommunityIcons
-                                        name={selectedPlanId === 'fizi_premium_3month' ? "radiobox-marked" : "radiobox-blank"}
+                                        name="check-circle"
                                         size={24}
-                                        color={selectedPlanId === 'fizi_premium_3month' ? '#FFF' : colors.textSecondary}
+                                        color="#FFF"
                                     />
                                 </View>
                                 <View style={styles.planInfo}>
-                                    <Text style={[styles.planName, selectedPlanId === 'fizi_premium_3month' && { color: '#FFF' }]}>Quarterly</Text>
-                                    <Text style={[styles.planCost, selectedPlanId === 'fizi_premium_3month' && { color: '#FFF' }]}>{price3Month} / 3mo</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-
-                        {/* 1 Year Plan */}
-                        <TouchableOpacity
-                            onPress={() => setSelectedPlanId('fizi_premium_1year')}
-                            activeOpacity={0.9}
-                            style={[
-                                styles.planCard,
-                                selectedPlanId === 'fizi_premium_1year' && styles.selectedPlanCard
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={selectedPlanId === 'fizi_premium_1year' ? gradients.gold : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.05)']}
-                                style={styles.planCardGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                            >
-                                <View style={styles.bestValueBadge}>
-                                    <Text style={styles.bestValueText}>BEST VALUE</Text>
-                                </View>
-                                <View style={styles.checkBox}>
-                                    <MaterialCommunityIcons
-                                        name={selectedPlanId === 'fizi_premium_1year' ? "radiobox-marked" : "radiobox-blank"}
-                                        size={24}
-                                        color={selectedPlanId === 'fizi_premium_1year' ? '#000' : colors.textSecondary}
-                                    />
-                                </View>
-                                <View style={styles.planInfo}>
-                                    <Text style={[styles.planName, selectedPlanId === 'fizi_premium_1year' && { color: '#000' }]}>Yearly Pro</Text>
+                                    <Text style={[styles.planName, { color: '#FFF' }]}>Quarterly Plan</Text>
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <Text style={[styles.planCost, { textDecorationLine: 'line-through', marginRight: 8, opacity: 0.6 }, selectedPlanId === 'fizi_premium_1year' && { color: '#000' }]}>₹1200</Text>
-                                        <Text style={[styles.planCost, selectedPlanId === 'fizi_premium_1year' && { color: '#000' }]}>{price1Year} / year</Text>
+                                        <Text style={[styles.planCost, { textDecorationLine: 'line-through', marginRight: 8, opacity: 0.6, color: '#FFF' }]}>₹600</Text>
+                                        <Text style={[styles.planCost, { color: '#FFF', fontWeight: 'bold' }]}>{price3Month} / 3mo</Text>
                                     </View>
+                                </View>
+                                <View style={styles.bestValueBadge}>
+                                    <Text style={styles.bestValueText}>50% OFF</Text>
                                 </View>
                             </LinearGradient>
                         </TouchableOpacity>
@@ -193,7 +162,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                                     <ActivityIndicator color="#FFF" />
                                 ) : (
                                     <Text style={styles.buttonText}>
-                                        Subscribe for {selectedPlanId === 'fizi_premium_3month' ? price3Month : price1Year}
+                                        Subscribe for {price3Month}
                                     </Text>
                                 )}
                             </LinearGradient>

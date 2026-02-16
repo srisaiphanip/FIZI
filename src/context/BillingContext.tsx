@@ -7,9 +7,10 @@ import type {
     ProductSubscription,
 } from 'react-native-iap';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from '../services/firebaseConfig';
 
 // --- Constants ---
-const SUBSCRIPTION_IDS = ['fizi_premium_3month', 'fizi_premium_1year'];
+const SUBSCRIPTION_IDS = ['fizi_premium_3month'];
 
 let RNIap: any;
 try {
@@ -46,21 +47,6 @@ const MOCK_PRODUCTS: any[] = [
                 pricingPhaseList: [{ formattedPrice: '₹299' }]
             }
         }]
-    },
-    {
-        id: 'fizi_premium_1year',
-        productId: 'fizi_premium_1year',
-        title: 'FIZI Premium (Yearly)',
-        description: '1 Year Plan (Mock)',
-        price: '₹999',
-        currency: 'INR',
-        subscriptionOffers: [{
-            offerTokenAndroid: 'mock_token_1y',
-            displayPrice: '₹999',
-            pricingPhasesAndroid: {
-                pricingPhaseList: [{ formattedPrice: '₹999' }]
-            }
-        }]
     }
 ];
 
@@ -76,7 +62,6 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
 
         const initializeBilling = async () => {
             if (!RNIap) {
-
                 setProducts(MOCK_PRODUCTS); // Set mock products so UI shows up
                 return;
             }
@@ -86,10 +71,10 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
                 setConnected(result);
                 if (result) {
                     await fetchSubscriptions();
-                    await checkSubscriptionStatus(); // Check if already purchased
+                    // We don't check status here anymore, we wait for auth state or explicit check
                 }
             } catch (err) {
-
+                console.warn('IAP Init Error', err);
             }
         };
 
@@ -98,12 +83,16 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
         if (RNIap) {
             // Listener for successful purchases
             purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(async (purchase: Purchase) => {
-                // v14: Purchase object contains id, productId, transactionId, etc.
+                const user = auth.currentUser;
                 if (purchase) {
                     try {
                         await RNIap.finishTransaction({ purchase, isConsumable: false });
                         setPurchased(true);
-                        await AsyncStorage.setItem('is_premium', 'true'); // Cache locally
+
+                        if (user) {
+                            await AsyncStorage.setItem(`is_premium_${user.uid}`, 'true'); // Cache locally for specific user
+                        }
+
                         Alert.alert('Success', 'Subscription active! Premium features unlocked.');
                     } catch (ackErr) {
                         console.warn('ackErr', ackErr);
@@ -128,6 +117,19 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
             if (purchaseErrorSubscription) purchaseErrorSubscription.remove();
             if (RNIap) RNIap.endConnection();
         };
+    }, []);
+
+    // Listen for Auth Changes to update subscription status
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                await checkSubscriptionStatus();
+            } else {
+                setPurchased(false);
+            }
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const fetchSubscriptions = async () => {
@@ -204,6 +206,13 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
     const restorePurchases = async () => {
         setLoading(true);
         try {
+            const user = auth.currentUser;
+            if (!user) {
+                Alert.alert('Error', 'You must be logged in to restore purchases.');
+                setLoading(false);
+                return;
+            }
+
             const purchases = await getAvailablePurchases();
 
             if (purchases === null) {
@@ -217,7 +226,7 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
 
             if (hasPremium) {
                 setPurchased(true);
-                await AsyncStorage.setItem('is_premium', 'true');
+                await AsyncStorage.setItem(`is_premium_${user.uid}`, 'true');
                 Alert.alert('Restore Successful', 'Your subscription has been restored.');
             } else {
                 Alert.alert('Restore', 'No active subscription found.');
@@ -245,13 +254,25 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
 
 
     const checkSubscriptionStatus = async () => {
-        // 1. Check local storage first for speed
-        const localPremium = await AsyncStorage.getItem('is_premium');
+        const user = auth.currentUser;
+        if (!user) {
+            setPurchased(false);
+            return;
+        }
+
+        // 1. Check local storage first for speed (User Specific)
+        const localPremium = await AsyncStorage.getItem(`is_premium_${user.uid}`);
         if (localPremium === 'true') {
             setPurchased(true);
+        } else {
+            setPurchased(false); // Validating resetting if not found locally for new user
         }
 
         // 2. Verify with store (async)
+        // Note: In production you might want to skip this if local is true to save network,
+        // but for now checking store is safer to detect expirations.
+        if (!RNIap && localPremium === 'true') return; // If local says true and no RNIap (Mock), keep it.
+
         const purchases = await getAvailablePurchases();
 
         // If query failed (null), stop here and rely on local storage (don't revoke)
@@ -262,12 +283,12 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
 
         if (hasPremium) {
             setPurchased(true);
-            await AsyncStorage.setItem('is_premium', 'true');
+            await AsyncStorage.setItem(`is_premium_${user.uid}`, 'true');
         } else {
             // Purchases fetched successfully but no active subscription found -> Revoke
             if (connected) {
                 setPurchased(false);
-                await AsyncStorage.removeItem('is_premium');
+                await AsyncStorage.removeItem(`is_premium_${user.uid}`);
             }
         }
     };

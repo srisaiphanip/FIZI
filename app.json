@@ -3,7 +3,7 @@
     "name": "FIZI-Fitness,Gym & Workouts",
     "slug": "ai-fitness-trainer",
     "scheme": "fizi",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -28,7 +28,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.maheshchalla.fizi",
-      "versionCode": 41
+      "versionCode": 42
     },
     "web": {},
     "extra": {
