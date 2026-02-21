@@ -620,7 +620,9 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                                     {purchased ? 'Premium Member' : 'Go Premium'}
                                 </Text>
                                 <Text style={[styles.userInfoSubtitle, { color: purchased ? colors.textSecondary : 'rgba(0,0,0,0.7)' }]}>
-                                    {purchased ? 'Manage Subscription' : 'Unlock AI Analysis & More'}
+                                    {purchased
+                                        ? (user?.premiumExpiryDate ? `Valid until ${new Date(user.premiumExpiryDate).toLocaleDateString()}` : 'Manage Subscription')
+                                        : 'Unlock AI Analysis & More'}
                                 </Text>
                             </View>
                             <View style={{

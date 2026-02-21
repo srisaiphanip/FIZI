@@ -1,9 +1,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Platform, Dimensions, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useBilling } from '../context/BillingContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { authService } from '../services/authService';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
+import { updateProfile } from '../store/slices/authSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { BlurView } from 'expo-blur';
@@ -13,23 +17,34 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     const { colors, gradients, shadows, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const [selectedPlanId, setSelectedPlanId] = useState<'fizi_premium_3month'>('fizi_premium_3month');
-
+    const [couponCode, setCouponCode] = useState('');
+    const [couponStatus, setCouponStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
+    const [couponMessage, setCouponMessage] = useState('');
+    const dispatch = useAppDispatch();
+    const { user } = useAppSelector(state => state.auth);
     const {
         products,
         purchased,
-        loading,
+        loading: billingLoading,
         purchaseSubscription,
         restorePurchases,
-        connected
+        connected,
+        checkSubscriptionStatus
     } = useBilling();
 
     useEffect(() => {
         if (purchased) {
-            Alert.alert('Premium Active', 'You already have a premium subscription!', [
+            let message = 'You already have a premium subscription!';
+            if (user?.premiumExpiryDate) {
+                const dateStr = new Date(user.premiumExpiryDate).toLocaleDateString();
+                message = `Your premium subscription is valid until ${dateStr}.`;
+            }
+
+            Alert.alert('Premium Active', message, [
                 { text: 'OK', onPress: () => navigation.goBack() }
             ]);
         }
-    }, [purchased]);
+    }, [purchased, user]);
 
     // Helper to get formatted price
     const getPrice = (id: string, defaultPrice: string) => {
@@ -53,6 +68,63 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
             return;
         }
         await purchaseSubscription(selectedPlanId);
+    };
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) {
+            setCouponStatus('error');
+            setCouponMessage('Please enter a valid coupon code.');
+            return;
+        }
+
+        setCouponStatus('validating');
+
+        try {
+            if (!user) {
+                setCouponStatus('error');
+                setCouponMessage('Must be logged in to apply code.');
+                return;
+            }
+
+            // Step 1: Query Firebase
+            const couponData = await authService.validateCoupon(couponCode);
+
+            // Step 2: Handle 100% Free Promo (Premium Overrides)
+            if (couponData.type === '100_percent_off') {
+                const durationMonths = couponData.durationMonths || 1; // Default to 1 if not set
+
+                // Calculate expiry Date
+                const expiryDate = new Date();
+                expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+
+                // Update Redux and Firestore
+                await dispatch(updateProfile({ premiumExpiryDate: expiryDate })).unwrap();
+
+                // Set local flag immediately
+                await AsyncStorage.setItem(`is_premium_${user.uid}`, 'true');
+
+                // Force billing context update
+                await checkSubscriptionStatus();
+
+                setCouponStatus('success');
+                setCouponMessage(`${durationMonths} Months Premium Unlocked!`);
+
+                setTimeout(() => {
+                    Alert.alert('Success', `${durationMonths} Months Premium Unlocked!`);
+                    navigation.navigate('Home');
+                }, 1000);
+            } else if (couponData.type === 'discount') {
+                // Future Implementation for basic percentage discounts on RevenueCat
+                setCouponStatus('success');
+                setCouponMessage(`Coupon applied successfully! ${couponData.discountPercentage}% discount added.`);
+            } else {
+                setCouponStatus('error');
+                setCouponMessage('Invalid coupon type structure.');
+            }
+        } catch (error: any) {
+            setCouponStatus('error');
+            setCouponMessage(error.message || 'Failed to apply coupon. Try again.');
+        }
     };
 
     return (
@@ -146,10 +218,56 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
                     {/* Action Buttons */}
                     <View style={styles.actionContainer}>
+                        {/* Coupon Section */}
+                        <View style={styles.couponContainer}>
+                            <Text style={styles.couponLabel}>Have a promo code?</Text>
+                            <View style={styles.couponInputRow}>
+                                <TextInput
+                                    style={styles.couponInput}
+                                    placeholder="Enter code"
+                                    placeholderTextColor="rgba(255,255,255,0.5)"
+                                    value={couponCode}
+                                    onChangeText={(text) => {
+                                        setCouponCode(text);
+                                        if (couponStatus !== 'idle') {
+                                            setCouponStatus('idle');
+                                            setCouponMessage('');
+                                        }
+                                    }}
+                                    autoCapitalize="characters"
+                                    editable={couponStatus !== 'validating' && couponStatus !== 'success'}
+                                />
+                                <TouchableOpacity
+                                    style={[
+                                        styles.applyButton,
+                                        (couponStatus === 'validating' || couponStatus === 'success' || !couponCode.trim()) && styles.disabledButton
+                                    ]}
+                                    onPress={handleApplyCoupon}
+                                    disabled={couponStatus === 'validating' || couponStatus === 'success' || !couponCode.trim()}
+                                >
+                                    {couponStatus === 'validating' ? (
+                                        <ActivityIndicator color={colors.textPrimary} size="small" />
+                                    ) : (
+                                        <Text style={styles.applyButtonText}>
+                                            {couponStatus === 'success' ? 'Applied' : 'Apply'}
+                                        </Text>
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                            {couponMessage ? (
+                                <Text style={[
+                                    styles.couponMessage,
+                                    { color: couponStatus === 'success' ? colors.accentSuccess : colors.accentError }
+                                ]}>
+                                    {couponMessage}
+                                </Text>
+                            ) : null}
+                        </View>
+
                         <TouchableOpacity
-                            style={[styles.subscribeButton, loading && styles.disabledButton]}
+                            style={[styles.subscribeButton, billingLoading && styles.disabledButton]}
                             onPress={handleSubscribe}
-                            disabled={loading}
+                            disabled={billingLoading}
                             activeOpacity={0.9}
                         >
                             <LinearGradient
@@ -158,7 +276,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                                 end={{ x: 1, y: 0 }}
                                 style={styles.buttonGradient}
                             >
-                                {loading ? (
+                                {billingLoading ? (
                                     <ActivityIndicator color="#FFF" />
                                 ) : (
                                     <Text style={styles.buttonText}>
@@ -172,7 +290,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                             Recurring billing. Cancel anytime.
                         </Text>
 
-                        <TouchableOpacity onPress={restorePurchases} disabled={loading} style={styles.restoreLink}>
+                        <TouchableOpacity onPress={restorePurchases} disabled={billingLoading} style={styles.restoreLink}>
                             <Text style={styles.restoreText}>Restore Purchases</Text>
                         </TouchableOpacity>
                     </View>
@@ -324,6 +442,52 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     },
     actionContainer: {
         marginTop: Spacing.xl,
+    },
+    couponContainer: {
+        marginBottom: Spacing.xl,
+        paddingHorizontal: Spacing.xs,
+    },
+    couponLabel: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        marginBottom: Spacing.s,
+        fontWeight: '600',
+    },
+    couponInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.s,
+    },
+    couponInput: {
+        flex: 1,
+        height: 50,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderRadius: Layout.borderRadius.m,
+        paddingHorizontal: Spacing.m,
+        color: colors.textPrimary,
+        fontSize: 16,
+    },
+    applyButton: {
+        height: 50,
+        paddingHorizontal: Spacing.l,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: Layout.borderRadius.m,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    applyButtonText: {
+        color: colors.textPrimary,
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    couponMessage: {
+        fontSize: 12,
+        marginTop: Spacing.s,
+        marginLeft: Spacing.xs,
     },
     subscribeButton: {
         width: '100%',

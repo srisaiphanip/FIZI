@@ -271,7 +271,7 @@ export const BillingProvider = ({ children }: { children: ReactNode }) => {
         // 2. Verify with store (async)
         // Note: In production you might want to skip this if local is true to save network,
         // but for now checking store is safer to detect expirations.
-        if (!RNIap && localPremium === 'true') return; // If local says true and no RNIap (Mock), keep it.
+        if (localPremium === 'true') return; // If local says true (via coupon/expiry or Mock RNIap), keep it without revoking via Empty RNIap.
 
         const purchases = await getAvailablePurchases();
 

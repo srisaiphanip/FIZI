@@ -190,6 +190,7 @@ class AuthService {
                     notificationsEnabled: data.notificationsEnabled !== undefined ? data.notificationsEnabled : true,
                     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
                     updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+                    premiumExpiryDate: data.premiumExpiryDate?.toDate ? data.premiumExpiryDate.toDate() : data.premiumExpiryDate,
                 };
 
                 // Add optional photoURL if it exists
@@ -203,6 +204,29 @@ class AuthService {
             return null;
         } catch (error) {
             return null;
+        }
+    }
+
+    /**
+     * Validate a coupon code from Firestore
+     */
+    async validateCoupon(code: string): Promise<any> {
+        try {
+            const docRef = doc(db, 'coupons', code.toUpperCase());
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.active) {
+                    return data;
+                } else {
+                    throw new Error('This coupon code is no longer active.');
+                }
+            } else {
+                throw new Error('Invalid coupon code.');
+            }
+        } catch (error: any) {
+            throw new Error(error.message || 'Error validating coupon.');
         }
     }
 

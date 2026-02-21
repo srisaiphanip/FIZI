@@ -262,6 +262,7 @@ export interface UserProfile {
     transformationPhotos: string[];
     pushToken?: string;
     notificationsEnabled?: boolean;
+    premiumExpiryDate?: Date | any; // Any allows for Firestore timestamps
 
     // Nutrition fields
     nutritionPreferences?: {

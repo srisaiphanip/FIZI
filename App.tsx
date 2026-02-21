@@ -133,6 +133,21 @@ function AppContent() {
         if (firebaseUser) {
           const userProfile = await authService.getUserProfile(firebaseUser.uid);
           store.dispatch(setUser(userProfile));
+
+          // Handle Custom Premium Expiry
+          if (userProfile?.premiumExpiryDate) {
+            const now = new Date();
+            const expiryDate = new Date(userProfile.premiumExpiryDate);
+
+            if (expiryDate > now) {
+              // premium is active
+              await AsyncStorage.setItem(`is_premium_${firebaseUser.uid}`, 'true');
+            } else {
+              // premium expired
+              await AsyncStorage.removeItem(`is_premium_${firebaseUser.uid}`);
+            }
+          }
+
         } else {
           store.dispatch(setUser(null));
         }
