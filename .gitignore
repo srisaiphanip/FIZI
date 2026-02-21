@@ -53,6 +53,10 @@ reps_state.json
 !requirements.txt
 !**/requirements.txt
 
+# Firebase & EAS sensitive credentials
+service-account.json
+addCoupon.mjs
+
 # generated native folders
 /ios
 /android

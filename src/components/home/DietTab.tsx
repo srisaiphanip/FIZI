@@ -15,7 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Svg, { Circle } from 'react-native-svg';
+
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColorsType, ThemeShadowsType, Layout, Spacing } from '../../theme/Theme';
 import NutritionService from '../../services/NutritionService';
@@ -30,7 +30,7 @@ export function DietTab({ user }: DietTabProps) {
     const styles = useMemo(() => createStyles(colors, shadows, isDark), [colors, shadows, isDark]);
     const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedMealIndex, setSelectedMealIndex] = useState<number | null>(null);
+    const [expandedMealIndices, setExpandedMealIndices] = useState<Set<number>>(new Set([0, 1, 2, 3, 4]));
     const [eatenMealIds, setEatenMealIds] = useState<string[]>([]);
     const [takenSupplementIds, setTakenSupplementIds] = useState<string[]>([]);
     const [dietaryPreference, setDietaryPreference] = useState<'veg' | 'non-veg'>('non-veg');
@@ -367,32 +367,29 @@ export function DietTab({ user }: DietTabProps) {
                     </View>
                 </View>
 
-                <View style={styles.ringContainer}>
-                    <Svg width={180} height={180} viewBox="0 0 100 100">
-                        <Circle
-                            cx="50"
-                            cy="50"
-                            r="45"
-                            stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
-                            strokeWidth="8"
-                            fill="none"
+                <View style={styles.progressContainer}>
+                    <View style={styles.progressHeaderRow}>
+                        <View style={styles.progressLabelGroup}>
+                            <MaterialCommunityIcons name="fire" size={28} color={colors.accentWarning} style={{ marginRight: 6, alignSelf: 'center' }} />
+                            <Text style={styles.consumedValue}>{consumedCalories}</Text>
+                            <Text style={styles.consumedLabel}>KCAL EATEN</Text>
+                        </View>
+                        <View style={styles.progressPercentGroup}>
+                            <View style={[styles.percentBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                                <Text style={styles.percentValue}>{Math.round(calorieProgress * 100)}%</Text>
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.progressBarBackground}>
+                        <LinearGradient
+                            colors={gradients.ocean}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={[
+                                styles.progressBarFill,
+                                { width: `${calorieProgress * 100}%` }
+                            ]}
                         />
-                        <Circle
-                            cx="50"
-                            cy="50"
-                            r="45"
-                            stroke={colors.accentCyan}
-                            strokeWidth="8"
-                            strokeDasharray={`${calorieProgress * 282.7} 282.7`}
-                            strokeLinecap="round"
-                            fill="none"
-                            transform="rotate(-90 50 50)"
-                        />
-                    </Svg>
-                    <View style={styles.ringCenterContent}>
-                        <Text style={styles.consumedValue}>{consumedCalories}</Text>
-                        <Text style={styles.consumedLabel}>EATEN</Text>
-                        <Text style={styles.percentValue}>{Math.round(calorieProgress * 100)}%</Text>
                     </View>
                 </View>
 
@@ -462,7 +459,7 @@ export function DietTab({ user }: DietTabProps) {
                 <Text style={styles.sectionTitle}>Meal Schedule ({nutritionProfile.mealPlan.mealsPerDay} meals/day)</Text>
                 {nutritionProfile.mealPlan.mealTimings.map((meal: any, index: number) => {
                     const isEaten = eatenMealIds.includes(meal.id);
-                    const isSelected = selectedMealIndex === index;
+                    const isSelected = expandedMealIndices.has(index);
 
                     // Get suggestion based on meal type and calories
                     const getSuggestionItems = () => {
@@ -508,7 +505,7 @@ export function DietTab({ user }: DietTabProps) {
                                 isSelected && { flexDirection: 'column', alignItems: 'stretch' },
                                 isEaten && styles.mealRowEaten
                             ]}
-                            onPress={() => setSelectedMealIndex(index === selectedMealIndex ? null : index)}
+                            disabled={true} // Disable turning off the expansion
                         >
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TouchableOpacity
@@ -889,7 +886,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
     },
     calorieCard: {
         marginHorizontal: 8,
-        marginVertical: Spacing.l,
+        marginBottom: Spacing.l,
         padding: Spacing.l,
         borderRadius: Layout.borderRadius.xl,
         overflow: 'hidden',
@@ -929,31 +926,60 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         fontWeight: '700',
         textTransform: 'uppercase',
     },
-    ringContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
+    progressContainer: {
         marginVertical: Spacing.m,
+        paddingHorizontal: Spacing.xs,
     },
-    ringCenterContent: {
-        position: 'absolute',
+    progressHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: Spacing.m,
+    },
+    progressLabelGroup: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+    },
+    progressPercentGroup: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+    },
+    percentBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    progressBarBackground: {
+        height: 16,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        borderRadius: 8,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 8,
     },
     consumedValue: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: '900',
         color: colors.textPrimary,
+        marginRight: 6,
+        letterSpacing: -1,
     },
     consumedLabel: {
-        fontSize: 10,
+        fontSize: 12,
         color: colors.textTertiary,
-        fontWeight: '700',
-        letterSpacing: 1,
+        fontWeight: '800',
+        letterSpacing: 1.5,
     },
     percentValue: {
         fontSize: 14,
-        fontWeight: '800',
+        fontWeight: '900',
         color: colors.accentCyan,
-        marginTop: 4,
     },
     metabolicInfo: {
         flexDirection: 'row',

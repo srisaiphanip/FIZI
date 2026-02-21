@@ -25,6 +25,7 @@
         "CAMERA",
         "RECORD_AUDIO"
       ],
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.maheshchalla.fizi",
@@ -41,6 +42,14 @@
         "react-native-iap",
         {
           "paymentProvider": "Play Store"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/app-icon.png",
+          "color": "#0A0E27",
+          "defaultChannel": "default"
         }
       ]
     ]

@@ -454,9 +454,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         directionalLockEnabled={true}
                     >
                         <View style={styles.topSpacing} />
-                        <Text style={styles.greeting}>
-                            HELLO, {(user?.displayName || 'CHAMPION').toUpperCase()}!
-                        </Text>
                         <PremiumGate
                             featureName="Smart Diet"
                             navigation={navigation}
