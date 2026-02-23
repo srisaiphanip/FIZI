@@ -10,6 +10,8 @@ import { setUser } from './src/store/slices/authSlice';
 import { BillingProvider } from './src/context/BillingContext';
 import { View, Text, BackHandler } from 'react-native';
 import { useAppDispatch } from './src/hooks/reduxHooks';
+import AnimatedSplash from './src/components/AnimatedSplash';
+import OfflineBanner from './src/components/OfflineBanner';
 
 // Import screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -73,13 +75,14 @@ function AppContent() {
       authService.updateLastActiveAt();
 
       // Listener for when a notification is received while the app is foregrounded
-      notificationListener.current = notificationService.addNotificationReceivedListener(notification => {
-        console.log('Notification received in foreground:', notification);
+      notificationListener.current = notificationService.addNotificationReceivedListener(_notification => {
+        // Notification received - handle silently in production
+        if (__DEV__) console.log('Notification received in foreground:', _notification);
       });
 
       // Listener for when a user taps on or interacts with a notification
-      responseListener.current = notificationService.addNotificationResponseReceivedListener(response => {
-        console.log('Notification interaction:', response);
+      responseListener.current = notificationService.addNotificationResponseReceivedListener(_response => {
+        if (__DEV__) console.log('Notification interaction:', _response);
       });
 
       return () => {
@@ -245,10 +248,9 @@ function AppContent() {
   const renderScreen = () => {
     if (checkingOnboarding || checkingAuth) {
       return (
-        <View style={{ flex: 1, backgroundColor: colors.backgroundDark, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: colors.primaryStart, fontSize: 24, fontWeight: 'bold' }}>FIZI</Text>
-          <Text style={{ color: colors.textSecondary, marginTop: 10 }}>Loading your workout...</Text>
-        </View>
+        <AnimatedSplash onFinish={() => {
+          // Splash finishes but we still wait for auth; keep showing until auth resolves
+        }} />
       );
     }
 
@@ -296,6 +298,7 @@ function AppContent() {
     <>
       <StatusBar style={isDark ? "light" : "dark"} />
       {renderScreen()}
+      <OfflineBanner />
     </>
   );
 }

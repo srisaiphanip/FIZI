@@ -148,11 +148,21 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     };
 
     // Auto-Enforce 7-Day Active Split (AI Plans Only)
+    // Only regenerate if the plan is older than 7 days to prevent expensive calls on every mount
     useEffect(() => {
         if (currentPlan && user && !planLoading) {
             // Skip auto-regeneration for custom plans - users control their own schedule
             if (currentPlan.planType === 'custom') {
                 return;
+            }
+
+            // Check if plan was created more than 7 days ago before regenerating
+            const planCreatedAt = currentPlan.createdAt;
+            if (planCreatedAt) {
+                const planDate = (planCreatedAt as any)?.toDate ? (planCreatedAt as any).toDate() : new Date(planCreatedAt as any);
+                const daysSincePlanCreated = (Date.now() - planDate.getTime()) / (1000 * 60 * 60 * 24);
+                // Only auto-regenerate if plan is more than 7 days old
+                if (daysSincePlanCreated < 7) return;
             }
 
             const uniqueDays = new Set(currentPlan.sessions.map(s => s.dayOfWeek));
@@ -235,137 +245,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
     const handleRecoveryChange = (status: 'good' | 'moderate' | 'poor') => {
         dispatch(setRecoveryStatus(status));
-    };
-
-    const handleSeedData = async () => {
-        // 1. Seed Instructions (Fix Images)
-        const initialInstructions: ExerciseInstructions[] = [
-            {
-                exerciseId: 'push-ups',
-                exerciseName: 'Push-ups',
-                description: 'A fundamental upper body exercise targeting chest, shoulders, and triceps.',
-                imageUri: 'asset://push-ups.png',
-                steps: [
-                    'Start in a high plank position with hands slightly wider than shoulders',
-                    'Keep your body in a straight line from head to heels',
-                    'Lower your body until chest nearly touches the ground',
-                    'Push back up to starting position'
-                ],
-                tips: [
-                    'Keep core engaged throughout',
-                    'Don\'t let hips sag or pike up',
-                    'Breathe in on the way down, out on the way up'
-                ]
-            },
-            {
-                exerciseId: 'squats',
-                exerciseName: 'Squats',
-                description: 'A compound lower body exercise that builds leg and glute strength.',
-                imageUri: 'asset://squats.png',
-                steps: [
-                    'Stand with feet shoulder-width apart, toes slightly out',
-                    'Keep chest up and core engaged',
-                    'Lower down by bending knees and pushing hips back',
-                    'Go until thighs are parallel to ground',
-                    'Push through heels to return to standing'
-                ],
-                tips: [
-                    'Keep knees tracking over toes',
-                    'Don\'t let knees cave inward',
-                    'Weight should be on your heels'
-                ]
-            },
-            {
-                exerciseId: 'plank',
-                exerciseName: 'Plank',
-                description: 'An isometric core exercise that builds overall stability.',
-                imageUri: 'asset://plank.png',
-                steps: [
-                    'Start in a forearm plank position',
-                    'Keep elbows directly under shoulders',
-                    'Body should form a straight line',
-                    'Hold the position'
-                ],
-                tips: [
-                    'Don\'t let hips sag or pike up',
-                    'Squeeze glutes and core',
-                    'Breathe steadily throughout'
-                ]
-            },
-            {
-                exerciseId: 'bicep-curls',
-                exerciseName: 'Bicep Curls',
-                description: 'An isolation exercise targeting the biceps.',
-                imageUri: 'asset://bicep-curls.png',
-                steps: [
-                    'Stand with feet hip-width apart',
-                    'Hold weights with arms fully extended',
-                    'Curl weights up toward shoulders',
-                    'Lower back down with control'
-                ],
-                tips: [
-                    'Keep elbows close to body',
-                    'Don\'t swing or use momentum',
-                    'Control the weight on the way down'
-                ]
-            },
-            {
-                exerciseId: 'burpees',
-                exerciseName: 'Burpees',
-                description: 'A full-body explosive exercise that builds strength and cardio endurance.',
-                imageUri: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=500&auto=format&fit=crop',
-                steps: [
-                    'Stand with feet shoulder-width apart',
-                    'Lower into a squat position and place hands on floor',
-                    'Kick feet back into a plank position',
-                    'Perform a push-up (optional but recommended)',
-                    'Jump feet back toward hands',
-                    'Explode up into a jump with arms overhead'
-                ],
-                tips: [
-                    'Maintain a strong core during the plank',
-                    'Land softly on your feet',
-                    'Move at a steady, rhythmic pace'
-                ]
-            },
-            {
-                exerciseId: 'mountain-climbers',
-                exerciseName: 'Mountain Climbers',
-                description: 'A dynamic core exercise that mimics the motion of climbing a mountain.',
-                imageUri: 'https://images.unsplash.com/photo-1434608519344-49d77a699e1d?q=80&w=500&auto=format&fit=crop',
-                steps: [
-                    'Start in a high plank position',
-                    'Drive your right knee toward your chest',
-                    'Quickly switch legs, driving the left knee forward',
-                    'Keep your hips low and back flat',
-                    'Continue alternating legs at a fast pace'
-                ],
-                tips: [
-                    'Keep shoulders directly over wrists',
-                    'Don\'t let your butt pike up in the air',
-                    'Breathe rhythmically'
-                ]
-            }
-        ];
-
-        dispatch(seedAllInstructions(initialInstructions));
-
-        // 2. Fix Schedule (Force Regenerate Plan)
-        if (user?.uid) {
-            // Force 7 days to verify custom split logic
-            // Use JSON parse/stringify to break any redux immutability or reference issues
-            const forcedProfile = JSON.parse(JSON.stringify(user));
-            if (!forcedProfile.fitnessProfile) {
-                forcedProfile.fitnessProfile = { availableDays: 7 };
-            } else {
-                forcedProfile.fitnessProfile.availableDays = 7;
-            }
-
-            const result = await dispatch(regenerateUserPlan(forcedProfile)).unwrap();
-            alert(`Plan Regenerated!\nFreq: ${result.frequency}\nSplit: ${result.sessions.slice(0, 3).map(s => s.focus).join(', ')}`);
-        } else {
-            alert('Fixing Schedule & Images... Wait 5 seconds for update! 🛠️');
-        }
     };
 
     return (

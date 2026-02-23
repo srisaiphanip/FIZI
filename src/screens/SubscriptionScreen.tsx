@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Platform, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Platform, Dimensions, TextInput, Modal, KeyboardAvoidingView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useBilling } from '../context/BillingContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,10 +16,11 @@ import { Spacing, Layout, ThemeColorsType, ThemeShadowsType } from '../theme/The
 const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     const { colors, gradients, shadows, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
-    const [selectedPlanId, setSelectedPlanId] = useState<'fizi_premium_3month'>('fizi_premium_3month');
+    const [selectedPlanId, setSelectedPlanId] = useState<'fizi_premium_3month' | 'fizi_premium_annual'>('fizi_premium_3month');
     const [couponCode, setCouponCode] = useState('');
     const [couponStatus, setCouponStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
     const [couponMessage, setCouponMessage] = useState('');
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
     const dispatch = useAppDispatch();
     const { user } = useAppSelector(state => state.auth);
     const {
@@ -34,17 +35,9 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
     useEffect(() => {
         if (purchased) {
-            let message = 'You already have a premium subscription!';
-            if (user?.premiumExpiryDate) {
-                const dateStr = new Date(user.premiumExpiryDate).toLocaleDateString();
-                message = `Your premium subscription is valid until ${dateStr}.`;
-            }
-
-            Alert.alert('Premium Active', message, [
-                { text: 'OK', onPress: () => navigation.goBack() }
-            ]);
+            setShowPremiumModal(true);
         }
-    }, [purchased, user]);
+    }, [purchased]);
 
     // Helper to get formatted price
     const getPrice = (id: string, defaultPrice: string) => {
@@ -61,6 +54,7 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
     };
 
     const price3Month = getPrice('fizi_premium_3month', '₹299');
+    const priceAnnual = getPrice('fizi_premium_annual', '₹799');
 
     const handleSubscribe = async () => {
         if (purchased) {
@@ -145,158 +139,278 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
                     </View>
                 </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                >
+                    <ScrollView
+                        contentContainerStyle={[styles.scrollContent, { paddingBottom: 150 }]}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode="interactive"
+                    >
 
-                    {/* Compact Features Grid */}
-                    <View style={styles.featuresGrid}>
-                        <FeatureItem
-                            icon="tune-vertical"
-                            title="Custom Plans"
-                            description="Tailored to your goals"
-                            colors={colors}
-                            styles={styles}
-                        />
-                        <FeatureItem
-                            icon="camera-iris"
-                            title="Live AI Form"
-                            description="Real-time correction"
-                            colors={colors}
-                            styles={styles}
-                        />
-                        <FeatureItem
-                            icon="food-apple"
-                            title="Smart Diet"
-                            description="Personalized macros"
-                            colors={colors}
-                            styles={styles}
-                        />
-                        <FeatureItem
-                            icon="chart-timeline-variant"
-                            title="Analytics"
-                            description="Track detailed trends"
-                            colors={colors}
-                            styles={styles}
-                        />
-                    </View>
-
-                    {/* Plan Selection */}
-                    <View style={styles.plansContainer}>
-                        {/* 3 Month Plan */}
-                        <TouchableOpacity
-                            activeOpacity={1}
-                            style={[
-                                styles.planCard,
-                                styles.selectedPlanCard
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={gradients.primary}
-                                style={styles.planCardGradient}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                            >
-                                <View style={styles.checkBox}>
-                                    <MaterialCommunityIcons
-                                        name="check-circle"
-                                        size={24}
-                                        color="#FFF"
-                                    />
-                                </View>
-                                <View style={styles.planInfo}>
-                                    <Text style={[styles.planName, { color: '#FFF' }]}>Quarterly Plan</Text>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <Text style={[styles.planCost, { textDecorationLine: 'line-through', marginRight: 8, opacity: 0.6, color: '#FFF' }]}>₹600</Text>
-                                        <Text style={[styles.planCost, { color: '#FFF', fontWeight: 'bold' }]}>{price3Month} / 3mo</Text>
-                                    </View>
-                                </View>
-                                <View style={styles.bestValueBadge}>
-                                    <Text style={styles.bestValueText}>50% OFF</Text>
-                                </View>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Action Buttons */}
-                    <View style={styles.actionContainer}>
-                        {/* Coupon Section */}
-                        <View style={styles.couponContainer}>
-                            <Text style={styles.couponLabel}>Have a promo code?</Text>
-                            <View style={styles.couponInputRow}>
-                                <TextInput
-                                    style={styles.couponInput}
-                                    placeholder="Enter code"
-                                    placeholderTextColor="rgba(255,255,255,0.5)"
-                                    value={couponCode}
-                                    onChangeText={(text) => {
-                                        setCouponCode(text);
-                                        if (couponStatus !== 'idle') {
-                                            setCouponStatus('idle');
-                                            setCouponMessage('');
-                                        }
-                                    }}
-                                    autoCapitalize="characters"
-                                    editable={couponStatus !== 'validating' && couponStatus !== 'success'}
-                                />
-                                <TouchableOpacity
-                                    style={[
-                                        styles.applyButton,
-                                        (couponStatus === 'validating' || couponStatus === 'success' || !couponCode.trim()) && styles.disabledButton
-                                    ]}
-                                    onPress={handleApplyCoupon}
-                                    disabled={couponStatus === 'validating' || couponStatus === 'success' || !couponCode.trim()}
-                                >
-                                    {couponStatus === 'validating' ? (
-                                        <ActivityIndicator color={colors.textPrimary} size="small" />
-                                    ) : (
-                                        <Text style={styles.applyButtonText}>
-                                            {couponStatus === 'success' ? 'Applied' : 'Apply'}
-                                        </Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
-                            {couponMessage ? (
-                                <Text style={[
-                                    styles.couponMessage,
-                                    { color: couponStatus === 'success' ? colors.accentSuccess : colors.accentError }
-                                ]}>
-                                    {couponMessage}
-                                </Text>
-                            ) : null}
+                        {/* Compact Features Grid */}
+                        <View style={styles.featuresGrid}>
+                            <FeatureItem
+                                icon="tune-vertical"
+                                title="Custom Plans"
+                                description="Tailored to your goals"
+                                colors={colors}
+                                styles={styles}
+                            />
+                            <FeatureItem
+                                icon="camera-iris"
+                                title="Live AI Form"
+                                description="Real-time correction"
+                                colors={colors}
+                                styles={styles}
+                            />
+                            <FeatureItem
+                                icon="food-apple"
+                                title="Smart Diet"
+                                description="Personalized macros"
+                                colors={colors}
+                                styles={styles}
+                            />
+                            <FeatureItem
+                                icon="chart-timeline-variant"
+                                title="Analytics"
+                                description="Track detailed trends"
+                                colors={colors}
+                                styles={styles}
+                            />
                         </View>
 
-                        <TouchableOpacity
-                            style={[styles.subscribeButton, billingLoading && styles.disabledButton]}
-                            onPress={handleSubscribe}
-                            disabled={billingLoading}
-                            activeOpacity={0.9}
+                        {/* Plan Selection */}
+                        <View style={styles.plansContainer}>
+                            {/* 3-Month Plan */}
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={() => setSelectedPlanId('fizi_premium_3month')}
+                                style={[
+                                    styles.planCard,
+                                    selectedPlanId === 'fizi_premium_3month' && styles.selectedPlanCard
+                                ]}
+                            >
+                                {selectedPlanId === 'fizi_premium_3month' ? (
+                                    <LinearGradient
+                                        colors={gradients.primary}
+                                        style={styles.planCardGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                    >
+                                        <View style={styles.checkBox}>
+                                            <MaterialCommunityIcons name="check-circle" size={24} color="#FFF" />
+                                        </View>
+                                        <View style={styles.planInfo}>
+                                            <Text style={[styles.planName, { color: '#FFF' }]}>Quarterly Plan</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={[styles.planCost, { textDecorationLine: 'line-through', marginRight: 8, opacity: 0.6, color: '#FFF' }]}>₹600</Text>
+                                                <Text style={[styles.planCost, { color: '#FFF', fontWeight: 'bold' }]}>{price3Month} / 3mo</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.bestValueBadge}>
+                                            <Text style={styles.bestValueText}>50% OFF</Text>
+                                        </View>
+                                    </LinearGradient>
+                                ) : (
+                                    <View style={[styles.planCardGradient, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                                        <View style={[styles.checkBox, { borderWidth: 2, borderColor: colors.glassBorder, backgroundColor: 'transparent' }]} />
+                                        <View style={styles.planInfo}>
+                                            <Text style={styles.planName}>Quarterly Plan</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={[styles.planCost, { textDecorationLine: 'line-through', marginRight: 8, opacity: 0.5 }]}>₹600</Text>
+                                                <Text style={styles.planCost}>{price3Month} / 3mo</Text>
+                                            </View>
+                                        </View>
+                                        <View style={[styles.bestValueBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                                            <Text style={[styles.bestValueText, { color: colors.textSecondary }]}>50% OFF</Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+
+                            {/* Annual Plan */}
+                            <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={() => setSelectedPlanId('fizi_premium_annual')}
+                                style={[
+                                    styles.planCard,
+                                    selectedPlanId === 'fizi_premium_annual' && styles.selectedPlanCard
+                                ]}
+                            >
+                                {selectedPlanId === 'fizi_premium_annual' ? (
+                                    <LinearGradient
+                                        colors={['#EAB308', '#F59E0B']}
+                                        style={styles.planCardGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                    >
+                                        <View style={styles.checkBox}>
+                                            <MaterialCommunityIcons name="check-circle" size={24} color="#000" />
+                                        </View>
+                                        <View style={styles.planInfo}>
+                                            <Text style={[styles.planName, { color: '#000' }]}>Annual Plan</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={[styles.planCost, { textDecorationLine: 'line-through', marginRight: 8, opacity: 0.6, color: '#000' }]}>₹1200</Text>
+                                                <Text style={[styles.planCost, { color: '#000', fontWeight: 'bold' }]}>{priceAnnual} / yr</Text>
+                                            </View>
+                                        </View>
+                                        <View style={[styles.bestValueBadge, { backgroundColor: 'rgba(0,0,0,0.15)' }]}>
+                                            <Text style={[styles.bestValueText, { color: '#000' }]}>BEST VALUE</Text>
+                                        </View>
+                                    </LinearGradient>
+                                ) : (
+                                    <View style={[styles.planCardGradient, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+                                        <View style={[styles.checkBox, { borderWidth: 2, borderColor: colors.glassBorder, backgroundColor: 'transparent' }]} />
+                                        <View style={styles.planInfo}>
+                                            <Text style={styles.planName}>Annual Plan</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={[styles.planCost, { textDecorationLine: 'line-through', marginRight: 8, opacity: 0.5 }]}>₹1200</Text>
+                                                <Text style={styles.planCost}>{priceAnnual} / yr</Text>
+                                            </View>
+                                        </View>
+                                        <View style={[styles.bestValueBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                                            <Text style={[styles.bestValueText, { color: colors.accentYellow }]}>BEST VALUE</Text>
+                                        </View>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.actionContainer}>
+                            {/* Coupon Section */}
+                            <View style={styles.couponContainer}>
+                                <Text style={styles.couponLabel}>Have a promo code?</Text>
+                                <View style={styles.couponInputRow}>
+                                    <TextInput
+                                        style={styles.couponInput}
+                                        placeholder="Enter code"
+                                        placeholderTextColor="rgba(255,255,255,0.5)"
+                                        value={couponCode}
+                                        onChangeText={(text) => {
+                                            setCouponCode(text);
+                                            if (couponStatus !== 'idle') {
+                                                setCouponStatus('idle');
+                                                setCouponMessage('');
+                                            }
+                                        }}
+                                        autoCapitalize="characters"
+                                        editable={couponStatus !== 'validating' && couponStatus !== 'success'}
+                                    />
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.applyButton,
+                                            (couponStatus === 'validating' || couponStatus === 'success' || !couponCode.trim()) && styles.disabledButton
+                                        ]}
+                                        onPress={handleApplyCoupon}
+                                        disabled={couponStatus === 'validating' || couponStatus === 'success' || !couponCode.trim()}
+                                    >
+                                        {couponStatus === 'validating' ? (
+                                            <ActivityIndicator color={colors.textPrimary} size="small" />
+                                        ) : (
+                                            <Text style={styles.applyButtonText}>
+                                                {couponStatus === 'success' ? 'Applied' : 'Apply'}
+                                            </Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                                {couponMessage ? (
+                                    <Text style={[
+                                        styles.couponMessage,
+                                        { color: couponStatus === 'success' ? colors.accentSuccess : colors.accentError }
+                                    ]}>
+                                        {couponMessage}
+                                    </Text>
+                                ) : null}
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.subscribeButton, billingLoading && styles.disabledButton]}
+                                onPress={handleSubscribe}
+                                disabled={billingLoading}
+                                activeOpacity={0.9}
+                            >
+                                <LinearGradient
+                                    colors={gradients.primary}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.buttonGradient}
+                                >
+                                    {billingLoading ? (
+                                        <ActivityIndicator color="#FFF" />
+                                    ) : (
+                                        <Text style={styles.buttonText}>
+                                            Subscribe for {price3Month}
+                                        </Text>
+                                    )}
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            <Text style={styles.disclaimer}>
+                                Recurring billing. Cancel anytime.
+                            </Text>
+
+                            <TouchableOpacity onPress={restorePurchases} disabled={billingLoading} style={styles.restoreLink}>
+                                <Text style={styles.restoreText}>Restore Purchases</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+
+            <Modal visible={showPremiumModal} transparent={true} animationType="fade">
+                <View style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
+                    <BlurView intensity={20} tint={isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl }}>
+                        <LinearGradient
+                            colors={isDark ? ['#1E1E2E', '#12122A'] : ['#FFFFFF', '#F8FAFC']}
+                            style={{ width: '100%', borderRadius: Layout.borderRadius.l, padding: Spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: '#EAB308', ...shadows.glow }}
                         >
                             <LinearGradient
-                                colors={gradients.primary}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.buttonGradient}
+                                colors={gradients.gold}
+                                style={{ width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.m }}
                             >
-                                {billingLoading ? (
-                                    <ActivityIndicator color="#FFF" />
-                                ) : (
-                                    <Text style={styles.buttonText}>
-                                        Subscribe for {price3Month}
-                                    </Text>
-                                )}
+                                <MaterialCommunityIcons name="crown" size={32} color="#000" />
                             </LinearGradient>
-                        </TouchableOpacity>
 
-                        <Text style={styles.disclaimer}>
-                            Recurring billing. Cancel anytime.
-                        </Text>
+                            <Text style={{ fontSize: 24, fontWeight: 'bold', color: colors.textPrimary, marginBottom: Spacing.s, textAlign: 'center' }}>
+                                Premium Active
+                            </Text>
 
-                        <TouchableOpacity onPress={restorePurchases} disabled={billingLoading} style={styles.restoreLink}>
-                            <Text style={styles.restoreText}>Restore Purchases</Text>
-                        </TouchableOpacity>
+                            <Text style={{ fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, lineHeight: 24 }}>
+                                {user?.premiumExpiryDate
+                                    ? `Your premium subscription is valid until ${new Date(user.premiumExpiryDate).toLocaleDateString()}.`
+                                    : 'You already have a premium subscription!'}
+                            </Text>
+
+                            <TouchableOpacity
+                                style={{ width: '100%' }}
+                                onPress={() => {
+                                    setShowPremiumModal(false);
+                                    navigation.goBack();
+                                }}
+                                activeOpacity={0.9}
+                            >
+                                <LinearGradient
+                                    colors={gradients.gold}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={{ paddingVertical: 16, borderRadius: Layout.borderRadius.round, alignItems: 'center' }}
+                                >
+                                    <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                        Continue
+                                    </Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </LinearGradient>
                     </View>
-
-                </ScrollView>
-            </SafeAreaView>
+                </View>
+            </Modal>
         </LinearGradient>
     );
 };

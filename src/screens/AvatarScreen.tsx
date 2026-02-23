@@ -48,6 +48,11 @@ import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType, Typography
 import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PremiumGate } from '../components/PremiumGate';
+import CustomAlert from '../components/CustomAlert';
+// Sub-components (extracted for maintainability)
+import ProfileCard from '../components/avatar/ProfileCard';
+import AppSettings from '../components/avatar/AppSettings';
+import BodyMetrics from '../components/avatar/BodyMetrics';
 
 const COMMON_HEALTH_ISSUES = [
     'knee_pain', 'lower_back_pain', 'shoulder_injury', 'wrist_pain',
@@ -112,6 +117,11 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const [showSignOutAlert, setShowSignOutAlert] = useState(false);
+    const [showDeletePlanAlert, setShowDeletePlanAlert] = useState(false);
+    const [planToDelete, setPlanToDelete] = useState<any>(null);
+    const [showPermissionAlert, setShowPermissionAlert] = useState(false);
+
     useEffect(() => {
         loadAvatarState();
         if (user?.uid) {
@@ -145,7 +155,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
         try {
             const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!permission.granted) {
-                Alert.alert('Permission Required', 'Please allow access to your photos to upload a profile picture.');
+                setShowPermissionAlert(true);
                 return;
             }
 
@@ -198,25 +208,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     };
 
     const handleSignOut = () => {
-        Alert.alert(
-            'Sign Out',
-            'Are you sure you want to sign out?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Sign Out',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await dispatch(signOut()).unwrap();
-                            showToast('Signed out successfully', 'success');
-                        } catch (error: any) {
-                            showToast(error.message || 'Failed to sign out', 'error');
-                        }
-                    }
-                }
-            ]
-        );
+        setShowSignOutAlert(true);
     };
 
     const handleChangePassword = async () => {
@@ -515,86 +507,16 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                 directionalLockEnabled={true}
             >
                 {/* Avatar Display */}
-                {/* Avatar Display - Redesigned Horizontal Card */}
-                <BlurView intensity={25} tint={isDark ? "light" : "dark"} style={styles.avatarCard}>
-                    <LinearGradient
-                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.7)', 'rgba(255,255,255,0.4)']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={StyleSheet.absoluteFillObject}
-                    />
-                    <View style={styles.avatarContent}>
-                        <View style={styles.avatarContainer}>
-                            <LinearGradient
-                                colors={purchased ? ['#FFD700', '#FFA500'] : [colors.accentCyan, colors.primaryStart]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.avatarRing}
-                            >
-                                {purchased && (
-                                    <View style={{
-                                        position: 'absolute',
-                                        top: -12,
-                                        zIndex: 10,
-                                        alignSelf: 'center',
-                                        shadowColor: '#000',
-                                        shadowOffset: { width: 0, height: 2 },
-                                        shadowOpacity: 0.3,
-                                        shadowRadius: 3,
-                                        elevation: 5
-                                    }}>
-                                        <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
-                                    </View>
-                                )}
-                                {user?.photoURL ? (
-                                    <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
-                                ) : (
-                                    <View style={styles.defaultAvatarContainer}>
-                                        <MaterialCommunityIcons
-                                            name="account"
-                                            size={48}
-                                            color="#FFF"
-                                        />
-                                    </View>
-                                )}
-                                {authLoading && (
-                                    <View style={styles.uploadingOverlay}>
-                                        <ActivityIndicator color="#FFF" size="small" />
-                                    </View>
-                                )}
-                            </LinearGradient>
-                        </View>
-
-                        <View style={styles.userInfoSection}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                                <Text style={styles.userName}>{user?.displayName || 'Champion'}</Text>
-                                {purchased && <MaterialCommunityIcons name="crown" size={20} color="#FFD700" />}
-                            </View>
-                            <Text style={styles.userTitle}>{avatarState.levelName}</Text>
-
-                            <View style={styles.statsRow}>
-                                <LinearGradient
-                                    colors={[colors.accentCyan + '30', colors.accentCyan + '10']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.levelBadgeContainer}
-                                >
-                                    <Text style={styles.levelBadgeText}>LEVEL {avatarState.level}</Text>
-                                </LinearGradient>
-
-                                <LinearGradient
-                                    colors={['rgba(255, 120, 100, 0.2)', 'rgba(255, 120, 100, 0.05)']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.streakBadgeContainer}
-                                >
-                                    <Text style={styles.streakEmoji}>🔥</Text>
-                                    <Text style={styles.streakBadgeText}>{avatarState.currentStreak}</Text>
-                                </LinearGradient>
-                            </View>
-                        </View>
-                    </View>
-                </BlurView>
+                {/* Avatar Header Card - now in ProfileCard sub-component */}
+                <ProfileCard
+                    user={user}
+                    avatarLevelName={avatarState.levelName}
+                    avatarLevel={avatarState.level}
+                    avatarCurrentStreak={avatarState.currentStreak}
+                    authLoading={authLoading}
+                    isPremium={purchased}
+                    onPickImage={handlePickImage}
+                />
 
 
 
@@ -606,31 +528,31 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     style={{ marginBottom: 15 }}
                 >
                     <LinearGradient
-                        colors={purchased ? ['rgba(255, 215, 0, 0.15)', 'rgba(255, 215, 0, 0.05)'] : ['#FFD700', '#FFA500']}
+                        colors={gradients.gold}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={[styles.menuCard, { borderColor: purchased ? '#FFD700' : '#FFD700', borderWidth: 1 }]}
+                        style={[styles.menuCard, { borderColor: '#EAB308', borderWidth: 1 }]}
                     >
                         <View style={styles.menuItem}>
-                            <View style={[styles.menuIconContainer, { backgroundColor: purchased ? 'rgba(255, 215, 0, 0.2)' : 'rgba(255,255,255,0.2)' }]}>
-                                <MaterialCommunityIcons name="crown" size={24} color={purchased ? '#FFD700' : '#FFF'} />
+                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
+                                <MaterialCommunityIcons name="crown" size={24} color="#000" />
                             </View>
                             <View style={styles.userInfoTextContainer}>
-                                <Text style={[styles.userInfoTitle, { color: purchased ? colors.textPrimary : '#000', fontWeight: 'bold' }]}>
+                                <Text style={[styles.userInfoTitle, { color: '#000', fontWeight: 'bold' }]}>
                                     {purchased ? 'Premium Member' : 'Go Premium'}
                                 </Text>
-                                <Text style={[styles.userInfoSubtitle, { color: purchased ? colors.textSecondary : 'rgba(0,0,0,0.7)' }]}>
+                                <Text style={[styles.userInfoSubtitle, { color: 'rgba(0,0,0,0.7)' }]}>
                                     {purchased
                                         ? (user?.premiumExpiryDate ? `Valid until ${new Date(user.premiumExpiryDate).toLocaleDateString()}` : 'Manage Subscription')
                                         : 'Unlock AI Analysis & More'}
                                 </Text>
                             </View>
                             <View style={{
-                                backgroundColor: purchased ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : 'rgba(0,0,0,0.1)',
+                                backgroundColor: 'rgba(0,0,0,0.1)',
                                 borderRadius: 12,
                                 padding: 6
                             }}>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color={purchased ? colors.textTertiary : '#000'} />
+                                <MaterialCommunityIcons name="chevron-right" size={20} color="#000" />
                             </View>
                         </View>
                     </LinearGradient>
@@ -875,18 +797,8 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                                         <TouchableOpacity
                                             style={[styles.actionButton, { padding: 4 }]}
                                             onPress={() => {
-                                                Alert.alert(
-                                                    'Delete Plan',
-                                                    `Are you sure you want to delete "${plan.name}"?`,
-                                                    [
-                                                        { text: 'Cancel', style: 'cancel' },
-                                                        {
-                                                            text: 'Delete',
-                                                            style: 'destructive',
-                                                            onPress: () => dispatch(deleteCustomPlan(plan.id))
-                                                        }
-                                                    ]
-                                                );
+                                                setPlanToDelete(plan);
+                                                setShowDeletePlanAlert(true);
                                             }}
                                         >
                                             <MaterialCommunityIcons name="delete" size={18} color={colors.accentPink} />
@@ -1076,225 +988,15 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     </TouchableOpacity>
                 </BlurView>
 
-                {/* Appearance Section */}
-                <Text style={styles.sectionTitle}>Appearance</Text>
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
-                        onPress={toggleTheme}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons
-                                name={isDark ? "weather-night" : "white-balance-sunny"}
-                                size={22}
-                                color={colors.textPrimary}
-                            />
-                        </View>
-                        <Text style={styles.menuItemText}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
-                        <View style={{
-                            width: 50,
-                            height: 30,
-                            borderRadius: 15,
-                            backgroundColor: isDark ? colors.primaryStart : '#ddd',
-                            justifyContent: 'center',
-                            alignItems: isDark ? 'flex-end' : 'flex-start',
-                            paddingHorizontal: 2
-                        }}>
-                            <View style={{
-                                width: 26,
-                                height: 26,
-                                borderRadius: 13,
-                                backgroundColor: '#FFF',
-                                shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.2,
-                                shadowRadius: 2.5,
-                                elevation: 2
-                            }} />
-                        </View>
-                    </TouchableOpacity>
-                </BlurView>
-
-                {/* Preference Section */}
-                <Text style={styles.sectionTitle}>Preferences</Text>
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    {/* Notifications Toggle */}
-                    <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
-                        onPress={() => handleToggleNotification(!notificationsEnabled)}
-                        activeOpacity={0.7}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="bell" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Notifications</Text>
-                        <View style={{
-                            width: 50,
-                            height: 30,
-                            borderRadius: 15,
-                            backgroundColor: notificationsEnabled ? colors.primaryStart : '#ddd',
-                            justifyContent: 'center',
-                            alignItems: notificationsEnabled ? 'flex-end' : 'flex-start',
-                            paddingHorizontal: 2
-                        }}>
-                            <View style={{
-                                width: 26,
-                                height: 26,
-                                borderRadius: 13,
-                                backgroundColor: '#FFF',
-                                shadowColor: "#000",
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.2,
-                                shadowRadius: 2.5,
-                                elevation: 2
-                            }} />
-                        </View>
-                    </TouchableOpacity>
-                </BlurView>
-
-                {/* Community Section */}
-                <Text style={styles.sectionTitle}>Community</Text>
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={handleShareApp}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="share-variant-outline" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Refer a Friend</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* Rate App */}
-                    <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
-                        onPress={() => Linking.openURL(Platform.OS === 'android' ? 'https://play.google.com/store/apps/details?id=com.maheshchalla.fizi' : 'https://apps.apple.com/app/idYOUR_APP_ID')}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="star-outline" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Rate Our App</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                </BlurView>
-
-                {/* Support & Legal Section */}
-                <Text style={styles.sectionTitle}>Support & Legal</Text>
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    {/* FAQ */}
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => navigation.navigate('FAQ')}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="frequently-asked-questions" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>FAQ</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* Privacy Policy */}
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => Linking.openURL('https://github.com/fizifitnessgenie/Legal/blob/main/Privacy-Policy.md')}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="shield-account-outline" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Privacy Policy</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* Terms of Service */}
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => Linking.openURL('https://github.com/fizifitnessgenie/Legal/blob/main/Terms-of-Service.md')}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="file-document-outline" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Terms of Service</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* About Us */}
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => navigation.navigate('AboutUs')}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="information-outline" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>About Us</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* Camera & Data Usage */}
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => navigation.navigate('DataUsage')}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="camera-outline" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Camera & Data Usage</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* Contact Support */}
-                    <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
-                        onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com')}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="email-outline" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Contact Support</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                </BlurView>
-
-                {/* Account Actions Section */}
-                <Text style={styles.sectionTitle}>Account</Text>
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
-                    {/* Change Password */}
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => setShowChangePasswordModal(true)}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="lock-reset" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Change Password</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* Sign Out */}
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={handleSignOut}
-                    >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="logout" size={22} color={colors.textPrimary} />
-                        </View>
-                        <Text style={styles.menuItemText}>Sign Out</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-
-                    {/* Delete Account */}
-                    <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
-                        onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com?subject=Delete Account Request&body=Please delete my account data associated with this email.')}
-                    >
-                        <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(255, 59, 48, 0.1)' }]}>
-                            <MaterialCommunityIcons name="delete-outline" size={22} color={colors.accentError} />
-                        </View>
-                        <Text style={[styles.menuItemText, { color: colors.accentError }]}>Delete Account</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                    </TouchableOpacity>
-                </BlurView>
+                {/* Settings — now in AppSettings sub-component */}
+                <AppSettings
+                    notificationsEnabled={notificationsEnabled}
+                    onToggleNotification={handleToggleNotification}
+                    onChangePassword={() => setShowChangePasswordModal(true)}
+                    onShareApp={handleShareApp}
+                    onSignOut={() => setShowSignOutAlert(true)}
+                    navigation={navigation}
+                />
 
                 {/* Health Disclaimer */}
                 <View style={styles.disclaimerContainer}>
@@ -1924,6 +1626,67 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     </BlurView>
                 )
             }
+
+            {/* Branded Alerts */}
+            <CustomAlert
+                visible={showSignOutAlert}
+                title="Sign Out"
+                message="Are you sure you want to sign out of your account?"
+                type="warning"
+                onDismiss={() => setShowSignOutAlert(false)}
+                buttons={[
+                    { text: 'Cancel', style: 'cancel', onPress: () => setShowSignOutAlert(false) },
+                    {
+                        text: 'Sign Out',
+                        onPress: async () => {
+                            try {
+                                await dispatch(signOut()).unwrap();
+                                showToast('Signed out successfully', 'success');
+                            } catch (error: any) {
+                                showToast(error.message || 'Failed to sign out', 'error');
+                            }
+                        }
+                    }
+                ]}
+            />
+
+            <CustomAlert
+                visible={showDeletePlanAlert}
+                title="Delete Plan"
+                message={`Are you sure you want to delete "${planToDelete?.name}"? This action cannot be undone.`}
+                type="warning"
+                onDismiss={() => {
+                    setShowDeletePlanAlert(false);
+                    setPlanToDelete(null);
+                }}
+                buttons={[
+                    {
+                        text: 'Cancel', style: 'cancel', onPress: () => {
+                            setShowDeletePlanAlert(false);
+                            setPlanToDelete(null);
+                        }
+                    },
+                    {
+                        text: 'Delete',
+                        onPress: () => {
+                            if (planToDelete) {
+                                dispatch(deleteCustomPlan(planToDelete.id));
+                            }
+                        }
+                    }
+                ]}
+            />
+
+            <CustomAlert
+                visible={showPermissionAlert}
+                title="Permission Required"
+                message="Please allow access to your photos in settings to upload a profile picture."
+                type="info"
+                onDismiss={() => setShowPermissionAlert(false)}
+                buttons={[
+                    { text: 'Got it', onPress: () => setShowPermissionAlert(false) }
+                ]}
+            />
         </ContentWrapper >
     );
 }
