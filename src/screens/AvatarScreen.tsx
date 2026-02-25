@@ -5,7 +5,7 @@
  * achievements, and level progression.
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     View,
     Text,
@@ -127,7 +127,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
         if (user?.uid) {
             dispatch(fetchCustomPlans(user.uid));
         }
-    }, []);
+    }, [user?.uid]);
 
     // Restore scroll position when loading finishes
     useEffect(() => {

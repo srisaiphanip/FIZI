@@ -155,7 +155,8 @@ class AvatarService {
             const formBonus = Math.round(workoutData.formScore);
 
             const isFirstTime = !currentState.exercisesTried.includes(workoutData.exerciseId);
-            const xpGained = isFirstTime ? (baseXP + repXP + timeXP + liveBonus + formBonus) : 0;
+            const firstTimeBonus = isFirstTime ? 50 : 0; // Bonus for trying new exercises
+            const xpGained = baseXP + repXP + timeXP + liveBonus + formBonus + firstTimeBonus;
 
             // Calculate new totals
             const newTotalWorkouts = currentState.totalWorkouts + 1;
@@ -194,10 +195,17 @@ class AvatarService {
                 bestFormScore: newBestForm,
             };
 
-            // Save to Firestore
             const avatarRef = doc(db, AVATAR_COLLECTION, user.uid);
             await updateDoc(avatarRef, {
                 ...updatedState,
+                updatedAt: serverTimestamp(),
+            });
+
+            // Sync the level back to the users collection so Redux and plan generators use the right level
+            const userRef = doc(db, 'users', user.uid);
+            await updateDoc(userRef, {
+                'progressSystem.currentLevel': newLevel.level,
+                'progressSystem.currentXP': newXP,
                 updatedAt: serverTimestamp(),
             });
 

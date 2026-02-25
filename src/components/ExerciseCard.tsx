@@ -24,7 +24,11 @@ export default function ExerciseCard({ exercise, userLevel, onPress }: ExerciseC
 
     if (isLocked) {
         return (
-            <View style={[styles.container, styles.lockedContainer]}>
+            <TouchableOpacity
+                style={[styles.container, styles.lockedContainer]}
+                onPress={onPress}
+                activeOpacity={0.7}
+            >
                 <View style={styles.lockedOverlay}>
                     <MaterialCommunityIcons
                         name="lock"
@@ -46,7 +50,7 @@ export default function ExerciseCard({ exercise, userLevel, onPress }: ExerciseC
                         </Text>
                     )}
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     }
 

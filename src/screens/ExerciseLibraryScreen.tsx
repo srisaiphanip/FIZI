@@ -16,6 +16,7 @@ import { setExerciseLibraryScrollOffset } from '../store/slices/uiSlice';
 import { exercises } from '../models/exercises';
 import { Spacing, Layout, Shadows, ThemeColorsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
+import { avatarService } from '../services/AvatarService';
 
 interface ExerciseLibraryScreenProps {
     navigation: any;
@@ -32,7 +33,20 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
     const scrollViewRef = React.useRef<ScrollView>(null);
     const [selectedCategory, setSelectedCategory] = useState<'all' | 'chest' | 'legs' | 'back' | 'abs' | 'arms'>('all');
 
-    const userLevel = user?.progressSystem?.currentLevel || 1;
+    const [userLevel, setUserLevel] = useState(1);
+
+    React.useEffect(() => {
+        let isMounted = true;
+        const loadLevel = async () => {
+            const state = await avatarService.getAvatarState();
+            if (state && isMounted) {
+                // Ensure we get the latest level from DB or Redux (Firestore cache first, then server)
+                setUserLevel(state.level);
+            }
+        };
+        loadLevel();
+        return () => { isMounted = false; };
+    }, []);
 
     const filteredExercises = useMemo(() => {
         return exercises.filter(ex => {
@@ -121,7 +135,6 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
                             <TouchableOpacity
                                 key={ex.id}
                                 style={[styles.exerciseCard, !isUnlocked && styles.exerciseCardLocked]}
-                                disabled={!isUnlocked}
                                 onPress={() => navigation.navigate('ExerciseInstructions', { exerciseId: ex.id, fromLibrary: true })}
                             >
                                 <View style={styles.imagePlaceholder}>

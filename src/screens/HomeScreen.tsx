@@ -95,9 +95,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
     useEffect(() => {
         loadAvatarState();
-    }, []);
-
-    useEffect(() => {
         dispatch(fetchWorkoutStats('week'));
         if (user?.uid) {
             dispatch(fetchWorkoutPlan(user.uid));
