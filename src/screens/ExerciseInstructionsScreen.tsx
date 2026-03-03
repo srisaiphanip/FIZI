@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image, Animated, ActivityIndicator } from 'react-native';
 
 import { getExerciseImage } from '../config/imageMap';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -33,6 +33,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
     const exercise = getExerciseById(exerciseId);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [completionStats, setCompletionStats] = useState({ totalReps: 0, calories: 0 });
+    const [isLoading, setIsLoading] = useState(false);
 
     // Animation Values
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -78,6 +79,8 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
     };
 
     const handleSkipDetection = async () => {
+        setIsLoading(true);
+
         // Use target values if from plan, otherwise defaults
         let targetReps = 10;
         if (typeof params.targetReps === 'number') {
@@ -136,6 +139,8 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
         } catch (error) {
             console.error('Failed to log skipped workout:', error);
             showToast('Failed to save workout progress.', 'error');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -314,6 +319,7 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                     onPress={handleSkipDetection}
                     activeOpacity={0.8}
                     style={styles.skipButtonContainer}
+                    disabled={isLoading}
                 >
                     <LinearGradient
                         colors={isDark ? ['#FFFFFF', '#F5F5F7'] : [colors.backgroundDark, colors.backgroundDarker]}
@@ -322,9 +328,13 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                         end={{ x: 0, y: 1 }}
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primaryStart} />
+                            {isLoading ? (
+                                <ActivityIndicator color={colors.primaryStart} size="small" />
+                            ) : (
+                                <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.primaryStart} />
+                            )}
                             <Text style={[styles.skipButtonText, !isDark && { color: colors.textPrimary }]}>
-                                {exercise.trackingMode === 'timer_only' ? 'Mark Complete' : 'Skip Live Detection'}
+                                {isLoading ? 'Processing...' : (exercise.trackingMode === 'timer_only' ? 'Mark Complete' : 'Skip Live Detection')}
                             </Text>
                         </View>
                     </LinearGradient>
