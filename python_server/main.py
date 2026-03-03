@@ -122,8 +122,13 @@ def finish_workout():
         total_form_score = 0
         valid_frames = 0
         
-        # Process each frame sequentially
+        # Process each frame sequentially (skip every other for speed)
+        FRAME_SKIP = 2  # Process 1 out of every N frames (2 = 50% faster)
         for idx, base64_image in enumerate(frames):
+            # Skip frames for speed — still accurate for rep counting
+            if idx % FRAME_SKIP != 0:
+                continue
+
             img = decode_image(base64_image)
             if img is None:
                 continue

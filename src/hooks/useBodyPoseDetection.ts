@@ -27,15 +27,10 @@ export const useBodyPoseDetection = (isActive: boolean, cameraRef: React.RefObje
             });
 
             if (photo && photo.base64) {
-                const detectedPoses = await poseDetectionService.detectPose(photo.base64);
-
-                // IMPORTANT: The backend returns normalized coordinates [0,1].
-                // But PoseOverlay expects absolute coordinates.
-                // We assume the frontend needs to scale them or PoseOverlay needs updates.
-                // Let's pass them as is for now, and handle scaling in the Component using this hook
-                // OR map them here if we knew dimensions. 
-                // We don't know dimensions inside this hook easily.
-                setPoses(detectedPoses.poses);
+                // The `detectPose` endpoint was removed in favor of `streamFrame` for Option D streaming.
+                // This legacy hook is kept for reference but should not be actively invoked in UI.
+                // const detectedPoses = await poseDetectionService.detectPose(photo.base64);
+                // setPoses(detectedPoses.poses);
             }
         } catch (err) {
             // console.warn('[useBodyPoseDetection] Capture error:', err);

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { CameraView } from 'expo-camera';
-import { poseDetectionService } from '../services/PoseDetectionService';
+import { poseDetectionService, BackendAnalysisResult } from '../services/PoseDetectionService';
 import { Pose } from '../types';
 import AppConfig from '../config/appConfig';
 
@@ -13,7 +13,7 @@ interface SmartCameraResult {
     feedback: string[];
     formScore: number;
     resetStats: () => Promise<void>;
-    finishWorkoutSession: () => Promise<void>;
+    finishWorkoutSession: () => Promise<BackendAnalysisResult | null>;
     isProcessingResults: boolean;
 }
 
@@ -81,7 +81,7 @@ export const useSmartCamera = (
             isProcessingRef.current = false;
             // Schedule next frame - We can go faster now since we aren't waiting for the server
             if (isActive) {
-                loopTimerRef.current = setTimeout(runDetectionLoop, 150); // ~6-7 fps is plenty for reps
+                loopTimerRef.current = setTimeout(runDetectionLoop, 300); // ~3 fps - enough for rep counting, saves server processing
             }
         }
     }, [isActive, cameraRef, exerciseId]);

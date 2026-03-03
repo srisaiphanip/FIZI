@@ -293,6 +293,32 @@ export function WorkTab({
 
             {/* Secondary Actions */}
             <View style={styles.actionsContainer}>
+                {/* Exercise Library */}
+                <TouchableOpacity
+                    style={[styles.historyButton, { marginBottom: 12 }]}
+                    onPress={() => navigation.navigate('ExerciseLibrary')}
+                    activeOpacity={0.8}
+                >
+                    <LinearGradient
+                        colors={['rgba(255, 255, 255, 0.1)', 'rgba(255, 255, 255, 0.05)']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.historyButtonGradient}
+                    >
+                        <View style={styles.historyContent}>
+                            <View style={styles.historyIconContainer}>
+                                <MaterialCommunityIcons name="dumbbell" size={28} color={colors.accentCyan} />
+                            </View>
+                            <View style={styles.historyTextContainer}>
+                                <Text style={styles.historyTitle}>Exercise Library</Text>
+                                <Text style={styles.historySubtitle}>Browse all exercises & instructions</Text>
+                            </View>
+                            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textTertiary} />
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Workout History */}
                 <TouchableOpacity
                     style={styles.historyButton}
                     onPress={() => navigation.navigate('History')}

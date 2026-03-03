@@ -26,8 +26,9 @@ import { getExerciseById } from '../models/exercises';
 import { workoutAnalysisService } from '../services/WorkoutAnalysisService';
 import { feedbackService } from '../services/FeedbackService';
 import { avatarService } from '../services/AvatarService';
-import { useAppDispatch } from '../hooks/reduxHooks';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { saveWorkout } from '../store/slices/workoutSlice';
+import { updateExerciseCompletion } from '../store/slices/workoutPlanSlice';
 import { useSmartCamera } from '../hooks/useSmartCamera';
 
 
@@ -103,76 +104,63 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     // HUD
     hud: {
         position: 'absolute',
-        top: 60,
+        top: 50,
         left: 20,
-        borderRadius: Layout.borderRadius.l,
+        right: 20,
+        borderRadius: Layout.borderRadius.xl,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        width: 140, // Fixed width
+        borderColor: 'rgba(255, 255, 255, 0.2)',
         backgroundColor: 'transparent',
-        ...shadows.card,
+        ...shadows.glow,
     },
     hudBlur: {
-        padding: Spacing.m,
-        backgroundColor: colors.glassSurface,
-    },
-    hudExercise: {
-        color: colors.accentCyan,
-        fontSize: 14,
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        marginBottom: 8,
-    },
-    hudRow: {
+        padding: Spacing.l,
+        backgroundColor: 'rgba(10, 10, 15, 0.4)', // Darker, rich glass
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 8,
-        gap: 6,
+        justifyContent: 'space-between',
     },
-    hudIcon: {
+    hudLeftSection: {
+        flex: 1,
+    },
+    hudExercise: {
+        color: '#FFFFFF',
         fontSize: 16,
-        color: colors.textSecondary,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 4,
     },
     hudTimer: {
-        color: colors.textPrimary,
-        fontSize: 20,
+        color: colors.primaryStart,
+        fontSize: 16,
         fontWeight: '600',
         fontVariant: ['tabular-nums'],
     },
-    hudDivider: {
-        height: 1,
-        backgroundColor: colors.glassBorder,
-        marginVertical: 12,
-    },
-    hudLabel: {
-        color: colors.textTertiary,
-        fontSize: 10,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        marginBottom: 4,
+    hudRightSection: {
+        alignItems: 'flex-end',
     },
     hudReps: {
-        color: colors.textPrimary,
-        fontSize: 48,
-        fontWeight: 'bold',
-        marginTop: -4,
-        textShadowColor: colors.primaryStart + '40', // 25% opacity
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
+        color: '#FFFFFF',
+        fontSize: 42,
+        fontWeight: '900',
+        includeFontPadding: false,
+        textShadowColor: colors.primaryStart + '60',
+        textShadowOffset: { width: 0, height: 4 },
+        textShadowRadius: 15,
+    },
+    hudTarget: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 2,
     },
     hudSetProgress: {
         color: colors.primaryStart,
         fontSize: 12,
         fontWeight: '600',
         marginTop: 4,
-        textAlign: 'center',
-    },
-    hudTarget: {
-        color: colors.textTertiary,
-        fontSize: 11,
-        marginTop: 4,
-        textAlign: 'center',
     },
 
     // Status Banners
@@ -214,96 +202,97 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     // Control Bar
     controlBar: {
         position: 'absolute',
-        bottom: 50,
+        bottom: 40,
         left: 0,
         right: 0,
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        justifyContent: 'center',
         alignItems: 'center',
         paddingHorizontal: Spacing.xl,
+        gap: 20,
     },
     controlButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: colors.glassSurface,
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
         ...shadows.small,
     },
     controlIcon: {
-        fontSize: 24,
-        color: colors.textPrimary,
-    },
-    controlText: {
-        display: 'none',
+        fontSize: 20,
+        color: '#FFFFFF',
     },
     mainButton: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 180,
+        height: 60,
+        borderRadius: 30,
         backgroundColor: colors.primaryStart,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         ...shadows.glow,
-        borderWidth: 4,
-        borderColor: colors.glassBorder,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
     },
     stopButton: {
         backgroundColor: colors.accentError,
         shadowColor: colors.accentError,
-        borderColor: colors.glassBorder,
+        width: 140, // Shrink slightly when it's a stop button
     },
     mainButtonIcon: {
-        fontSize: 32,
+        fontSize: 20,
         color: '#FFFFFF',
-        marginLeft: 4,
+        marginRight: 8,
     },
-    stopIconAdjustment: { // Used in render logic
-        marginLeft: 0,
+    stopIconAdjustment: {
+        marginRight: 8,
     },
     mainButtonText: {
         color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: 'bold',
-        marginTop: -4,
+        fontSize: 16,
+        fontWeight: '800',
+        letterSpacing: 1,
     },
 
     // Exercise Selection
     exerciseSelectContainer: {
         position: 'absolute',
-        top: 60,
-        right: 20,
+        bottom: 120, // Sit right above the new control bar
+        alignSelf: 'center', // Center it horizontally
     },
     exerciseSelectButton: {
-        borderRadius: Layout.borderRadius.m,
+        borderRadius: Layout.borderRadius.xl,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        ...shadows.card,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        ...shadows.glow,
     },
     exerciseSelectBlur: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        backgroundColor: colors.glassSurface,
-        alignItems: 'flex-end',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: 'rgba(10, 10, 15, 0.5)',
+        alignItems: 'center', // Center the text within the pill
+        flexDirection: 'row',
+        gap: 8,
     },
     exerciseSelectLabel: {
-        color: colors.textTertiary,
-        fontSize: 10,
-        textTransform: 'uppercase',
+        display: 'none', // Hide the old "Selected Exercise" label
     },
     exerciseSelectName: {
-        color: colors.accentCyan,
+        color: '#FFFFFF',
         fontSize: 14,
-        fontWeight: 'bold',
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     exerciseSelectHint: {
-        color: colors.textTertiary,
-        fontSize: 8,
-        marginTop: 2,
+        color: colors.primaryStart,
+        fontSize: 12,
+        fontWeight: 'bold',
     },
 
     // Timer-Only Mode Styles
@@ -344,6 +333,39 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         justifyContent: 'center',
         alignItems: 'center',
     },
+
+    // Processing Overlay
+    processingOverlay: {
+        zIndex: 1000,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    processingContent: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(20, 20, 25, 0.8)',
+        padding: 40,
+        borderRadius: Layout.borderRadius.xl,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        ...shadows.glow,
+    },
+    processingIcon: {
+        fontSize: 50,
+        marginBottom: Spacing.l,
+    },
+    processingTitle: {
+        color: '#FFFFFF',
+        fontSize: 24,
+        fontWeight: '900',
+        letterSpacing: 2,
+        marginBottom: Spacing.s,
+    },
+    processingSubtitle: {
+        color: colors.primaryStart,
+        fontSize: 14,
+        fontWeight: '600',
+        opacity: 0.8,
+    },
 });
 
 export default function CameraScreen({ navigation }: CameraScreenProps) {
@@ -351,6 +373,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     useKeepAwake(); // Keep screen awake while this screen is active
     const dispatch = useAppDispatch();
+    const currentPlan = useAppSelector(state => state.workoutPlan.currentPlan);
 
     // Camera state
     const [facing, setFacing] = useState<CameraType>('front');
@@ -601,7 +624,20 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
             feedbackService.announceRep(backendRepCount, backendFormScore);
             prevRepCount.current = backendRepCount;
         }
-    }, [backendRepCount, backendStage, backendFeedback, backendFormScore, isWorkoutActive]);
+
+        // Auto-complete set if target reached in Plan Mode
+        if (planMode && backendRepCount > 0) {
+            // targetRepsParam might be a string like "10-12" or "10". We'll try to parse a number out of it.
+            // If it's a range, we'll aim for the lower bound to be safe, or just parseInt the first number.
+            const targetNumber = parseInt(targetRepsParam.toString().split('-')[0], 10);
+
+            if (!isNaN(targetNumber) && backendRepCount >= targetNumber) {
+                // We reached the target! Stop the workout automatically.
+                toggleWorkout();
+            }
+        }
+
+    }, [backendRepCount, backendStage, backendFeedback, backendFormScore, isWorkoutActive, planMode, targetRepsParam]);
 
 
 
@@ -667,6 +703,21 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                 duration: elapsedTime,
                 formScore: finalScore,
             });
+
+            // Mark exercise as completed in workout plan if target reps reached
+            if (planMode && currentPlan?.id) {
+                const targetNumber = parseInt(targetRepsParam.toString().split('-')[0], 10);
+                if (!isNaN(targetNumber) && finalReps >= targetNumber) {
+                    const dayOfWeek = new Date().getDay();
+                    dispatch(updateExerciseCompletion({
+                        planId: currentPlan.id,
+                        dayOfWeek,
+                        exerciseId,
+                        completed: true,
+                        lastCompletedAt: new Date(),
+                    }));
+                }
+            }
 
             // Reset for next workout
             workoutAnalysisService.reset(exerciseId);
@@ -845,41 +896,40 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                     />
                 )} */}
 
-                {/* Form Feedback Overlay */}
-                <FormFeedbackOverlay
+                {/* Form Feedback Overlay - DISABLED for Streaming Architecture (no real-time feedback) */}
+                {/* <FormFeedbackOverlay
                     validation={formValidation}
                     currentStage={currentStage}
                     isVisible={isWorkoutActive}
-                />
+                /> */}
 
                 {/* HUD - Exercise Info */}
                 {isWorkoutActive && (
                     <View style={styles.hud}>
                         <BlurView intensity={30} tint={isDark ? "light" : "dark"} style={styles.hudBlur}>
-                            <TouchableOpacity onPress={cycleExercise} activeOpacity={0.7}>
-                                <Text style={styles.hudExercise}>
-                                    {navigation.params?.exerciseName || getExerciseById(exerciseId)?.name || exerciseId}
-                                </Text>
-                            </TouchableOpacity>
+                            {/* Left Side: Exercise & Timer */}
+                            <View style={styles.hudLeftSection}>
+                                <TouchableOpacity onPress={cycleExercise} activeOpacity={0.7}>
+                                    <Text style={styles.hudExercise}>
+                                        {navigation.params?.exerciseName || getExerciseById(exerciseId)?.name || exerciseId}
+                                    </Text>
+                                </TouchableOpacity>
 
-                            {planMode && (
-                                <Text style={styles.hudSetProgress}>
-                                    Set {currentSet}/{totalSets}
-                                </Text>
-                            )}
+                                {planMode && (
+                                    <Text style={styles.hudSetProgress}>
+                                        Set {currentSet}/{totalSets}
+                                    </Text>
+                                )}
 
-                            <View style={styles.hudRow}>
-                                <Text style={styles.hudIcon}>⏱</Text>
                                 <Text style={styles.hudTimer}>{formatTime(elapsedTime)}</Text>
                             </View>
 
-                            <View style={styles.hudDivider} />
-
-                            <Text style={styles.hudLabel}>REPS</Text>
-                            <Text style={styles.hudReps}>{repCount}</Text>
-
+                            {/* Right Side: Target Reps (shown only in plan mode) */}
                             {planMode && (
-                                <Text style={styles.hudTarget}>Target: {targetRepsParam}</Text>
+                                <View style={styles.hudRightSection}>
+                                    <Text style={styles.hudReps}>{targetRepsParam}</Text>
+                                    <Text style={styles.hudTarget}>TARGET</Text>
+                                </View>
                             )}
                         </BlurView>
                     </View>
@@ -916,7 +966,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                             {isWorkoutActive ? '⏹' : '▶'}
                         </Text>
                         <Text style={styles.mainButtonText}>
-                            {isWorkoutActive ? 'STOP' : 'START'}
+                            {isWorkoutActive ? 'STOP' : 'START WORKOUT'}
                         </Text>
                     </TouchableOpacity>
 
@@ -945,27 +995,30 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                         onPress={() => setShowExerciseSelector(true)}
                         activeOpacity={0.8}
                     >
-                        <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.exerciseSelectBlur}>
-                            <Text style={styles.exerciseSelectLabel}>Selected Exercise</Text>
+                        <BlurView intensity={30} tint={isDark ? "light" : "dark"} style={styles.exerciseSelectBlur}>
+                            <Text style={styles.exerciseSelectHint}>⚙️</Text>
                             <Text style={styles.exerciseSelectName}>
                                 {getExerciseById(exerciseId)?.name || exerciseId}
                             </Text>
-                            <Text style={styles.exerciseSelectHint}>Tap to change ▼</Text>
                         </BlurView>
                     </TouchableOpacity>
                 </View>
             )}
 
+            {/* Countdown Overlay */}
             {showCountdown && (
                 <CountdownOverlay onComplete={handleCountdownComplete} />
             )}
 
             {/* Processing Overlay */}
             {isProcessingResults && (
-                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }]}>
-                    <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Analyzing Workout...</Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Waiting for AI server to calculate form and reps</Text>
-                </View>
+                <BlurView intensity={80} tint={isDark ? "dark" : "dark"} style={[StyleSheet.absoluteFill, styles.processingOverlay]}>
+                    <View style={styles.processingContent}>
+                        <Text style={styles.processingIcon}>⏳</Text>
+                        <Text style={styles.processingTitle}>ANALYZING WORKOUT</Text>
+                        <Text style={styles.processingSubtitle}>Running AI Bio-mechanics...</Text>
+                    </View>
+                </BlurView>
             )}
         </View>
     );
