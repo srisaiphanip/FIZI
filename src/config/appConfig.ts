@@ -114,6 +114,7 @@ export const AppConfig = {
          * Local: "http://<YOUR_IP>:5001"
          */
         baseURL: "https://fizi-backend.onrender.com",
+        // baseURL: "http://10.94.30.21:5001",
     },
 };
 

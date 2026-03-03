@@ -13,6 +13,8 @@ interface SmartCameraResult {
     feedback: string[];
     formScore: number;
     resetStats: () => Promise<void>;
+    finishWorkoutSession: () => Promise<void>;
+    isProcessingResults: boolean;
 }
 
 export const useSmartCamera = (
@@ -21,8 +23,9 @@ export const useSmartCamera = (
     exerciseId: string = 'push-ups'
 ): SmartCameraResult => {
     // State
-    const [poses, setPoses] = useState<Pose[]>([]);
+    const [poses, setPoses] = useState<Pose[]>([]); // Will remain empty in streaming mode
     const [isDetecting, setIsDetecting] = useState(false);
+    const [isProcessingResults, setIsProcessingResults] = useState(false);
 
     // Backend Stats State
     const [repCount, setRepCount] = useState(0);
@@ -33,13 +36,22 @@ export const useSmartCamera = (
     // Refs for loop control (avoid state updates during capture)
     const isProcessingRef = useRef(false);
     const loopTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const missedFramesRef = useRef(0);
+    // Unique ID for the current workout session
+    const sessionIdRef = useRef<string>(Date.now().toString());
+
+    // Generate a new session ID when the camera becomes active
+    useEffect(() => {
+        if (isActive) {
+            sessionIdRef.current = Date.now().toString();
+        }
+    }, [isActive]);
+
 
     const runDetectionLoop = useCallback(async () => {
         // If conditions not met, reschedule and try again later
         if (!isActive || !cameraRef.current || isProcessingRef.current) {
             if (isActive) {
-                loopTimerRef.current = setTimeout(runDetectionLoop, 500);
+                loopTimerRef.current = setTimeout(runDetectionLoop, 100);
             }
             return;
         }
@@ -57,38 +69,19 @@ export const useSmartCamera = (
 
             if (!photo || !photo.base64) return;
 
-            // 2. Process Pose via Backend Server
+            // 2. Stream Frame to Backend Server (Fire and Forget)
             if (AppConfig.features.enablePoseDetection) {
                 const base64 = photo.base64;
-                const result = await poseDetectionService.detectPose(base64, exerciseId);
-
-                if (result.poses && result.poses.length > 0) {
-                    setPoses(result.poses);
-                    setRepCount(result.rep_count);
-                    setStage(result.stage);
-                    setFeedback(result.feedback);
-                    setFormScore(result.form_score);
-                    missedFramesRef.current = 0;
-                } else {
-                    missedFramesRef.current += 1;
-                    if (missedFramesRef.current > 10) {
-                        setPoses([]);
-                        setStage(null);
-                        setFeedback([]);
-                    }
-                }
-            } else {
-                setPoses([]);
+                // We do NOT await this. We let it upload in the background so the loop stays fast.
+                poseDetectionService.streamFrame(base64, exerciseId, sessionIdRef.current);
             }
         } catch (err) {
-            console.warn('[SmartCamera] Detection error:', err);
-            // Don't clear poses on transient errors to prevent blinking
-            // Just keep the last known good pose until next successful frame
+            // Silently catch camera fast-capture errors
         } finally {
             isProcessingRef.current = false;
-            // Schedule next frame - faster loop for smoother tracking
+            // Schedule next frame - We can go faster now since we aren't waiting for the server
             if (isActive) {
-                loopTimerRef.current = setTimeout(runDetectionLoop, 50); // ~20fps target
+                loopTimerRef.current = setTimeout(runDetectionLoop, 150); // ~6-7 fps is plenty for reps
             }
         }
     }, [isActive, cameraRef, exerciseId]);
@@ -96,6 +89,10 @@ export const useSmartCamera = (
     useEffect(() => {
         if (isActive) {
             setIsDetecting(true);
+            setRepCount(0);
+            setFeedback([]);
+            setFormScore(0);
+
             // Initialize pose detection service
             poseDetectionService.initialize().then(() => {
                 runDetectionLoop();
@@ -105,9 +102,6 @@ export const useSmartCamera = (
             if (loopTimerRef.current) {
                 clearTimeout(loopTimerRef.current);
             }
-            setPoses([]);
-            setStage(null);
-            setFeedback([]);
         }
 
         return () => {
@@ -116,6 +110,23 @@ export const useSmartCamera = (
             }
         };
     }, [isActive, runDetectionLoop]);
+
+    const finishWorkoutSession = useCallback(async () => {
+        setIsProcessingResults(true);
+        try {
+            const result = await poseDetectionService.finishWorkout(sessionIdRef.current);
+            setRepCount(result.rep_count);
+            setFeedback(result.feedback);
+            setFormScore(result.form_score);
+            return result; // return the result so the caller gets fresh data
+        } catch (e) {
+            console.warn("Failed to finish workout session", e);
+            setFeedback(["Failed to get results from server."]);
+            return null;
+        } finally {
+            setIsProcessingResults(false);
+        }
+    }, [exerciseId]);
 
     const resetStats = useCallback(async () => {
         setRepCount(0);
@@ -132,6 +143,8 @@ export const useSmartCamera = (
         stage,
         feedback,
         formScore,
-        resetStats
+        resetStats,
+        finishWorkoutSession,
+        isProcessingResults
     };
 };

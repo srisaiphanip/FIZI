@@ -47,7 +47,7 @@ class RepCounter:
             'active_hit': False, 
             'good_frames': 0, 
             'total_frames': 0, 
-            'last_transition_time': 0,
+            'last_transition_frame': 0,
             'exercise_id': exercise_id,
             'rejection_reason': None,
             'initialized': True
@@ -121,7 +121,7 @@ class RepCounter:
             if self.state['total_frames'] % 30 == 0:
                  print(f"   ? Check {stage['name']}: {final_score:.1f}%")
 
-            if final_score >= max_score and final_score > 10:  # OPTIMIZED: Very lenient threshold 
+            if final_score >= max_score and final_score > 20:  # Reverted back to a more lenient 20% match
                 max_score = final_score
                 best_stage = stage['name']
         
@@ -136,17 +136,20 @@ class RepCounter:
         
         if best_stage:
             # Add minimum hold time to prevent false transitions (debounce)
-            MIN_STAGE_HOLD_TIME = 0.1  # seconds - OPTIMIZED: faster response
-            MIN_FORM_SCORE = 20  # Minimum 20% match - OPTIMIZED: more lenient
+            # In streaming mode, frames are processed instantly, so time.time() fails.
+            # Instead, we debounce by frame count. 
+            # Reverted to a very fast 2 frames to ensure we don't drop fast reps
+            MIN_STAGE_HOLD_FRAMES = 2
+            MIN_FORM_SCORE = 20  # Reverted to lenient 20% match
             
             stage_changed = best_stage != self.state['current_stage']
-            time_since_transition = current_time - self.state.get('last_transition_time', 0)
+            frames_since_transition = self.state['total_frames'] - self.state.get('last_transition_frame', 0)
             
-            # Only accept stage changes if enough time has passed OR it's the first detection
-            if stage_changed and time_since_transition < MIN_STAGE_HOLD_TIME and self.state['current_stage']:
+            # 1. Debounce rapid stage changes (noise filtering)
+            if stage_changed and frames_since_transition < MIN_STAGE_HOLD_FRAMES and self.state['current_stage']:
                 # Too quick, ignore this transition (likely noise)
                 if self.state['total_frames'] % 30 == 0:
-                    print(f"   ⏱️ Debouncing: {best_stage} (waiting {MIN_STAGE_HOLD_TIME - time_since_transition:.1f}s)")
+                    print(f"   ⏱️ Debouncing: {best_stage} (waiting {MIN_STAGE_HOLD_FRAMES - frames_since_transition} frames)")
             else:
                 # Valid stage detection
                 # State Machine for counting: Rest -> Active -> Rest = 1 Rep
@@ -157,7 +160,7 @@ class RepCounter:
                         # Only count if form score is good enough
                         if max_score >= MIN_FORM_SCORE:
                             self.state['active_hit'] = True
-                            self.state['last_transition_time'] = current_time
+                            self.state['last_transition_frame'] = self.state['total_frames']
                             print(f"🔹 DOWN (Half Rep) - {exercise_id} (Score: {max_score:.1f}%)")
                         else:
                             print(f"   ⚠️ Form too poor to count (Score: {max_score:.1f}%)")
@@ -168,14 +171,14 @@ class RepCounter:
                         # Complete the rep
                         self.state['count'] += 1
                         self.state['active_hit'] = False
-                        self.state['last_transition_time'] = current_time
+                        self.state['last_transition_frame'] = self.state['total_frames']
                         self.save_state()  # PERSIST STATE
                         print(f"✅ REP #{self.state['count']} COMPLETE (Score: {max_score:.1f}%)")
                 
                 # Update current stage
                 if stage_changed:
                     self.state['current_stage'] = best_stage
-                    self.state['last_transition_time'] = current_time
+                    self.state['last_transition_frame'] = self.state['total_frames']
                 
                 self.state['score'] = max_score
                 

@@ -499,9 +499,11 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
         stage: backendStage,
         feedback: backendFeedback,
         formScore: backendFormScore,
-        resetStats
+        resetStats,
+        finishWorkoutSession,
+        isProcessingResults
     } = useSmartCamera(
-        AppConfig.features.enablePoseDetection,
+        isWorkoutActive && AppConfig.features.enablePoseDetection,
         cameraRef,
         exerciseId
     );
@@ -606,49 +608,64 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
     /**
      * Toggle workout session
      */
-    const toggleWorkout = () => {
+    const toggleWorkout = async () => {
         if (isWorkoutActive) {
-            // End workout
+            // End workout recording phase
             setIsWorkoutActive(false);
             setShowOverlay(false);
             setMockPoses([]); // Clear mock poses
 
-            // Calculate average form score
-            const avgScore = formScoreCount > 0
-                ? Math.round(totalFormScore / formScoreCount)
-                : 100;
+            let finalReps = 0;
+            let finalScore = 100;
+
+            // If we were using the backend, we need to finalize the session
+            if (AppConfig.features.enablePoseDetection) {
+                // The finishWorkoutSession handles the IsProcessingResults state
+                const result = await finishWorkoutSession();
+
+                if (result) {
+                    finalReps = result.rep_count;
+                    finalScore = result.form_score;
+                }
+            } else {
+                // Calculate average form score from local mock stats
+                finalScore = formScoreCount > 0
+                    ? Math.round(totalFormScore / formScoreCount)
+                    : 100;
+                finalReps = 0; // fallback if tracking local mock
+            }
 
             // Announce completion
-            feedbackService.announceWorkoutEnd(repCount, avgScore);
+            feedbackService.announceWorkoutEnd(finalReps, finalScore);
 
             // Show workout summary
             Alert.alert(
                 '🎉 Workout Complete!',
                 `Exercise: ${exerciseId}\n` +
                 `Time: ${formatTime(elapsedTime)}\n` +
-                `Reps: ${repCount}\n` +
-                `Average Form: ${avgScore}%`,
+                `Reps: ${finalReps}\n` +
+                `Average Form: ${finalScore}%`,
                 [{ text: 'OK' }]
             );
 
             // Save workout to Firestore
             const exercise = getExerciseById(exerciseId);
-            const caloriesBurned = Math.round(repCount * 3 + elapsedTime * 0.1); // Simple estimate
+            const caloriesBurned = Math.round(finalReps * 3 + elapsedTime * 0.1); // Simple estimate
             dispatch(saveWorkout({
                 exerciseId,
                 exerciseName: exercise?.name || exerciseId,
                 duration: elapsedTime,
-                reps: repCount,
-                averageFormScore: avgScore,
+                reps: finalReps,
+                averageFormScore: finalScore,
                 caloriesBurned,
             }));
 
             // Update avatar progress
             avatarService.updateAfterWorkout({
                 exerciseId,
-                reps: repCount,
+                reps: finalReps,
                 duration: elapsedTime,
-                formScore: avgScore,
+                formScore: finalScore,
             });
 
             // Reset for next workout
@@ -921,7 +938,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
             />
 
             {/* Exercise Selection Button (when not in workout) */}
-            {!isWorkoutActive && (
+            {!isWorkoutActive && !isProcessingResults && (
                 <View style={styles.exerciseSelectContainer}>
                     <TouchableOpacity
                         style={styles.exerciseSelectButton}
@@ -941,6 +958,14 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
             {showCountdown && (
                 <CountdownOverlay onComplete={handleCountdownComplete} />
+            )}
+
+            {/* Processing Overlay */}
+            {isProcessingResults && (
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }]}>
+                    <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Analyzing Workout...</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 14 }}>Waiting for AI server to calculate form and reps</Text>
+                </View>
             )}
         </View>
     );

@@ -89,12 +89,44 @@ class PoseDetectionService {
     }
 
     /**
-     * Detect poses from a base64 image string
+     * Stream a frame to the backend without waiting for the full ML response.
      * @param base64Image - Base64 encoded image frame
      * @param exerciseId - The ID of the exercise being performed
-     * @returns BackendAnalysisResult containing poses and workout stats
+     * @param sessionId - Unique id for this workout session
+     * @returns boolean true if successfully queued
      */
-    async detectPose(base64Image: string, exerciseId: string = 'push-ups'): Promise<BackendAnalysisResult> {
+    async streamFrame(base64Image: string, exerciseId: string, sessionId: string): Promise<boolean> {
+        if (!this.isInitialized) return false;
+
+        try {
+            // Fire and forget (don't use fetchWithRetry to keep it fast and non-blocking)
+            fetch(`${POSE_API_URL}/stream-frame`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': 'development_key_123'
+                },
+                body: JSON.stringify({
+                    image: base64Image,
+                    exerciseId: exerciseId,
+                    sessionId: sessionId
+                }),
+            }).catch(e => console.warn('[PoseDetection] Failed to queue frame:', e.message));
+
+            return true;
+
+        } catch (error: any) {
+            console.warn('[PoseDetection] streamFrame failed:', error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Finish the workout session and get the final results from the backend.
+     * @param sessionId - Unique id for this workout session
+     * @returns BackendAnalysisResult containing final workout stats
+     */
+    async finishWorkout(sessionId: string): Promise<BackendAnalysisResult> {
         // Default empty result
         const emptyResult: BackendAnalysisResult = {
             poses: [],
@@ -109,23 +141,16 @@ class PoseDetectionService {
         if (!this.isInitialized) return emptyResult;
 
         try {
-            const t0 = performance.now();
-            const response = await this.fetchWithRetry(`${POSE_API_URL}/detect`, {
+            const response = await this.fetchWithRetry(`${POSE_API_URL}/finish`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-api-key': 'development_key_123' // TODO: Move to strict .env in production
+                    'x-api-key': 'development_key_123'
                 },
                 body: JSON.stringify({
-                    image: base64Image,
-                    exerciseId: exerciseId
+                    sessionId: sessionId
                 }),
-            });
-            const t1 = performance.now();
-
-            if (t1 - t0 > 1000) {
-                console.warn(`[PoseDetection] Slow request took ${Math.round(t1 - t0)}ms | Payload: ~${Math.round(base64Image.length / 1024)}KB`);
-            }
+            }, 3, 1000); // 3 retries, start with 1s delay because processing takes time
 
             if (!response.ok) return emptyResult;
 
@@ -135,36 +160,22 @@ class PoseDetectionService {
                 return { ...emptyResult, error: data.error };
             }
 
-            // Map backend landmarks to our Keypoint interface
-            const keypoints: Keypoint[] = (data.landmarks || []).map((kp: any) => ({
-                name: kp.name,
-                x: kp.x, // Normalized 0-1
-                y: kp.y, // Normalized 0-1
-                z: kp.z,
-                score: kp.score
-            }));
-
-            // Wrap in Pose object
-            const pose: Pose = {
-                keypoints: keypoints,
-                score: data.confidence || 0
-            };
-
             return {
-                poses: keypoints.length > 0 ? [pose] : [],
+                poses: [], // No poses returned in streaming mode
                 rep_count: data.rep_count || 0,
-                stage: data.stage || null,
+                stage: null,
                 feedback: data.feedback || [],
-                form_score: (data.confidence || 0) * 100, // Assuming 0-1 from backend, converting to 0-100 for frontend
+                form_score: data.form_score || 0,
                 isReady: true,
                 error: null
             };
 
         } catch (error: any) {
-            console.warn('[PoseDetection] DetectPose failed after retries:', error.message);
+            console.warn('[PoseDetection] finishWorkout failed:', error.message);
             return emptyResult;
         }
     }
+
 
     /**
      * Reset stats for a specific exercise on the backend
