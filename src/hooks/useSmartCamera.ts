@@ -36,11 +36,14 @@ export const useSmartCamera = (
     // Refs for loop control (avoid state updates during capture)
     const isProcessingRef = useRef(false);
     const loopTimerRef = useRef<NodeJS.Timeout | null>(null);
+    // Use a ref so the loop ALWAYS reads the latest active state, even mid-capture
+    const isActiveRef = useRef(false);
     // Unique ID for the current workout session
     const sessionIdRef = useRef<string>(Date.now().toString());
 
-    // Generate a new session ID when the camera becomes active
+    // Keep isActiveRef in sync with the isActive prop
     useEffect(() => {
+        isActiveRef.current = isActive;
         if (isActive) {
             sessionIdRef.current = Date.now().toString();
         }
@@ -48,9 +51,9 @@ export const useSmartCamera = (
 
 
     const runDetectionLoop = useCallback(async () => {
-        // If conditions not met, reschedule and try again later
-        if (!isActive || !cameraRef.current || isProcessingRef.current) {
-            if (isActive) {
+        // Use ref (not closure) so we always read the LATEST isActive value
+        if (!isActiveRef.current || !cameraRef.current || isProcessingRef.current) {
+            if (isActiveRef.current) {
                 loopTimerRef.current = setTimeout(runDetectionLoop, 100);
             }
             return;
@@ -60,31 +63,30 @@ export const useSmartCamera = (
         try {
             // 1. Capture Frame - Optimized for server upload speed
             const photo = await cameraRef.current.takePictureAsync({
-                quality: 0.3, // Reduced from 0.5 for faster upload (30% smaller files)
+                quality: 0.3,
                 base64: true,
                 shutterSound: false,
                 skipProcessing: true,
-                // fastMode disabled - causes crashes with base64 on some devices
             });
 
             if (!photo || !photo.base64) return;
 
             // 2. Stream Frame to Backend Server (Fire and Forget)
-            if (AppConfig.features.enablePoseDetection) {
+            // Check ref again AFTER the async capture — workout may have stopped mid-capture
+            if (AppConfig.features.enablePoseDetection && isActiveRef.current) {
                 const base64 = photo.base64;
-                // We do NOT await this. We let it upload in the background so the loop stays fast.
                 poseDetectionService.streamFrame(base64, exerciseId, sessionIdRef.current);
             }
         } catch (err) {
             // Silently catch camera fast-capture errors
         } finally {
             isProcessingRef.current = false;
-            // Schedule next frame - We can go faster now since we aren't waiting for the server
-            if (isActive) {
-                loopTimerRef.current = setTimeout(runDetectionLoop, 300); // ~3 fps - enough for rep counting, saves server processing
+            // Only schedule next frame if still active
+            if (isActiveRef.current) {
+                loopTimerRef.current = setTimeout(runDetectionLoop, 300); // ~3 fps
             }
         }
-    }, [isActive, cameraRef, exerciseId]);
+    }, [cameraRef, exerciseId]); // No longer depends on isActive — uses ref instead
 
     useEffect(() => {
         if (isActive) {
@@ -99,14 +101,17 @@ export const useSmartCamera = (
             });
         } else {
             setIsDetecting(false);
+            // Clear any pending timer immediately
             if (loopTimerRef.current) {
                 clearTimeout(loopTimerRef.current);
+                loopTimerRef.current = null;
             }
         }
 
         return () => {
             if (loopTimerRef.current) {
                 clearTimeout(loopTimerRef.current);
+                loopTimerRef.current = null;
             }
         };
     }, [isActive, runDetectionLoop]);
