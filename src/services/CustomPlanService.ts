@@ -17,7 +17,8 @@ import {
     query,
     where,
     Timestamp,
-    writeBatch
+    writeBatch,
+    runTransaction
 } from 'firebase/firestore';
 
 /**
@@ -207,35 +208,39 @@ export class CustomPlanService {
     ): Promise<boolean> {
         try {
             const planRef = doc(db, this.PLANS_COLLECTION, planId);
-            const planDoc = await getDoc(planRef);
 
-            if (!planDoc.exists()) {
-                throw new Error('Plan not found');
-            }
+            await runTransaction(db, async (transaction) => {
+                const planDoc = await transaction.get(planRef);
 
-            const plan = planDoc.data() as WorkoutPlan;
-            const sessions = plan.sessions;
-
-            // Find session for the specified day
-            const sessionIndex = sessions.findIndex(s => s.dayOfWeek === dayOfWeek);
-
-            if (sessionIndex === -1) {
-                // Create new session for this day
-                const newSession: WorkoutSession = this.createSessionForDay(dayOfWeek);
-                newSession.exercises.push(exercise);
-                sessions.push(newSession);
-            } else {
-                sessions[sessionIndex].exercises.push(exercise);
-                sessions[sessionIndex].isRestDay = false;
-            }
-
-            await this.updateCustomPlan(planId, {
-                sessions,
-                customizationMetadata: {
-                    ...plan.customizationMetadata,
-                    lastModified: new Date(),
-                    customExerciseCount: this.countCustomExercises(sessions)
+                if (!planDoc.exists()) {
+                    throw new Error('Plan not found');
                 }
+
+                const plan = planDoc.data() as WorkoutPlan;
+                const sessions = plan.sessions;
+
+                // Find session for the specified day
+                const sessionIndex = sessions.findIndex(s => s.dayOfWeek === dayOfWeek);
+
+                if (sessionIndex === -1) {
+                    // Create new session for this day
+                    const newSession: WorkoutSession = this.createSessionForDay(dayOfWeek);
+                    newSession.exercises.push(exercise);
+                    sessions.push(newSession);
+                } else {
+                    sessions[sessionIndex].exercises.push(exercise);
+                    sessions[sessionIndex].isRestDay = false;
+                }
+
+                transaction.update(planRef, this.removeUndefined({
+                    sessions,
+                    customizationMetadata: {
+                        ...plan.customizationMetadata,
+                        lastModified: Timestamp.fromDate(new Date()),
+                        customExerciseCount: this.countCustomExercises(sessions)
+                    },
+                    updatedAt: Timestamp.fromDate(new Date())
+                }));
             });
 
             return true;
@@ -255,37 +260,41 @@ export class CustomPlanService {
     ): Promise<boolean> {
         try {
             const planRef = doc(db, this.PLANS_COLLECTION, planId);
-            const planDoc = await getDoc(planRef);
+            let success = false;
 
-            if (!planDoc.exists()) {
-                throw new Error('Plan not found');
-            }
+            await runTransaction(db, async (transaction) => {
+                const planDoc = await transaction.get(planRef);
 
-            const plan = planDoc.data() as WorkoutPlan;
-            const sessions = plan.sessions;
-            const sessionIndex = sessions.findIndex(s => s.dayOfWeek === dayOfWeek);
-
-            if (sessionIndex !== -1 && sessions[sessionIndex].exercises[exerciseIndex]) {
-                sessions[sessionIndex].exercises.splice(exerciseIndex, 1);
-
-                // Mark as rest day if no exercises left
-                if (sessions[sessionIndex].exercises.length === 0) {
-                    sessions[sessionIndex].isRestDay = true;
+                if (!planDoc.exists()) {
+                    throw new Error('Plan not found');
                 }
 
-                await this.updateCustomPlan(planId, {
-                    sessions,
-                    customizationMetadata: {
-                        ...plan.customizationMetadata,
-                        lastModified: new Date(),
-                        customExerciseCount: this.countCustomExercises(sessions)
+                const plan = planDoc.data() as WorkoutPlan;
+                const sessions = plan.sessions;
+                const sessionIndex = sessions.findIndex(s => s.dayOfWeek === dayOfWeek);
+
+                if (sessionIndex !== -1 && sessions[sessionIndex].exercises[exerciseIndex]) {
+                    sessions[sessionIndex].exercises.splice(exerciseIndex, 1);
+
+                    // Mark as rest day if no exercises left
+                    if (sessions[sessionIndex].exercises.length === 0) {
+                        sessions[sessionIndex].isRestDay = true;
                     }
-                });
 
-                return true;
-            }
+                    transaction.update(planRef, this.removeUndefined({
+                        sessions,
+                        customizationMetadata: {
+                            ...plan.customizationMetadata,
+                            lastModified: Timestamp.fromDate(new Date()),
+                            customExerciseCount: this.countCustomExercises(sessions)
+                        },
+                        updatedAt: Timestamp.fromDate(new Date())
+                    }));
+                    success = true;
+                }
+            });
 
-            return false;
+            return success;
         } catch (error) {
             console.error('[CustomPlanService] Error removing exercise:', error);
             return false;
@@ -303,35 +312,39 @@ export class CustomPlanService {
     ): Promise<boolean> {
         try {
             const planRef = doc(db, this.PLANS_COLLECTION, planId);
-            const planDoc = await getDoc(planRef);
+            let success = false;
 
-            if (!planDoc.exists()) {
-                throw new Error('Plan not found');
-            }
+            await runTransaction(db, async (transaction) => {
+                const planDoc = await transaction.get(planRef);
 
-            const plan = planDoc.data() as WorkoutPlan;
-            const sessions = plan.sessions;
-            const sessionIndex = sessions.findIndex(s => s.dayOfWeek === dayOfWeek);
+                if (!planDoc.exists()) {
+                    throw new Error('Plan not found');
+                }
 
-            if (sessionIndex !== -1 && sessions[sessionIndex].exercises[exerciseIndex]) {
-                sessions[sessionIndex].exercises[exerciseIndex] = {
-                    ...sessions[sessionIndex].exercises[exerciseIndex],
-                    ...updates
-                };
+                const plan = planDoc.data() as WorkoutPlan;
+                const sessions = plan.sessions;
+                const sessionIndex = sessions.findIndex(s => s.dayOfWeek === dayOfWeek);
 
-                await this.updateCustomPlan(planId, {
-                    sessions,
-                    customizationMetadata: {
-                        ...plan.customizationMetadata,
-                        lastModified: new Date(),
-                        customExerciseCount: this.countCustomExercises(sessions)
-                    }
-                });
+                if (sessionIndex !== -1 && sessions[sessionIndex].exercises[exerciseIndex]) {
+                    sessions[sessionIndex].exercises[exerciseIndex] = {
+                        ...sessions[sessionIndex].exercises[exerciseIndex],
+                        ...updates
+                    };
 
-                return true;
-            }
+                    transaction.update(planRef, this.removeUndefined({
+                        sessions,
+                        customizationMetadata: {
+                            ...plan.customizationMetadata,
+                            lastModified: Timestamp.fromDate(new Date()),
+                            customExerciseCount: this.countCustomExercises(sessions)
+                        },
+                        updatedAt: Timestamp.fromDate(new Date())
+                    }));
+                    success = true;
+                }
+            });
 
-            return false;
+            return success;
         } catch (error) {
             console.error('[CustomPlanService] Error updating exercise:', error);
             return false;

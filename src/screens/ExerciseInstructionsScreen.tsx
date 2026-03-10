@@ -81,25 +81,43 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
     const handleSkipDetection = async () => {
         setIsLoading(true);
 
-        // Use target values if from plan, otherwise defaults
-        let targetReps = 10;
-        if (typeof params.targetReps === 'number') {
-            targetReps = params.targetReps;
-        } else if (typeof params.targetReps === 'string') {
-            targetReps = parseInt(params.targetReps.split('-')[0]) || 10;
-        }
-
+        const isTimerBased = exercise.trackingMode === 'timer_only';
         const targetSets = params.targetSets || 3;
-        const totalReps = targetReps * targetSets;
 
-        // Estimate duration (e.g., 3 seconds per rep + 30s rest per set)
-        const estimatedDuration = (totalReps * 3) + ((targetSets - 1) * 30);
+        let totalReps: number;
+        let estimatedDuration: number;
+        let caloriesBurned: number;
 
-        // Estimate score (assume good form if skipping)
-        const estimatedScore = 100;
+        if (isTimerBased) {
+            // For timer-based exercises, targetReps holds the hold-time in seconds (e.g. 30, 60)
+            // Treat 0 reps and log duration correctly from the planned time.
+            const holdSeconds =
+                typeof params.targetReps === 'number'
+                    ? params.targetReps
+                    : typeof params.targetReps === 'string'
+                        ? parseInt(params.targetReps) || 30
+                        : 30;
 
-        // Calculate calories
-        const caloriesBurned = Math.round(totalReps * 0.5 + estimatedDuration * 0.1);
+            totalReps = 0; // Timed exercises don't have reps
+            // Duration = hold time × sets + rest between sets (20s each)
+            estimatedDuration = holdSeconds * targetSets + (targetSets - 1) * 20;
+            // Calories: use MET ≈ 4 for low-intensity isometric holds
+            caloriesBurned = Math.round(4 * 70 * (estimatedDuration / 3600));
+        } else {
+            // Rep-based exercise: parse "10-15" → take lower bound
+            let targetReps = 10;
+            if (typeof params.targetReps === 'number') {
+                targetReps = params.targetReps;
+            } else if (typeof params.targetReps === 'string') {
+                targetReps = parseInt(params.targetReps.split('-')[0]) || 10;
+            }
+
+            totalReps = targetReps * targetSets;
+            // Estimate ~3s per rep + 30s rest per set
+            estimatedDuration = totalReps * 3 + (targetSets - 1) * 30;
+            // Calories: simple rep × time estimate
+            caloriesBurned = Math.round(totalReps * 0.5 + estimatedDuration * 0.1);
+        }
 
         try {
             // Save to Redux/Firestore
@@ -108,16 +126,16 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                 exerciseName: exercise.name,
                 duration: estimatedDuration,
                 reps: totalReps,
-                averageFormScore: estimatedScore,
+                averageFormScore: 80, // Penalised slightly for skipping
                 caloriesBurned,
             })).unwrap();
 
             // Update Avatar
             await avatarService.updateAfterWorkout({
                 exerciseId: exerciseId,
-                reps: targetReps, // Assuming targetReps is the correct value for reps here
+                reps: totalReps,
                 duration: estimatedDuration,
-                formScore: 80, // Reduced from 100 to 80 for skipped
+                formScore: 80,
                 isSkipped: true
             });
 

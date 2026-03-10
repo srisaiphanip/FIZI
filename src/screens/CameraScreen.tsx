@@ -391,6 +391,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
     const [isWorkoutActive, setIsWorkoutActive] = useState(false);
     const [showCountdown, setShowCountdown] = useState(false);
     const [showExerciseSelector, setShowExerciseSelector] = useState(false);
+    const [isProcessingToggle, setIsProcessingToggle] = useState(false);
 
     // Workout state
     const [exerciseId, setExerciseId] = useState<ExerciseId>((navigation.params?.exerciseId as ExerciseId) || 'push-ups');
@@ -418,6 +419,10 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
     // Timer state
     const [elapsedTime, setElapsedTime] = useState(0);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    // Stores exact start time so elapsed is always a real-wall-clock delta.
+    // setInterval can drift/pause when the app is backgrounded, so we never
+    // rely on incrementing a counter — instead we diff against this ref.
+    const workoutStartTimeRef = useRef<number | null>(null);
 
     // Workout mode state (plan mode vs free mode)
     const planMode = navigation.params?.fromPlan || false;
@@ -560,17 +565,28 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
     /**
      * Workout timer
+     * Uses a real-wall-clock delta (Date.now() - startTime) instead of
+     * incrementing a counter so the timer stays accurate even if the user
+     * backgrounds the app during a workout.
      */
     useEffect(() => {
         if (isWorkoutActive) {
+            // Record the exact moment the workout started.
+            workoutStartTimeRef.current = Date.now();
+            setElapsedTime(0);
+
             timerRef.current = setInterval(() => {
-                setElapsedTime(prev => prev + 1);
+                if (workoutStartTimeRef.current !== null) {
+                    const real = Math.floor((Date.now() - workoutStartTimeRef.current) / 1000);
+                    setElapsedTime(real);
+                }
             }, 1000);
         } else {
             if (timerRef.current) {
                 clearInterval(timerRef.current);
                 timerRef.current = null;
             }
+            workoutStartTimeRef.current = null;
         }
 
         return () => {
@@ -645,91 +661,98 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
      * Toggle workout session
      */
     const toggleWorkout = async () => {
-        if (isWorkoutActive) {
-            // End workout recording phase
-            setIsWorkoutActive(false);
-            setShowOverlay(false);
-            setMockPoses([]); // Clear mock poses
+        if (isProcessingToggle) return;
+        setIsProcessingToggle(true);
 
-            let finalReps = 0;
-            let finalScore = 100;
+        try {
+            if (isWorkoutActive) {
+                // End workout recording phase
+                setIsWorkoutActive(false);
+                setShowOverlay(false);
+                setMockPoses([]); // Clear mock poses
 
-            // If we were using the backend, we need to finalize the session
-            if (AppConfig.features.enablePoseDetection) {
-                // The finishWorkoutSession handles the IsProcessingResults state
-                const result = await finishWorkoutSession();
+                let finalReps = 0;
+                let finalScore = 100;
 
-                if (result) {
-                    finalReps = result.rep_count;
-                    finalScore = result.form_score;
+                // If we were using the backend, we need to finalize the session
+                if (AppConfig.features.enablePoseDetection) {
+                    // The finishWorkoutSession handles the IsProcessingResults state
+                    const result = await finishWorkoutSession();
+
+                    if (result) {
+                        finalReps = result.rep_count;
+                        finalScore = result.form_score;
+                    }
+                } else {
+                    // Calculate average form score from local mock stats
+                    finalScore = formScoreCount > 0
+                        ? Math.round(totalFormScore / formScoreCount)
+                        : 100;
+                    finalReps = 0; // fallback if tracking local mock
                 }
+
+                // Announce completion
+                feedbackService.announceWorkoutEnd(finalReps, finalScore);
+
+                // Show workout summary
+                Alert.alert(
+                    '🎉 Workout Complete!',
+                    `Exercise: ${exerciseId}\n` +
+                    `Time: ${formatTime(elapsedTime)}\n` +
+                    `Reps: ${finalReps}\n` +
+                    `Average Form: ${finalScore}%`,
+                    [{ text: 'OK' }]
+                );
+
+                // Save workout to Firestore
+                const exercise = getExerciseById(exerciseId);
+                const caloriesBurned = Math.round(finalReps * 3 + elapsedTime * 0.1); // Simple estimate
+                dispatch(saveWorkout({
+                    exerciseId,
+                    exerciseName: exercise?.name || exerciseId,
+                    duration: elapsedTime,
+                    reps: finalReps,
+                    averageFormScore: finalScore,
+                    caloriesBurned,
+                }));
+
+                // Update avatar progress
+                avatarService.updateAfterWorkout({
+                    exerciseId,
+                    reps: finalReps,
+                    duration: elapsedTime,
+                    formScore: finalScore,
+                });
+
+                // Mark exercise as completed in workout plan if target reps reached
+                if (planMode && currentPlan?.id) {
+                    const targetNumber = parseInt(targetRepsParam.toString().split('-')[0], 10);
+                    if (!isNaN(targetNumber) && finalReps >= targetNumber) {
+                        const dayOfWeek = new Date().getDay();
+                        dispatch(updateExerciseCompletion({
+                            planId: currentPlan.id,
+                            dayOfWeek,
+                            exerciseId,
+                            completed: true,
+                            lastCompletedAt: new Date(),
+                        }));
+                    }
+                }
+
+                // Reset for next workout
+                workoutAnalysisService.reset(exerciseId);
+                setRepCount(0);
+                setCurrentStage('');
+                setElapsedTime(0);
+                setTotalFormScore(0);
+                setFormScoreCount(0);
+                prevRepCount.current = 0;
             } else {
-                // Calculate average form score from local mock stats
-                finalScore = formScoreCount > 0
-                    ? Math.round(totalFormScore / formScoreCount)
-                    : 100;
-                finalReps = 0; // fallback if tracking local mock
+                // Start countdown first
+                setShowCountdown(true);
             }
-
-            // Announce completion
-            feedbackService.announceWorkoutEnd(finalReps, finalScore);
-
-            // Show workout summary
-            Alert.alert(
-                '🎉 Workout Complete!',
-                `Exercise: ${exerciseId}\n` +
-                `Time: ${formatTime(elapsedTime)}\n` +
-                `Reps: ${finalReps}\n` +
-                `Average Form: ${finalScore}%`,
-                [{ text: 'OK' }]
-            );
-
-            // Save workout to Firestore
-            const exercise = getExerciseById(exerciseId);
-            const caloriesBurned = Math.round(finalReps * 3 + elapsedTime * 0.1); // Simple estimate
-            dispatch(saveWorkout({
-                exerciseId,
-                exerciseName: exercise?.name || exerciseId,
-                duration: elapsedTime,
-                reps: finalReps,
-                averageFormScore: finalScore,
-                caloriesBurned,
-            }));
-
-            // Update avatar progress
-            avatarService.updateAfterWorkout({
-                exerciseId,
-                reps: finalReps,
-                duration: elapsedTime,
-                formScore: finalScore,
-            });
-
-            // Mark exercise as completed in workout plan if target reps reached
-            if (planMode && currentPlan?.id) {
-                const targetNumber = parseInt(targetRepsParam.toString().split('-')[0], 10);
-                if (!isNaN(targetNumber) && finalReps >= targetNumber) {
-                    const dayOfWeek = new Date().getDay();
-                    dispatch(updateExerciseCompletion({
-                        planId: currentPlan.id,
-                        dayOfWeek,
-                        exerciseId,
-                        completed: true,
-                        lastCompletedAt: new Date(),
-                    }));
-                }
-            }
-
-            // Reset for next workout
-            workoutAnalysisService.reset(exerciseId);
-            setRepCount(0);
-            setCurrentStage('');
-            setElapsedTime(0);
-            setTotalFormScore(0);
-            setFormScoreCount(0);
-            prevRepCount.current = 0;
-        } else {
-            // Start countdown first
-            setShowCountdown(true);
+        } finally {
+            setIsProcessingToggle(false);
         }
     };
 
@@ -958,9 +981,14 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.mainButton, isWorkoutActive && styles.stopButton]}
+                        style={[
+                            styles.mainButton,
+                            isWorkoutActive && styles.stopButton,
+                            isProcessingToggle && { opacity: 0.5 }
+                        ]}
                         onPress={toggleWorkout}
                         activeOpacity={0.8}
+                        disabled={isProcessingToggle}
                     >
                         <Text style={[styles.mainButtonIcon, isWorkoutActive && styles.stopIconAdjustment]}>
                             {isWorkoutActive ? '⏹' : '▶'}

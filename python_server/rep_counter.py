@@ -6,8 +6,9 @@ import json
 import os
 
 class RepCounter:
-    def __init__(self):
-        self.state_file = "reps_state.json"
+    def __init__(self, session_id="default"):
+        self.session_id = session_id
+        self.state_file = f"reps_state_{session_id}.json"
         self.state = self.load_state() or {
             'count': 0,
             'current_stage': None,
@@ -194,5 +195,4 @@ class RepCounter:
 
         return self.state
 
-# Global singleton for simplicity in local dev
-rep_counter = RepCounter()
+# Removed global singleton instance

@@ -16,10 +16,12 @@ import {
     orderBy,
     limit,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    runTransaction
 } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 import { WorkoutSession, ProgressStats } from '../types';
+import { dataRetentionService } from './DataRetentionService';
 
 // Collection names
 const WORKOUTS_COLLECTION = 'workouts';
@@ -68,6 +70,9 @@ class WorkoutService {
 
             // Update daily stats
             await this.updateDailyStats(session);
+
+            // Silently clean up records older than 90 days (fire-and-forget)
+            dataRetentionService.runCleanup().catch(() => { });
 
             return workoutId;
         } catch (error) {
@@ -546,36 +551,38 @@ class WorkoutService {
         try {
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
             const statsRef = doc(db, STATS_COLLECTION, `${user.uid}_${today}`);
-            const statsDoc = await getDoc(statsRef);
 
-            if (statsDoc.exists()) {
-                const existing = statsDoc.data();
-                await setDoc(statsRef, {
-                    userId: user.uid,
-                    date: today,
-                    workoutCount: (existing.workoutCount || 0) + 1,
-                    totalReps: (existing.totalReps || 0) + session.reps,
-                    totalDuration: (existing.totalDuration || 0) + session.duration,
-                    totalCalories: (existing.totalCalories || 0) + session.caloriesBurned,
-                    averageFormScore: Math.round(
-                        ((existing.averageFormScore || 0) * existing.workoutCount + session.averageFormScore) /
-                        (existing.workoutCount + 1)
-                    ),
-                    updatedAt: serverTimestamp(),
-                });
-            } else {
-                await setDoc(statsRef, {
-                    userId: user.uid,
-                    date: today,
-                    workoutCount: 1,
-                    totalReps: session.reps,
-                    totalDuration: session.duration,
-                    totalCalories: session.caloriesBurned,
-                    averageFormScore: session.averageFormScore,
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                });
-            }
+            await runTransaction(db, async (transaction) => {
+                const statsDoc = await transaction.get(statsRef);
+
+                if (statsDoc.exists()) {
+                    const existing = statsDoc.data();
+                    transaction.set(statsRef, {
+                        ...existing,
+                        workoutCount: (existing.workoutCount || 0) + 1,
+                        totalReps: (existing.totalReps || 0) + session.reps,
+                        totalDuration: (existing.totalDuration || 0) + session.duration,
+                        totalCalories: (existing.totalCalories || 0) + session.caloriesBurned,
+                        averageFormScore: Math.round(
+                            ((existing.averageFormScore || 0) * (existing.workoutCount || 0) + session.averageFormScore) /
+                            ((existing.workoutCount || 0) + 1)
+                        ),
+                        updatedAt: serverTimestamp(),
+                    }, { merge: true });
+                } else {
+                    transaction.set(statsRef, {
+                        userId: user.uid,
+                        date: today,
+                        workoutCount: 1,
+                        totalReps: session.reps,
+                        totalDuration: session.duration,
+                        totalCalories: session.caloriesBurned,
+                        averageFormScore: session.averageFormScore,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                    });
+                }
+            });
         } catch (error) {
 
         }

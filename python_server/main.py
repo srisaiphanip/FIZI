@@ -22,7 +22,7 @@ pose = mp_pose.Pose(
 
 # Exercise Modules
 from angle_calculator import get_exercise_angles
-from rep_counter import rep_counter
+from rep_counter import RepCounter
 from form_validator import validate_form
 
 def decode_image(base64_string):
@@ -79,7 +79,8 @@ def stream_frame():
         if session_id not in active_sessions:
             active_sessions[session_id] = {
                 "exercise_id": exercise_id,
-                "frames": []
+                "frames": [],
+                "rep_counter": RepCounter(session_id)
             }
             print(f"🆕 Started new workout session: {session_id} for {exercise_id}")
             
@@ -111,6 +112,7 @@ def finish_workout():
         session = active_sessions[session_id]
         exercise_id = session['exercise_id']
         frames = session['frames']
+        rep_counter = session['rep_counter']
         
         print(f"🏁 Finishing session {session_id}. Processing {len(frames)} frames...")
         
@@ -167,6 +169,16 @@ def finish_workout():
             avg_score = int(total_form_score / valid_frames)
             
         # Clean up memory
+        
+        # Try to delete the state file for this session
+        state_file = getattr(rep_counter, 'state_file', f"reps_state_{session_id}.json")
+        import os
+        if os.path.exists(state_file):
+            try:
+                os.remove(state_file)
+            except Exception as e:
+                pass
+                
         del active_sessions[session_id]
         
         t_end = time.time()
@@ -189,9 +201,15 @@ def finish_workout():
 def reset_exercise():
     data = request.json
     exercise_id = data.get('exerciseId', 'push-ups')
-    print(f"🔄 Resetting rep counter for: {exercise_id}")
-    rep_counter.reset(exercise_id)
-    return jsonify({"status": "reset", "exerciseId": exercise_id})
+    session_id = data.get('sessionId')
+    
+    print(f"🔄 Resetting rep counter for: {exercise_id} (Session: {session_id})")
+    
+    if session_id and session_id in active_sessions:
+        active_sessions[session_id]['rep_counter'].reset(exercise_id)
+        return jsonify({"status": "reset", "exerciseId": exercise_id, "sessionId": session_id})
+    else:
+        return jsonify({"error": "Session not found"}), 404
 
 if __name__ == '__main__':
     print("\n\n" + "="*50)

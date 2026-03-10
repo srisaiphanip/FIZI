@@ -86,14 +86,16 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         lastScrollY.current = currentScrollY;
     };
 
-    const loadAvatarState = async () => {
-        const state = await avatarService.getAvatarState();
-        setAvatarState(state);
-    };
-
-
-
     useEffect(() => {
+        let isMounted = true;
+
+        const loadAvatarState = async () => {
+            const state = await avatarService.getAvatarState();
+            if (isMounted) {
+                setAvatarState(state);
+            }
+        };
+
         loadAvatarState();
         dispatch(fetchWorkoutStats('week'));
         if (user?.uid) {
@@ -108,24 +110,31 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         } else {
             setSelectedDayIndex(today - 1);
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [dispatch, user?.uid]);
 
     // Set initial scroll position based on persisted tab
     useEffect(() => {
         const tabs: ('profile' | 'work' | 'diet')[] = ['profile', 'work', 'diet'];
         const index = tabs.indexOf(activeHomeTab);
-        setTimeout(() => {
+        const timer = setTimeout(() => {
             horizontalScrollRef.current?.scrollTo({ x: index * screenWidth, animated: false });
         }, 100);
+        return () => clearTimeout(timer);
     }, []); // Only run on mount, relies on persisted activeHomeTab
 
     // Restore Work Tab Scroll Position
     useEffect(() => {
+        let timer: NodeJS.Timeout;
         if (selectedTab === 'work' && workScrollOffset > 0) {
-            setTimeout(() => {
+            timer = setTimeout(() => {
                 scrollViewRef.current?.scrollTo({ y: workScrollOffset, animated: false });
             }, 100);
         }
+        return () => { if (timer) clearTimeout(timer); };
     }, [selectedTab]);
 
     const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
