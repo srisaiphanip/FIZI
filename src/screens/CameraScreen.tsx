@@ -673,6 +673,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
                 let finalReps = 0;
                 let finalScore = 100;
+                let finalFeedback: string[] = [];
 
                 // If we were using the backend, we need to finalize the session
                 if (AppConfig.features.enablePoseDetection) {
@@ -682,6 +683,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                     if (result) {
                         finalReps = result.rep_count;
                         finalScore = result.form_score;
+                        finalFeedback = result.feedback || [];
                     }
                 } else {
                     // Calculate average form score from local mock stats
@@ -693,6 +695,10 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
 
                 // Announce completion
                 feedbackService.announceWorkoutEnd(finalReps, finalScore);
+                
+                const feedbackString = finalFeedback.length > 0 
+                    ? `\n\nFeedback:\n• ${finalFeedback.join('\n• ')}` 
+                    : '';
 
                 // Show workout summary
                 Alert.alert(
@@ -700,7 +706,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                     `Exercise: ${exerciseId}\n` +
                     `Time: ${formatTime(elapsedTime)}\n` +
                     `Reps: ${finalReps}\n` +
-                    `Average Form: ${finalScore}%`,
+                    `Average Form: ${finalScore}%${feedbackString}`,
                     [{ text: 'OK' }]
                 );
 
