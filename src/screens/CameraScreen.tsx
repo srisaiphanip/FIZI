@@ -55,7 +55,7 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         backgroundColor: colors.backgroundDark,
     },
     camera: {
-        flex: 1,
+        ...StyleSheet.absoluteFillObject,
     },
 
     // Permission Screen
@@ -914,7 +914,8 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                 style={styles.camera}
                 facing={facing}
                 ref={cameraRef}
-            >
+            />
+            <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
                 {/* Pose Skeleton Overlay - DISABLED per user request */}
                 {/* {poses.length > 0 && (
                     <PoseOverlay
@@ -1011,7 +1012,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                         <Text style={styles.controlIcon}>✕</Text>
                     </TouchableOpacity>
                 </View>
-            </CameraView>
+            </View>
 
             {/* Exercise Selector Modal */}
             <ExerciseSelector
