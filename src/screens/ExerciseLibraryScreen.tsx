@@ -11,6 +11,7 @@ import {
 import { useSelector, useDispatch } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { getExerciseImage } from '../config/imageMap';
 import { RootState } from '../store';
 import { setExerciseLibraryScrollOffset } from '../store/slices/uiSlice';
 import { exercises } from '../models/exercises';
@@ -138,7 +139,17 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
                                 onPress={() => navigation.navigate('ExerciseInstructions', { exerciseId: ex.id, fromLibrary: true })}
                             >
                                 <View style={styles.imagePlaceholder}>
-                                    <Text style={styles.exerciseEmoji}>{ex.name.includes('Push') ? '💪' : ex.name.includes('Squat') ? '🦵' : '🏋️'}</Text>
+                                    {getExerciseImage(ex.id) ? (
+                                        <Image
+                                            source={getExerciseImage(ex.id)}
+                                            style={styles.exerciseImage}
+                                            resizeMode="contain"
+                                        />
+                                    ) : (
+                                        <Text style={styles.exerciseEmoji}>
+                                            {ex.name.includes('Push') ? '💪' : ex.name.includes('Squat') ? '🦵' : '🏋️'}
+                                        </Text>
+                                    )}
                                     {!isUnlocked && (
                                         <BlurView intensity={40} style={styles.lockOverlay}>
                                             <Text style={styles.lockIcon}>🔒</Text>
@@ -262,9 +273,15 @@ const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
     },
     imagePlaceholder: {
         height: 120,
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        backgroundColor: '#1A1A1A',
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
+        borderRadius: Layout.borderRadius.m,
+    },
+    exerciseImage: {
+        width: '100%',
+        height: '100%',
     },
     exerciseEmoji: {
         fontSize: 40,

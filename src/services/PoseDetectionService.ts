@@ -93,9 +93,10 @@ class PoseDetectionService {
      * @param base64Image - Base64 encoded image frame
      * @param exerciseId - The ID of the exercise being performed
      * @param sessionId - Unique id for this workout session
+     * @param timestamp - The precise time the frame was captured
      * @returns boolean true if successfully queued
      */
-    async streamFrame(base64Image: string, exerciseId: string, sessionId: string): Promise<boolean> {
+    async streamFrame(base64Image: string, exerciseId: string, sessionId: string, timestamp: number): Promise<boolean> {
         if (!this.isInitialized) return false;
 
         try {
@@ -109,7 +110,8 @@ class PoseDetectionService {
                 body: JSON.stringify({
                     image: base64Image,
                     exerciseId: exerciseId,
-                    sessionId: sessionId
+                    sessionId: sessionId,
+                    timestamp: timestamp
                 }),
             }).catch(e => console.warn('[PoseDetection] Failed to queue frame:', e.message));
 
@@ -150,7 +152,7 @@ class PoseDetectionService {
                 body: JSON.stringify({
                     sessionId: sessionId
                 }),
-            }, 3, 1000); // 3 retries, start with 1s delay because processing takes time
+            }, 4, 2000); // 4 retries, start with 2s delay because high FPS processing takes more time
 
             if (!response.ok) return emptyResult;
 

@@ -77,7 +77,7 @@ export const getExerciseImage = (key: string) => {
 
     // If it's a string (remote URL), return uri object
     if (typeof image === 'string') {
-        return { uri: image };
+        return { uri: image, cache: 'force-cache' };
     }
 
     // If it's a number (local require) or object, return it directly

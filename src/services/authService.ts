@@ -56,8 +56,8 @@ class AuthService {
                     bodyweight: { sets: 3, reps: 10 },
                     weighted: { sets: 3, reps: 8 }
                 },
-                createdAt: new Date(),
-                updatedAt: new Date(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
                 transformationPhotos: [],
                 level: 1,
                 xp: 0,
@@ -188,9 +188,9 @@ class AuthService {
                     xp: data.xp || 0,
                     totalWorkouts: data.totalWorkouts || 0,
                     notificationsEnabled: data.notificationsEnabled !== undefined ? data.notificationsEnabled : true,
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-                    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
-                    premiumExpiryDate: data.premiumExpiryDate?.toDate ? data.premiumExpiryDate.toDate() : data.premiumExpiryDate,
+                    createdAt: (data.createdAt?.toDate ? data.createdAt.toDate() : new Date()).toISOString(),
+                    updatedAt: (data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date()).toISOString(),
+                    premiumExpiryDate: data.premiumExpiryDate?.toDate ? data.premiumExpiryDate.toDate().toISOString() : data.premiumExpiryDate,
                 };
 
                 // Add optional photoURL if it exists

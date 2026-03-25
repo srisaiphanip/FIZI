@@ -46,6 +46,11 @@ export const AppConfig = {
          * Enable haptic/vibration feedback
          */
         enableHapticFeedback: false,
+
+        /**
+         * Enable AI-powered feedback using Groq
+         */
+        enableAIFeedback: false,
     },
 
     /**
@@ -61,6 +66,11 @@ export const AppConfig = {
          * Frame rate for pose detection (lower = better performance)
          */
         detectionFPS: 15,
+
+        /**
+         * Image quality for camera capture (0-1)
+         */
+        imageQuality: 0.5,
     },
 
     /**

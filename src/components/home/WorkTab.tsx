@@ -200,43 +200,7 @@ export function WorkTab({
                 </View>
             )}
 
-            {/* Recovery Status Selection */}
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Recovery Status ❤️</Text>
-                <View style={styles.recoveryGrid}>
-                    {(['good', 'moderate', 'poor'] as const).map((status) => (
-                        <TouchableOpacity
-                            key={status}
-                            style={[
-                                styles.recoveryButton,
-                                recoveryStatus === status && (styles[`recoveryButton${status.charAt(0).toUpperCase() + status.slice(1)}` as keyof typeof styles] as any),
-                            ]}
-                            onPress={() => onRecoveryChange(status)}
-                        >
-                            <Text style={[
-                                styles.recoveryButtonText,
-                                recoveryStatus === status && styles.recoveryButtonTextActive
-                            ]}>
-                                {status === 'good' ? '🟢 Good' : status === 'moderate' ? '🟡 Moderate' : '🔴 Poor'}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
 
-            {/* Recovery Tips */}
-            <View style={styles.section}>
-                <BlurView intensity={20} tint="dark" style={styles.tipsCard}>
-                    <Text style={styles.tipsTitle}>{isRestDay ? '🌙 Rest Day Tips' : '💪 Post-Workout Tips'}</Text>
-                    <View style={styles.tipsList}>
-                        {getRecoveryTips().map((tip: string, idx: number) => (
-                            <View key={idx} style={styles.tipItem}>
-                                <Text style={styles.tipText}>{tip}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </BlurView>
-            </View>
 
             {/* Weekly Schedule Grid */}
             {currentPlan && (
@@ -342,6 +306,44 @@ export function WorkTab({
                         </View>
                     </LinearGradient>
                 </TouchableOpacity>
+            </View>
+
+            {/* Recovery Status Selection */}
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Recovery Status ❤️</Text>
+                <View style={styles.recoveryGrid}>
+                    {(['good', 'moderate', 'poor'] as const).map((status) => (
+                        <TouchableOpacity
+                            key={status}
+                            style={[
+                                styles.recoveryButton,
+                                recoveryStatus === status && (styles[`recoveryButton${status.charAt(0).toUpperCase() + status.slice(1)}` as keyof typeof styles] as any),
+                            ]}
+                            onPress={() => onRecoveryChange(status)}
+                        >
+                            <Text style={[
+                                styles.recoveryButtonText,
+                                recoveryStatus === status && styles.recoveryButtonTextActive
+                            ]}>
+                                {status === 'good' ? '🟢 Good' : status === 'moderate' ? '🟡 Moderate' : '🔴 Poor'}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+
+            {/* Recovery Tips */}
+            <View style={styles.section}>
+                <BlurView intensity={20} tint="dark" style={styles.tipsCard}>
+                    <Text style={styles.tipsTitle}>{isRestDay ? '🌙 Rest Day Tips' : '💪 Post-Workout Tips'}</Text>
+                    <View style={styles.tipsList}>
+                        {getRecoveryTips().map((tip: string, idx: number) => (
+                            <View key={idx} style={styles.tipItem}>
+                                <Text style={styles.tipText}>{tip}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </BlurView>
             </View>
 
             <View style={{ height: 40 }} />

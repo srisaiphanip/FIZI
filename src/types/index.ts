@@ -257,8 +257,8 @@ export interface UserProfile {
     xp: number;
     totalWorkouts: number;
     workoutPlanId?: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: string;
+    updatedAt: string;
     transformationPhotos: string[];
     pushToken?: string;
     notificationsEnabled?: boolean;

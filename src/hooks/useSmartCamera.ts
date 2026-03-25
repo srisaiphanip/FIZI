@@ -60,10 +60,11 @@ export const useSmartCamera = (
         }
 
         isProcessingRef.current = true;
+        const startTime = Date.now();
         try {
             // 1. Capture Frame - Optimized for server upload speed
             const photo = await cameraRef.current.takePictureAsync({
-                quality: 0.3,
+                quality: AppConfig.poseDetection.imageQuality,
                 base64: true,
                 shutterSound: false,
                 skipProcessing: true,
@@ -75,7 +76,7 @@ export const useSmartCamera = (
             // Check ref again AFTER the async capture — workout may have stopped mid-capture
             if (AppConfig.features.enablePoseDetection && isActiveRef.current) {
                 const base64 = photo.base64;
-                poseDetectionService.streamFrame(base64, exerciseId, sessionIdRef.current);
+                poseDetectionService.streamFrame(base64, exerciseId, sessionIdRef.current, startTime);
             }
         } catch (err) {
             // Silently catch camera fast-capture errors
@@ -83,7 +84,12 @@ export const useSmartCamera = (
             isProcessingRef.current = false;
             // Only schedule next frame if still active
             if (isActiveRef.current) {
-                loopTimerRef.current = setTimeout(runDetectionLoop, 300); // ~3 fps
+                // Calculate delay based on target FPS, accounting for processing time
+                const targetInterval = 1000 / AppConfig.poseDetection.detectionFPS;
+                const processingTime = Date.now() - startTime;
+                const nextDelay = Math.max(10, targetInterval - processingTime);
+                
+                loopTimerRef.current = setTimeout(runDetectionLoop, nextDelay);
             }
         }
     }, [cameraRef, exerciseId]); // No longer depends on isActive — uses ref instead
@@ -119,6 +125,10 @@ export const useSmartCamera = (
     const finishWorkoutSession = useCallback(async () => {
         setIsProcessingResults(true);
         try {
+            // Cooldown delay: Let the last streamed frames arrive at the server
+            // before we ask for the final analytical summary.
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             const result = await poseDetectionService.finishWorkout(sessionIdRef.current);
             setRepCount(result.rep_count);
             setFeedback(result.feedback);

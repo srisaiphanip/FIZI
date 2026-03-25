@@ -11,6 +11,7 @@ import * as Speech from 'expo-speech';
 import { Vibration, Platform } from 'react-native';
 import AppConfig from '../config/appConfig';
 import { FormValidation } from '../types';
+import { generateWorkoutSummary, generateRealTimeCorrection } from './groqService';
 
 // Vibration patterns (milliseconds)
 const VIBRATION_PATTERNS = {
@@ -128,12 +129,30 @@ class FeedbackService {
         const warningError = errors.find(e => e.severity === 'warning');
 
         if (criticalError) {
-            // vibration removed as per user request
-            this.speak(criticalError.audioCue, 3);
+            this.handleFormError(criticalError.audioCue, 3);
         } else if (warningError) {
-            // vibration removed as per user request
-            this.speak(warningError.audioCue, 2);
+            this.handleFormError(warningError.audioCue, 2);
         }
+    }
+
+    /**
+     * Helper to handle form error with optional AI enhancement
+     */
+    private async handleFormError(staticMessage: string, priority: number): Promise<void> {
+        if (AppConfig.features.enableAIFeedback) {
+            try {
+                const aiCorrection = await generateRealTimeCorrection([staticMessage]);
+                if (aiCorrection) {
+                    this.speak(aiCorrection, priority);
+                    return;
+                }
+            } catch (error) {
+                console.warn('[Feedback] AI correction failed:', error);
+            }
+        }
+        
+        // Fallback to static
+        this.speak(staticMessage, priority);
     }
 
     /**
@@ -166,6 +185,31 @@ class FeedbackService {
             avgFormScore >= 60 ? 'good' : 'needs improvement';
         this.speak(`Workout complete! ${totalReps} reps with ${formRating} form.`, 3);
         this.vibrate('success');
+    }
+
+    /**
+     * Announce workout completion with AI summary
+     */
+    async announceWorkoutEndAI(stats: {
+        reps: number;
+        time: string;
+        formScore: number;
+        exerciseName: string;
+        feedback: string[];
+    }): Promise<void> {
+        try {
+            // Start simple speech immediately to acknowledge finish
+            this.speak("Calculated your results. One second...", 2);
+            
+            // Get AI summary
+            const summary = await generateWorkoutSummary(stats);
+            await this.speak(summary, 3);
+            this.vibrate('success');
+        } catch (error) {
+            console.warn('[Feedback] AI Summary failed, falling back to static:', error);
+            // Fallback to static announcement
+            this.announceWorkoutEnd(stats.reps, stats.formScore);
+        }
     }
 
     /**

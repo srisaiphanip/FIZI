@@ -70,7 +70,8 @@ function AppContent() {
   // Register for push notifications on login and track activity
   useEffect(() => {
     if (isAuthenticated && user) {
-      notificationService.registerForPushNotificationsAsync();
+      notificationService.requestPermissionsAsync();
+      notificationService.scheduleDynamicNotifications();
 
       // Track activity
       authService.updateLastActiveAt();

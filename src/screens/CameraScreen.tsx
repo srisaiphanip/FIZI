@@ -693,8 +693,14 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                     finalReps = 0; // fallback if tracking local mock
                 }
 
-                // Announce completion
-                feedbackService.announceWorkoutEnd(finalReps, finalScore);
+                // Announce completion (AI version)
+                feedbackService.announceWorkoutEndAI({
+                    reps: finalReps,
+                    time: formatTime(elapsedTime),
+                    formScore: finalScore,
+                    exerciseName: getExerciseById(exerciseId)?.name || exerciseId,
+                    feedback: finalFeedback
+                });
                 
                 const feedbackString = finalFeedback.length > 0 
                     ? `\n\nFeedback:\n• ${finalFeedback.join('\n• ')}` 

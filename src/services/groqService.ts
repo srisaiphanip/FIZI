@@ -35,3 +35,50 @@ export const generateChatResponse = async (messages: ChatMessage[]) => {
     throw error;
   }
 };
+
+/**
+ * Generate a concise, motivating workout summary using Groq
+ */
+export const generateWorkoutSummary = async (stats: {
+  reps: number;
+  time: string;
+  formScore: number;
+  exerciseName: string;
+  feedback: string[];
+}) => {
+  const prompt = `
+    Generate a concise (max 2 sentences), highly motivating workout summary for a fitness app.
+    Exercise: ${stats.exerciseName}
+    Reps: ${stats.reps}
+    Time: ${stats.time}
+    Average Form Score: ${stats.formScore}%
+    Form Feedback: ${stats.feedback.join(', ') || 'Perfect form!'}
+    
+    The tone should be encouraging, professional, and energetic. Focus on the achievement.
+    Directly return the text to be spoken by text-to-speech.
+  `;
+
+  return generateChatResponse([
+    { role: 'system', content: 'You are an elite AI fitness coach providing motivating post-workout summaries.' },
+    { role: 'user', content: prompt }
+  ]);
+};
+
+/**
+ * Generate a short, actionable correction tip using Groq
+ */
+export const generateRealTimeCorrection = async (errors: string[]) => {
+  if (!errors || errors.length === 0) return null;
+
+  const prompt = `
+    Based on these form errors: ${errors.join(', ')}
+    Provide ONE short (max 10 words), actionable correction tip for a person currently doing the exercise.
+    Example: "Keep your back straight and core tight."
+    Directly return only the correction text.
+  `;
+
+  return generateChatResponse([
+    { role: 'system', content: 'You are an AI fitness coach providing immediate, short form correction tips.' },
+    { role: 'user', content: prompt }
+  ]);
+};
