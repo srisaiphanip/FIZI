@@ -32,10 +32,11 @@ import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
 import FAQScreen from './src/screens/FAQScreen';
+import ChatbotScreen from './src/screens/ChatbotScreen';
 import { notificationService } from './src/services/NotificationService';
 import * as Notifications from 'expo-notifications';
 
-export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder' | 'FAQ' | 'Subscription';
+export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder' | 'FAQ' | 'Subscription' | 'Chatbot';
 
 export interface CameraScreenParams {
   exerciseId?: string;
@@ -178,7 +179,7 @@ function AppContent() {
 
     // 2. Authenticated State - Manual Navigation Check
     // Don't override these screens - user navigated there manually
-    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage' || currentScreen === 'CustomPlanBuilder' || currentScreen === 'Subscription' || currentScreen === 'FAQ') {
+    if (currentScreen === 'Camera' || currentScreen === 'History' || currentScreen === 'Avatar' || currentScreen === 'ExerciseInstructions' || currentScreen === 'LevelProgress' || currentScreen === 'ExerciseLibrary' || currentScreen === 'AboutUs' || currentScreen === 'DataUsage' || currentScreen === 'CustomPlanBuilder' || currentScreen === 'Subscription' || currentScreen === 'FAQ' || currentScreen === 'Chatbot') {
       return;
     }
 
@@ -289,6 +290,8 @@ function AppContent() {
         return <FAQScreen navigation={navigation} />;
       case 'Subscription':
         return <SubscriptionScreen navigation={navigation} />;
+      case 'Chatbot':
+        return <ChatbotScreen navigation={navigation} />;
       default:
         return <LoginScreen navigation={navigation} />;
     }

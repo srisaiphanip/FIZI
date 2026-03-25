@@ -406,6 +406,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     </TouchableOpacity>
                 </BlurView>
             </Animated.View>
+
         </LinearGradient >
     );
 }
@@ -1041,6 +1042,5 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
         flex: 1,
         fontStyle: 'italic',
     },
-
 
 });

@@ -19,10 +19,11 @@ import {
     Platform,
     Linking,
     Share,
+    Modal,
+    Switch,
+    Animated,
     NativeSyntheticEvent,
-    NativeScrollEvent,
-    Modal, // Added Modal
-    Switch // Added Switch
+    NativeScrollEvent
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -84,6 +85,39 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     const { currentPlan, customPlans } = useAppSelector((state) => state.workoutPlan);
     const { avatarScrollOffset } = useAppSelector((state) => state.ui);
     const scrollViewRef = React.useRef<ScrollView>(null);
+
+    // AI Coach FAB Animation logic
+    const fabAnim = React.useRef(new Animated.Value(0)).current; // 0 = visible, 100 = hidden
+    const lastScrollY = React.useRef(0);
+    const isFabHidden = React.useRef(false);
+
+    const handleFabScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const delta = currentScrollY - lastScrollY.current;
+
+        // Threshold to avoid jitter
+        if (Math.abs(delta) < 10) return;
+
+        if (delta > 0 && currentScrollY > 50 && !isFabHidden.current) {
+            // Scrolling down - hide
+            isFabHidden.current = true;
+            Animated.timing(fabAnim, {
+                toValue: 300, // Increased displacement for full hide
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        } else if (delta < 0 && isFabHidden.current) {
+            // Scrolling up - show
+            isFabHidden.current = false;
+            Animated.timing(fabAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+
+        lastScrollY.current = currentScrollY;
+    };
     const [avatarState, setAvatarState] = useState<AvatarState | null>(null);
     const [loading, setLoading] = useState(true);
     const { showToast } = useToast();
@@ -496,6 +530,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                 contentContainerStyle={isTab ? { paddingTop: 60, paddingBottom: 120 } : undefined}
                 onScroll={(e) => {
                     onScroll && onScroll(e);
+                    handleFabScroll(e);
                 }}
                 onMomentumScrollEnd={(e) => {
                     dispatch(setAvatarScrollOffset(e.nativeEvent.contentOffset.y));
@@ -620,6 +655,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                         </View>
                     </LinearGradient>
                 </TouchableOpacity>
+
 
                 {/* Custom Workout Plans */}
                 <View style={styles.customPlansSection}>
@@ -1687,6 +1723,28 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     { text: 'Got it', onPress: () => setShowPermissionAlert(false) }
                 ]}
             />
+
+            {/* AI Coach FAB */}
+            <Animated.View style={[
+                styles.fab,
+                {
+                    shadowColor: colors.primaryStart,
+                    transform: [{ translateY: fabAnim }]
+                }
+            ]}>
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('Chatbot')}
+                    activeOpacity={0.8}
+                    style={{ width: '100%', height: '100%' }}
+                >
+                    <LinearGradient
+                        colors={[colors.primaryStart, colors.primaryEnd]}
+                        style={styles.fabGradient}
+                    >
+                        <MaterialCommunityIcons name="robot" size={28} color="#FFFFFF" />
+                    </LinearGradient>
+                </TouchableOpacity>
+            </Animated.View>
         </ContentWrapper >
     );
 }
@@ -2609,5 +2667,29 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         fontSize: 12,
         color: colors.textTertiary,
         marginTop: Spacing.xs,
+    },
+
+    // AI Coach FAB
+    fab: {
+        position: 'absolute',
+        right: 20,
+        bottom: 90, // Above the bottom nav bar
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        elevation: 8,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        zIndex: 9999, // Ensure it's above everything
+    },
+    fabGradient: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
 });
