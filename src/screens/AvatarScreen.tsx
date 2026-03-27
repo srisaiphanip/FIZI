@@ -54,6 +54,7 @@ import CustomAlert from '../components/CustomAlert';
 import ProfileCard from '../components/avatar/ProfileCard';
 import AppSettings from '../components/avatar/AppSettings';
 import BodyMetrics from '../components/avatar/BodyMetrics';
+import TeamSection from '../components/avatar/TeamSection';
 
 const COMMON_HEALTH_ISSUES = [
     'knee_pain', 'lower_back_pain', 'shoulder_injury', 'wrist_pain',
@@ -1008,6 +1009,9 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                         })}
                     </View>
                 </BlurView>
+
+                {/* Team Section */}
+                <TeamSection userId={user?.uid} />
 
                 {/* Level Roadmap & Settings */}
                 <Text style={styles.sectionTitle}>Progression</Text>

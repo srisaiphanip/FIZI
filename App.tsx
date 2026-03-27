@@ -33,6 +33,7 @@ import DataUsageScreen from './src/screens/DataUsageScreen';
 import AboutUsScreen from './src/screens/AboutUsScreen';
 import FAQScreen from './src/screens/FAQScreen';
 import ChatbotScreen from './src/screens/ChatbotScreen';
+
 import { notificationService } from './src/services/NotificationService';
 import * as Notifications from 'expo-notifications';
 
@@ -293,6 +294,7 @@ function AppContent() {
         return <SubscriptionScreen navigation={navigation} />;
       case 'Chatbot':
         return <ChatbotScreen navigation={navigation} />;
+
       default:
         return <LoginScreen navigation={navigation} />;
     }

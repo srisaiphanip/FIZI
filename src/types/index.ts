@@ -264,6 +264,8 @@ export interface UserProfile {
     notificationsEnabled?: boolean;
     premiumExpiryDate?: Date | any; // Any allows for Firestore timestamps
 
+
+
     // Nutrition fields
     nutritionPreferences?: {
         dietType?: 'omnivore' | 'vegetarian' | 'vegan' | 'pescatarian';

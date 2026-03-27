@@ -198,6 +198,7 @@ class AuthService {
                     profile.photoURL = data.photoURL;
                 }
 
+
                 return profile;
             }
 
