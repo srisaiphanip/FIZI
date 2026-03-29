@@ -143,6 +143,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     const [editAvailableEquipment, setEditAvailableEquipment] = useState<string[]>([]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successType, setSuccessType] = useState<'profile' | 'metrics'>('profile');
+    const [showTeamModal, setShowTeamModal] = useState(false);
 
     // Change Password State
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -1010,8 +1011,37 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                     </View>
                 </BlurView>
 
-                {/* Team Section */}
-                <TeamSection userId={user?.uid} />
+                {/* Team Section Button */}
+                <TouchableOpacity
+                    onPress={() => setShowTeamModal(true)}
+                    activeOpacity={0.9}
+                    style={{ marginBottom: Spacing.m }}
+                >
+                    <LinearGradient
+                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.3)']}
+                        style={styles.menuCard}
+                    >
+                        <View style={styles.menuItem}>
+                            <LinearGradient
+                                colors={[colors.accentPink + '20', colors.accentPink + '05']}
+                                style={styles.menuIconContainer}
+                            >
+                                <MaterialCommunityIcons name="account-group-outline" size={22} color={colors.accentPink} />
+                            </LinearGradient>
+                            <View style={styles.userInfoTextContainer}>
+                                <Text style={styles.userInfoTitle}>My Team</Text>
+                                <Text style={styles.userInfoSubtitle}>Connect with friends and stay motivated</Text>
+                            </View>
+                            <View style={{
+                                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                                borderRadius: 12,
+                                padding: 6
+                            }}>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                            </View>
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
 
                 {/* Level Roadmap & Settings */}
                 <Text style={styles.sectionTitle}>Progression</Text>
@@ -1047,6 +1077,13 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Team Section Modal */}
+            <TeamSection 
+                userId={user?.uid} 
+                visible={showTeamModal} 
+                onClose={() => setShowTeamModal(false)} 
+            />
 
             {/* User Info Modal */}
             {

@@ -1,23 +1,13 @@
 /**
  * TeamSection
  *
- * Renders a "TEAM" card inside AvatarScreen.
- * Users can view their friends and add new ones by searching via email.
+ * Renders a full screen Modal when triggered, showing "Added Friends" and "App Friends" tabs.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    TextInput,
-    ActivityIndicator,
-    Image,
-    Modal,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
+    View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Image,
+    Modal, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,29 +15,34 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { friendService, FriendProfile } from '../../services/FriendService';
 import { useToast } from '../../context/ToastContext';
-import { Spacing, Layout } from '../../theme/Theme';
 
 interface TeamSectionProps {
     userId?: string;
+    visible?: boolean;
+    onClose?: () => void;
 }
 
-export default function TeamSection({ userId }: TeamSectionProps) {
-    const { colors, isDark, gradients } = useTheme();
+export default function TeamSection({ userId, visible = false, onClose }: TeamSectionProps) {
+    const { colors, isDark } = useTheme();
     const { showToast } = useToast();
 
+    const [activeTab, setActiveTab] = useState<'added' | 'app'>('added');
+    
+    // Friends list state
     const [friends, setFriends] = useState<FriendProfile[]>([]);
     const [loadingFriends, setLoadingFriends] = useState(false);
 
-    // Add Friend modal state
-    const [modalVisible, setModalVisible] = useState(false);
+    // Friend Profile view (when tapping on a friend in 'added' tab)
+    const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
+
+    // App Friends state (suggestions & search)
+    const [suggestedFriends, setSuggestedFriends] = useState<FriendProfile[]>([]);
+    const [loadingSuggested, setLoadingSuggested] = useState(false);
     const [searchEmail, setSearchEmail] = useState('');
     const [searching, setSearching] = useState(false);
     const [foundUser, setFoundUser] = useState<FriendProfile | null>(null);
     const [searchError, setSearchError] = useState('');
     const [adding, setAdding] = useState(false);
-
-    // Friend profile view state
-    const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
 
     const loadFriends = useCallback(async () => {
         if (!userId) return;
@@ -57,9 +52,30 @@ export default function TeamSection({ userId }: TeamSectionProps) {
         setLoadingFriends(false);
     }, [userId]);
 
+    const loadSuggested = useCallback(async () => {
+        if (!userId) return;
+        setLoadingSuggested(true);
+        const list = await friendService.getSuggestedFriends(userId, 20);
+        setSuggestedFriends(list);
+        setLoadingSuggested(false);
+    }, [userId]);
+
     useEffect(() => {
-        loadFriends();
-    }, [loadFriends]);
+        if (visible) {
+            loadFriends();
+            setActiveTab('added');
+            setSelectedFriend(null);
+            setFoundUser(null);
+            setSearchEmail('');
+            setSearchError('');
+        }
+    }, [visible, loadFriends]);
+
+    useEffect(() => {
+        if (visible && activeTab === 'app' && suggestedFriends.length === 0) {
+            loadSuggested();
+        }
+    }, [activeTab, visible, suggestedFriends.length, loadSuggested]);
 
     const handleSearch = async () => {
         if (!searchEmail.trim()) {
@@ -84,14 +100,21 @@ export default function TeamSection({ userId }: TeamSectionProps) {
         setSearching(false);
     };
 
-    const handleAddFriend = async () => {
-        if (!userId || !foundUser) return;
+    const handleAddFriend = async (userToAdd: FriendProfile) => {
+        if (!userId || !userToAdd) return;
         setAdding(true);
         try {
-            await friendService.addFriend(userId, foundUser);
-            showToast(`${foundUser.displayName} added to your team! 🎉`, 'success');
+            await friendService.addFriend(userId, userToAdd);
+            showToast(`${userToAdd.displayName} added to your team! 🎉`, 'success');
             await loadFriends();
-            closeModal();
+            
+            // Remove from suggested if it was there
+            setSuggestedFriends(prev => prev.filter(f => f.uid !== userToAdd.uid));
+            setFoundUser(null);
+            setSearchEmail('');
+            
+            // Switch back to added friends tab
+            setActiveTab('added');
         } catch {
             showToast('Failed to add friend. Please try again.', 'error');
         }
@@ -105,73 +128,41 @@ export default function TeamSection({ userId }: TeamSectionProps) {
             showToast(`${friend.displayName} removed from your team.`, 'info');
             setFriends((prev) => prev.filter((f) => f.uid !== friend.uid));
             setSelectedFriend(null);
+            
+            // Reload suggested to potentially include them again
+            loadSuggested();
         } catch {
             showToast('Failed to remove friend.', 'error');
         }
     };
 
-    const closeModal = () => {
-        setModalVisible(false);
-        setSearchEmail('');
-        setFoundUser(null);
-        setSearchError('');
-        setSearching(false);
+    const handleClose = () => {
+        if (onClose) onClose();
     };
 
     const styles = createStyles(colors, isDark);
 
-    return (
-        <View style={styles.wrapper}>
-            {/* Section Header */}
-            <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>TEAM</Text>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => setModalVisible(true)}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient
-                        colors={[colors.primaryStart, colors.primaryEnd]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.addButtonGradient}
-                    >
-                        <MaterialCommunityIcons name="account-plus-outline" size={16} color="#fff" />
-                        <Text style={styles.addButtonText}>+ Add Friend</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
+    if (!visible) return null;
 
-            {/* Friends Card */}
-            <BlurView
-                intensity={15}
-                tint={isDark ? 'light' : 'dark'}
-                style={styles.card}
-            >
-                {loadingFriends ? (
-                    <View style={styles.emptyState}>
-                        <ActivityIndicator size="small" color={colors.primaryStart} />
-                    </View>
-                ) : friends.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <MaterialCommunityIcons
-                            name="account-group-outline"
-                            size={40}
-                            color={colors.textTertiary}
-                        />
-                        <Text style={styles.emptyTitle}>No teammates yet</Text>
-                        <Text style={styles.emptySubtitle}>
-                            Add friends to see their progress and stay motivated together!
-                        </Text>
-                    </View>
-                ) : (
-                    friends.map((friend, index) => (
+    // Sub-renderers
+    const renderAddedFriends = () => (
+        <View style={styles.tabContent}>
+            {loadingFriends ? (
+                <View style={styles.emptyState}>
+                    <ActivityIndicator size="small" color={colors.primaryStart} />
+                </View>
+            ) : friends.length === 0 ? (
+                <View style={styles.emptyState}>
+                    <MaterialCommunityIcons name="account-group-outline" size={48} color={colors.textTertiary} />
+                    <Text style={styles.emptyTitle}>No teammates yet</Text>
+                    <Text style={styles.emptySubtitle}>Find your friends in the App Friends tab and stay motivated together!</Text>
+                </View>
+            ) : (
+                <View style={styles.friendsList}>
+                    {friends.map((friend, index) => (
                         <TouchableOpacity
                             key={friend.uid}
-                            style={[
-                                styles.friendRow,
-                                index < friends.length - 1 && styles.friendRowBorder,
-                            ]}
+                            style={[styles.friendRow, index < friends.length - 1 && styles.friendRowBorder]}
                             onPress={() => setSelectedFriend(friend)}
                             activeOpacity={0.75}
                         >
@@ -179,584 +170,532 @@ export default function TeamSection({ userId }: TeamSectionProps) {
                                 <Image source={{ uri: friend.photoURL }} style={styles.avatar} />
                             ) : (
                                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                    <Text style={styles.avatarInitial}>
-                                        {(friend.displayName || '?')[0].toUpperCase()}
-                                    </Text>
+                                    <Text style={styles.avatarInitial}>{(friend.displayName || '?')[0].toUpperCase()}</Text>
                                 </View>
                             )}
                             <View style={styles.friendInfo}>
-                                <Text style={styles.friendName} numberOfLines={1}>
-                                    {friend.displayName}
-                                </Text>
-                                <Text style={styles.friendMeta}>
-                                    Lv.{friend.level ?? 1} · {friend.totalWorkouts ?? 0} workouts
-                                </Text>
+                                <Text style={styles.friendName} numberOfLines={1}>{friend.displayName}</Text>
+                                <Text style={styles.friendMeta}>Lv.{friend.level ?? 1} · {friend.totalWorkouts ?? 0} workouts</Text>
                             </View>
-                            <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textTertiary} />
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                         </TouchableOpacity>
-                    ))
-                )}
-            </BlurView>
-
-            {/* ── Friend Profile Modal ──────────────────────────────────── */}
-            <Modal
-                visible={!!selectedFriend}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setSelectedFriend(null)}
-            >
-                <View style={styles.modalBackdrop}>
-                    <BlurView
-                        intensity={90}
-                        tint={isDark ? 'dark' : 'light'}
-                        style={styles.modalContainer}
-                    >
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Teammate Profile</Text>
-                            <TouchableOpacity onPress={() => setSelectedFriend(null)} style={styles.closeBtn}>
-                                <MaterialCommunityIcons name="close" size={22} color={colors.textPrimary} />
-                            </TouchableOpacity>
-                        </View>
-
-                        {selectedFriend && (
-                            <>
-                                {/* Hero */}
-                                <View style={styles.profileHero}>
-                                    {selectedFriend.photoURL ? (
-                                        <Image
-                                            source={{ uri: selectedFriend.photoURL }}
-                                            style={styles.profileAvatar}
-                                        />
-                                    ) : (
-                                        <LinearGradient
-                                            colors={[colors.primaryStart + '50', colors.primaryEnd + '30']}
-                                            style={styles.profileAvatar}
-                                        >
-                                            <Text style={styles.profileInitial}>
-                                                {(selectedFriend.displayName || '?')[0].toUpperCase()}
-                                            </Text>
-                                        </LinearGradient>
-                                    )}
-                                    <Text style={styles.profileName}>{selectedFriend.displayName}</Text>
-                                    <Text style={styles.profileEmail}>{selectedFriend.email}</Text>
-                                </View>
-
-                                {/* Stats */}
-                                <View style={styles.statsRow}>
-                                    <View style={styles.statBox}>
-                                        <LinearGradient
-                                            colors={[colors.primaryStart + '28', colors.primaryStart + '08']}
-                                            style={styles.statBoxInner}
-                                        >
-                                            <MaterialCommunityIcons name="shield-star-outline" size={22} color={colors.primaryStart} />
-                                            <Text style={[styles.statValue, { color: colors.primaryStart }]}>
-                                                {selectedFriend.level ?? 1}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Level</Text>
-                                        </LinearGradient>
-                                    </View>
-
-                                    <View style={styles.statBox}>
-                                        <LinearGradient
-                                            colors={[colors.accentCyan + '28', colors.accentCyan + '08']}
-                                            style={styles.statBoxInner}
-                                        >
-                                            <MaterialCommunityIcons name="dumbbell" size={22} color={colors.accentCyan} />
-                                            <Text style={[styles.statValue, { color: colors.accentCyan }]}>
-                                                {selectedFriend.totalWorkouts ?? 0}
-                                            </Text>
-                                            <Text style={styles.statLabel}>Workouts</Text>
-                                        </LinearGradient>
-                                    </View>
-
-                                    <View style={styles.statBox}>
-                                        <LinearGradient
-                                            colors={[colors.accentSuccess + '28', colors.accentSuccess + '08']}
-                                            style={styles.statBoxInner}
-                                        >
-                                            <MaterialCommunityIcons name="fire" size={22} color={colors.accentSuccess} />
-                                            <Text style={[styles.statValue, { color: colors.accentSuccess }]}>
-                                                FIZI
-                                            </Text>
-                                            <Text style={styles.statLabel}>Member</Text>
-                                        </LinearGradient>
-                                    </View>
-                                </View>
-
-                                {selectedFriend.addedAt && (
-                                    <Text style={styles.addedOn}>
-                                        Teammates since{' '}
-                                        {new Date(selectedFriend.addedAt).toLocaleDateString(undefined, {
-                                            year: 'numeric', month: 'long', day: 'numeric',
-                                        })}
-                                    </Text>
-                                )}
-
-                                {/* Remove */}
-                                <TouchableOpacity
-                                    style={styles.removeFromTeamBtn}
-                                    onPress={() => handleRemoveFriend(selectedFriend)}
-                                    activeOpacity={0.8}
-                                >
-                                    <MaterialCommunityIcons name="account-remove-outline" size={18} color={colors.accentError} />
-                                    <Text style={[styles.removeFromTeamText, { color: colors.accentError }]}>
-                                        Remove from Team
-                                    </Text>
-                                </TouchableOpacity>
-                            </>
-                        )}
-                    </BlurView>
+                    ))}
                 </View>
-            </Modal>
-
-            {/* ── Add Friend Modal ──────────────────────────────────────── */}
-            <Modal
-                visible={modalVisible}
-                transparent
-                animationType="slide"
-                onRequestClose={closeModal}
-            >
-                <KeyboardAvoidingView
-                    style={styles.modalBackdrop}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                >
-                    <BlurView
-                        intensity={90}
-                        tint={isDark ? 'dark' : 'light'}
-                        style={styles.modalContainer}
-                    >
-                        {/* Modal Header */}
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add a Teammate</Text>
-                            <TouchableOpacity onPress={closeModal} style={styles.closeBtn}>
-                                <MaterialCommunityIcons
-                                    name="close"
-                                    size={22}
-                                    color={colors.textPrimary}
-                                />
-                            </TouchableOpacity>
-                        </View>
-
-                        <Text style={styles.modalSubtitle}>
-                            Enter your friend's FIZI account email to add them to your team.
-                        </Text>
-
-                        {/* Search Input */}
-                        <View style={styles.inputRow}>
-                            <MaterialCommunityIcons
-                                name="email-outline"
-                                size={20}
-                                color={colors.textTertiary}
-                                style={{ marginRight: 8 }}
-                            />
-                            <TextInput
-                                style={styles.input}
-                                placeholder="friend@email.com"
-                                placeholderTextColor={colors.textTertiary}
-                                value={searchEmail}
-                                onChangeText={(t) => {
-                                    setSearchEmail(t);
-                                    setSearchError('');
-                                    setFoundUser(null);
-                                }}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                                returnKeyType="search"
-                                onSubmitEditing={handleSearch}
-                            />
-                        </View>
-
-                        {/* Search Error */}
-                        {!!searchError && (
-                            <View style={styles.errorBanner}>
-                                <MaterialCommunityIcons
-                                    name="alert-circle-outline"
-                                    size={16}
-                                    color={colors.accentError}
-                                />
-                                <Text style={[styles.errorText, { color: colors.accentError }]}>
-                                    {searchError}
-                                </Text>
-                            </View>
-                        )}
-
-                        {/* Found User Preview */}
-                        {foundUser && (
-                            <View style={styles.foundUserCard}>
-                                {foundUser.photoURL ? (
-                                    <Image
-                                        source={{ uri: foundUser.photoURL }}
-                                        style={styles.foundAvatar}
-                                    />
-                                ) : (
-                                    <View style={[styles.foundAvatar, styles.avatarPlaceholder]}>
-                                        <Text style={[styles.avatarInitial, { fontSize: 20 }]}>
-                                            {(foundUser.displayName || '?')[0].toUpperCase()}
-                                        </Text>
-                                    </View>
-                                )}
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.foundUserName}>{foundUser.displayName}</Text>
-                                    <Text style={styles.foundUserMeta}>
-                                        {foundUser.email} · Lv.{foundUser.level ?? 1}
-                                    </Text>
-                                </View>
-                                <MaterialCommunityIcons
-                                    name="check-circle"
-                                    size={22}
-                                    color={colors.accentSuccess}
-                                />
-                            </View>
-                        )}
-
-                        {/* Action Buttons */}
-                        <View style={styles.modalActions}>
-                            {!foundUser ? (
-                                <TouchableOpacity
-                                    style={styles.searchBtn}
-                                    onPress={handleSearch}
-                                    activeOpacity={0.8}
-                                    disabled={searching}
-                                >
-                                    <LinearGradient
-                                        colors={[colors.primaryStart, colors.primaryEnd]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={styles.searchBtnGradient}
-                                    >
-                                        {searching ? (
-                                            <ActivityIndicator size="small" color="#fff" />
-                                        ) : (
-                                            <>
-                                                <MaterialCommunityIcons
-                                                    name="magnify"
-                                                    size={18}
-                                                    color="#fff"
-                                                />
-                                                <Text style={styles.searchBtnText}>Search</Text>
-                                            </>
-                                        )}
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            ) : (
-                                <TouchableOpacity
-                                    style={styles.searchBtn}
-                                    onPress={handleAddFriend}
-                                    activeOpacity={0.8}
-                                    disabled={adding}
-                                >
-                                    <LinearGradient
-                                        colors={[colors.accentSuccess, '#2DD36F']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 0 }}
-                                        style={styles.searchBtnGradient}
-                                    >
-                                        {adding ? (
-                                            <ActivityIndicator size="small" color="#fff" />
-                                        ) : (
-                                            <>
-                                                <MaterialCommunityIcons
-                                                    name="account-plus"
-                                                    size={18}
-                                                    color="#fff"
-                                                />
-                                                <Text style={styles.searchBtnText}>
-                                                    Add to Team
-                                                </Text>
-                                            </>
-                                        )}
-                                    </LinearGradient>
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </BlurView>
-                </KeyboardAvoidingView>
-            </Modal>
+            )}
         </View>
+    );
+
+    const renderAppFriends = () => (
+        <View style={styles.tabContent}>
+            {/* Search Input */}
+            <View style={styles.searchContainer}>
+                <View style={styles.inputRow}>
+                    <MaterialCommunityIcons name="email-outline" size={20} color={colors.textTertiary} style={{ marginRight: 8 }} />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="friend@email.com"
+                        placeholderTextColor={colors.textTertiary}
+                        value={searchEmail}
+                        onChangeText={(t) => {
+                            setSearchEmail(t);
+                            setSearchError('');
+                            setFoundUser(null);
+                        }}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        returnKeyType="search"
+                        onSubmitEditing={handleSearch}
+                    />
+                    {searchEmail.length > 0 && (
+                        <TouchableOpacity onPress={handleSearch} disabled={searching} style={{ padding: 4 }}>
+                            {searching ? <ActivityIndicator size="small" color={colors.primaryStart} /> : <MaterialCommunityIcons name="magnify" size={24} color={colors.primaryStart} />}
+                        </TouchableOpacity>
+                    )}
+                </View>
+                {!!searchError && (
+                    <View style={styles.errorBanner}>
+                        <MaterialCommunityIcons name="alert-circle-outline" size={14} color={colors.accentError} />
+                        <Text style={[styles.errorText, { color: colors.accentError }]}>{searchError}</Text>
+                    </View>
+                )}
+            </View>
+
+            {/* Found User / Suggestions */}
+            {foundUser ? (
+                <View style={styles.foundUserCard}>
+                    {foundUser.photoURL ? (
+                        <Image source={{ uri: foundUser.photoURL }} style={styles.foundAvatar} />
+                    ) : (
+                        <View style={[styles.foundAvatar, styles.avatarPlaceholder]}>
+                            <Text style={[styles.avatarInitial, { fontSize: 20 }]}>{(foundUser.displayName || '?')[0].toUpperCase()}</Text>
+                        </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.foundUserName}>{foundUser.displayName}</Text>
+                        <Text style={styles.foundUserMeta}>{foundUser.email}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.addBtnSmall}
+                        onPress={() => handleAddFriend(foundUser)}
+                        disabled={adding}
+                    >
+                        {adding ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.addBtnSmallText}>Add</Text>}
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <View style={styles.suggestionsContainer}>
+                    <Text style={styles.sectionHeading}>Suggested FIZI Users</Text>
+                    {loadingSuggested ? (
+                        <ActivityIndicator style={{ marginTop: 20 }} size="small" color={colors.primaryStart} />
+                    ) : suggestedFriends.length === 0 ? (
+                        <Text style={styles.noSuggestionsText}>No suggestions available at the moment.</Text>
+                    ) : (
+                        <View style={styles.friendsList}>
+                            {suggestedFriends.map((friend, index) => (
+                                <View key={friend.uid} style={[styles.friendRow, index < suggestedFriends.length - 1 && styles.friendRowBorder]}>
+                                    {friend.photoURL ? (
+                                        <Image source={{ uri: friend.photoURL }} style={styles.avatar} />
+                                    ) : (
+                                        <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                                            <Text style={styles.avatarInitial}>{(friend.displayName || '?')[0].toUpperCase()}</Text>
+                                        </View>
+                                    )}
+                                    <View style={styles.friendInfo}>
+                                        <Text style={styles.friendName} numberOfLines={1}>{friend.displayName}</Text>
+                                        <Text style={styles.friendMeta}>Lv.{friend.level ?? 1} · {friend.totalWorkouts ?? 0} workouts</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.addBtnIcon}
+                                        onPress={() => handleAddFriend(friend)}
+                                        disabled={adding}
+                                    >
+                                        <MaterialCommunityIcons name="account-plus-outline" size={18} color={colors.primaryStart} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            )}
+        </View>
+    );
+
+    const renderSelectedFriend = () => {
+        if (!selectedFriend) return null;
+        return (
+            <View style={styles.profileView}>
+                <TouchableOpacity style={styles.backToTeamBtn} onPress={() => setSelectedFriend(null)}>
+                    <MaterialCommunityIcons name="arrow-left" size={20} color={colors.textSecondary} />
+                    <Text style={styles.backToTeamText}>Back to Team</Text>
+                </TouchableOpacity>
+
+                <View style={styles.profileHero}>
+                    {selectedFriend.photoURL ? (
+                        <Image source={{ uri: selectedFriend.photoURL }} style={styles.profileAvatar} />
+                    ) : (
+                        <LinearGradient colors={[colors.primaryStart + '50', colors.primaryEnd + '30']} style={styles.profileAvatar}>
+                            <Text style={styles.profileInitial}>{(selectedFriend.displayName || '?')[0].toUpperCase()}</Text>
+                        </LinearGradient>
+                    )}
+                    <Text style={styles.profileName}>{selectedFriend.displayName}</Text>
+                    <Text style={styles.profileEmail}>{selectedFriend.email}</Text>
+                </View>
+
+                {/* Stats */}
+                <View style={styles.statsRow}>
+                    <View style={styles.statBox}>
+                        <LinearGradient colors={[colors.primaryStart + '28', colors.primaryStart + '08']} style={styles.statBoxInner}>
+                            <MaterialCommunityIcons name="shield-star-outline" size={22} color={colors.primaryStart} />
+                            <Text style={[styles.statValue, { color: colors.primaryStart }]}>{selectedFriend.level ?? 1}</Text>
+                            <Text style={styles.statLabel}>Level</Text>
+                        </LinearGradient>
+                    </View>
+                    <View style={styles.statBox}>
+                        <LinearGradient colors={[colors.accentCyan + '28', colors.accentCyan + '08']} style={styles.statBoxInner}>
+                            <MaterialCommunityIcons name="dumbbell" size={22} color={colors.accentCyan} />
+                            <Text style={[styles.statValue, { color: colors.accentCyan }]}>{selectedFriend.totalWorkouts ?? 0}</Text>
+                            <Text style={styles.statLabel}>Workouts</Text>
+                        </LinearGradient>
+                    </View>
+                    <View style={styles.statBox}>
+                        <LinearGradient colors={[colors.accentSuccess + '28', colors.accentSuccess + '08']} style={styles.statBoxInner}>
+                            <MaterialCommunityIcons name="fire" size={22} color={colors.accentSuccess} />
+                            <Text style={[styles.statValue, { color: colors.accentSuccess }]}>FIZI</Text>
+                            <Text style={styles.statLabel}>Member</Text>
+                        </LinearGradient>
+                    </View>
+                </View>
+
+                {selectedFriend.addedAt && (
+                    <Text style={styles.addedOn}>
+                        Teammates since {new Date(selectedFriend.addedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </Text>
+                )}
+
+                <TouchableOpacity style={styles.removeFromTeamBtn} onPress={() => handleRemoveFriend(selectedFriend)} activeOpacity={0.8}>
+                    <MaterialCommunityIcons name="account-remove-outline" size={18} color={colors.accentError} />
+                    <Text style={[styles.removeFromTeamText, { color: colors.accentError }]}>Remove from Team</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+    return (
+        <Modal
+            visible={visible}
+            transparent
+            animationType="slide"
+            onRequestClose={handleClose}
+        >
+            <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.modalContainer}>
+                    {/* Header */}
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>My Team</Text>
+                        <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
+                            <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {selectedFriend ? (
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            {renderSelectedFriend()}
+                        </ScrollView>
+                    ) : (
+                        <>
+                            {/* Segmented Control / Tabs */}
+                            <View style={styles.tabBar}>
+                                <TouchableOpacity 
+                                    style={[styles.tab, activeTab === 'added' && styles.activeTab]} 
+                                    onPress={() => setActiveTab('added')}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text style={[styles.tabText, activeTab === 'added' && styles.activeTabText]}>Added Friends</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity 
+                                    style={[styles.tab, activeTab === 'app' && styles.activeTab]} 
+                                    onPress={() => setActiveTab('app')}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text style={[styles.tabText, activeTab === 'app' && styles.activeTabText]}>App Friends</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                {activeTab === 'added' ? renderAddedFriends() : renderAppFriends()}
+                                <View style={{height: 40}} />
+                            </ScrollView>
+                        </>
+                    )}
+                </BlurView>
+            </KeyboardAvoidingView>
+        </Modal>
     );
 }
 
-const createStyles = (colors: any, isDark: boolean) =>
-    StyleSheet.create({
-        wrapper: {
-            marginBottom: Spacing.m,
-        },
-        sectionHeader: {
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: Spacing.s,
-        },
-        sectionTitle: {
-            fontSize: 13,
-            fontWeight: '700',
-            letterSpacing: 0.8,
-            color: colors.textTertiary,
-            textTransform: 'uppercase',
-        },
-        addButton: {
-            borderRadius: 20,
-            overflow: 'hidden',
-        },
-        addButtonGradient: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: 14,
-            paddingVertical: 7,
-            gap: 5,
-        },
-        addButtonText: {
-            color: '#fff',
-            fontWeight: '700',
-            fontSize: 13,
-        },
-        card: {
-            borderRadius: 16,
-            overflow: 'hidden',
-            minHeight: 10,
-        },
-        emptyState: {
-            alignItems: 'center',
-            paddingVertical: 28,
-            paddingHorizontal: 20,
-            gap: 8,
-        },
-        emptyTitle: {
-            color: colors.textSecondary,
-            fontSize: 15,
-            fontWeight: '600',
-        },
-        emptySubtitle: {
-            color: colors.textTertiary,
-            fontSize: 13,
-            textAlign: 'center',
-            lineHeight: 18,
-        },
-        friendRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            gap: 12,
-        },
-        friendRowBorder: {
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
-        },
-        avatar: {
-            width: 42,
-            height: 42,
-            borderRadius: 21,
-        },
-        avatarPlaceholder: {
-            backgroundColor: colors.primaryStart + '30',
-            justifyContent: 'center',
-            alignItems: 'center',
-        },
-        avatarInitial: {
-            color: colors.primaryStart,
-            fontWeight: '800',
-            fontSize: 16,
-        },
-        friendInfo: {
-            flex: 1,
-        },
-        friendName: {
-            color: colors.textPrimary,
-            fontWeight: '600',
-            fontSize: 15,
-        },
-        friendMeta: {
-            color: colors.textTertiary,
-            fontSize: 12,
-            marginTop: 2,
-        },
-        removeButton: {
-            padding: 4,
-        },
-
-        // Modal
-        modalBackdrop: {
-            flex: 1,
-            justifyContent: 'flex-end',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-        },
-        modalContainer: {
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            paddingHorizontal: 24,
-            paddingTop: 24,
-            paddingBottom: 40,
-            overflow: 'hidden',
-        },
-        modalHeader: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-        },
-        modalTitle: {
-            color: colors.textPrimary,
-            fontSize: 20,
-            fontWeight: '800',
-        },
-        closeBtn: {
-            padding: 4,
-        },
-        modalSubtitle: {
-            color: colors.textSecondary,
-            fontSize: 14,
-            marginBottom: 20,
-            lineHeight: 20,
-        },
-        inputRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-            borderRadius: 12,
-            paddingHorizontal: 14,
-            paddingVertical: 4,
-            marginBottom: 12,
-        },
-        input: {
-            flex: 1,
-            color: colors.textPrimary,
-            fontSize: 15,
-            paddingVertical: 12,
-        },
-        errorBanner: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            marginBottom: 12,
-        },
-        errorText: {
-            fontSize: 13,
-            fontWeight: '500',
-        },
-        foundUserCard: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-            borderRadius: 14,
-            padding: 14,
-            marginBottom: 16,
-            borderWidth: 1,
-            borderColor: colors.accentSuccess + '40',
-        },
-        foundAvatar: {
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-        },
-        foundUserName: {
-            color: colors.textPrimary,
-            fontWeight: '700',
-            fontSize: 15,
-        },
-        foundUserMeta: {
-            color: colors.textTertiary,
-            fontSize: 12,
-            marginTop: 2,
-        },
-        modalActions: {
-            marginTop: 4,
-        },
-        searchBtn: {
-            borderRadius: 14,
-            overflow: 'hidden',
-        },
-        searchBtnGradient: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingVertical: 15,
-            gap: 8,
-        },
-        searchBtnText: {
-            color: '#fff',
-            fontWeight: '700',
-            fontSize: 16,
-        },
-
-        // ── Friend Profile Modal ─────────────────────────────────────
-        profileHero: {
-            alignItems: 'center',
-            paddingVertical: 20,
-            gap: 6,
-        },
-        profileAvatar: {
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginBottom: 4,
-        },
-        profileInitial: {
-            color: '#fff',
-            fontWeight: '900',
-            fontSize: 32,
-        },
-        profileName: {
-            color: colors.textPrimary,
-            fontWeight: '800',
-            fontSize: 22,
-        },
-        profileEmail: {
-            color: colors.textTertiary,
-            fontSize: 13,
-            marginTop: 2,
-        },
-        statsRow: {
-            flexDirection: 'row',
-            gap: 10,
-            marginBottom: 16,
-        },
-        statBox: {
-            flex: 1,
-            borderRadius: 14,
-            overflow: 'hidden',
-        },
-        statBoxInner: {
-            alignItems: 'center',
-            paddingVertical: 16,
-            paddingHorizontal: 8,
-            gap: 4,
-        },
-        statValue: {
-            fontWeight: '800',
-            fontSize: 18,
-        },
-        statLabel: {
-            color: colors.textTertiary,
-            fontSize: 11,
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: 0.4,
-        },
-        addedOn: {
-            color: colors.textTertiary,
-            fontSize: 13,
-            textAlign: 'center',
-            marginBottom: 20,
-            fontStyle: 'italic',
-        },
-        removeFromTeamBtn: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            paddingVertical: 14,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor: colors.accentError + '40',
-            backgroundColor: colors.accentError + '10',
-        },
-        removeFromTeamText: {
-            fontWeight: '700',
-            fontSize: 15,
-        },
-    });
+const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+    modalBackdrop: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalContainer: {
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        paddingTop: 24,
+        paddingHorizontal: 20,
+        height: '88%',
+        overflow: 'hidden',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    modalTitle: {
+        color: colors.textPrimary,
+        fontSize: 22,
+        fontWeight: '800',
+    },
+    closeBtn: {
+        padding: 4,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+        borderRadius: 20,
+    },
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+        borderRadius: 14,
+        padding: 4,
+        marginBottom: 16,
+    },
+    tab: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 10,
+    },
+    activeTab: {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.15)' : '#ffffff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.textTertiary,
+    },
+    activeTabText: {
+        color: colors.textPrimary,
+        fontWeight: '700',
+    },
+    tabContent: {
+        flex: 1,
+    },
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+        paddingHorizontal: 20,
+    },
+    emptyTitle: {
+        color: colors.textSecondary,
+        fontSize: 18,
+        fontWeight: '700',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    emptySubtitle: {
+        color: colors.textTertiary,
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    friendsList: {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)',
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    friendRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        gap: 12,
+    },
+    friendRowBorder: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+    },
+    avatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+    },
+    avatarPlaceholder: {
+        backgroundColor: colors.primaryStart + '30',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    avatarInitial: {
+        color: colors.primaryStart,
+        fontWeight: '800',
+        fontSize: 18,
+    },
+    friendInfo: {
+        flex: 1,
+    },
+    friendName: {
+        color: colors.textPrimary,
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    friendMeta: {
+        color: colors.textTertiary,
+        fontSize: 13,
+        marginTop: 2,
+    },
+    searchContainer: {
+        marginBottom: 20,
+    },
+    inputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        borderRadius: 14,
+        paddingHorizontal: 16,
+        paddingVertical: 4,
+    },
+    input: {
+        flex: 1,
+        color: colors.textPrimary,
+        fontSize: 15,
+        paddingVertical: 12,
+    },
+    errorBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 8,
+        paddingHorizontal: 4,
+    },
+    errorText: {
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    foundUserCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: colors.primaryStart + '15',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.primaryStart + '40',
+    },
+    foundAvatar: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+    },
+    foundUserName: {
+        color: colors.textPrimary,
+        fontWeight: '800',
+        fontSize: 16,
+    },
+    foundUserMeta: {
+        color: colors.textSecondary,
+        fontSize: 13,
+        marginTop: 2,
+    },
+    addBtnSmall: {
+        backgroundColor: colors.primaryStart,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 12,
+    },
+    addBtnSmallText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    suggestionsContainer: {
+        marginTop: 10,
+    },
+    sectionHeading: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: colors.textSecondary,
+        marginBottom: 12,
+        marginLeft: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    noSuggestionsText: {
+        color: colors.textTertiary,
+        fontSize: 14,
+        fontStyle: 'italic',
+        marginLeft: 4,
+    },
+    addBtnIcon: {
+        padding: 8,
+        backgroundColor: colors.primaryStart + '15',
+        borderRadius: 12,
+    },
+    profileView: {
+        paddingBottom: 40,
+    },
+    backToTeamBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 20,
+        paddingVertical: 4,
+    },
+    backToTeamText: {
+        color: colors.textSecondary,
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    profileHero: {
+        alignItems: 'center',
+        paddingVertical: 10,
+        gap: 8,
+    },
+    profileAvatar: {
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    profileInitial: {
+        color: '#fff',
+        fontWeight: '900',
+        fontSize: 36,
+    },
+    profileName: {
+        color: colors.textPrimary,
+        fontWeight: '800',
+        fontSize: 24,
+    },
+    profileEmail: {
+        color: colors.textTertiary,
+        fontSize: 14,
+    },
+    statsRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginVertical: 24,
+    },
+    statBox: {
+        flex: 1,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    statBoxInner: {
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 8,
+        gap: 6,
+    },
+    statValue: {
+        fontWeight: '800',
+        fontSize: 20,
+    },
+    statLabel: {
+        color: colors.textTertiary,
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    addedOn: {
+        color: colors.textTertiary,
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 24,
+        fontStyle: 'italic',
+    },
+    removeFromTeamBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.accentError + '40',
+        backgroundColor: colors.accentError + '10',
+    },
+    removeFromTeamText: {
+        fontWeight: '700',
+        fontSize: 15,
+    },
+});

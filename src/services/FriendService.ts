@@ -15,6 +15,7 @@ import {
     getDoc,
     arrayUnion,
     arrayRemove,
+    limit,
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
@@ -117,6 +118,39 @@ class FriendService {
             return snap.data().friends || [];
         } catch (error) {
             console.error('FriendService.getFriends error:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get a list of suggested friends (other FIZI users).
+     */
+    async getSuggestedFriends(currentUid: string, limitCount: number = 20): Promise<FriendProfile[]> {
+        try {
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, limit(limitCount));
+            const snapshot = await getDocs(q);
+            
+            const currentFriends = await this.getFriends(currentUid);
+            const friendUids = new Set(currentFriends.map(f => f.uid));
+            
+            const suggestions: FriendProfile[] = [];
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.uid && data.uid !== currentUid && !friendUids.has(data.uid)) {
+                    suggestions.push({
+                        uid: data.uid,
+                        displayName: data.displayName || 'FIZI User',
+                        email: data.email,
+                        photoURL: data.photoURL ?? undefined,
+                        level: data.level ?? 1,
+                        totalWorkouts: data.totalWorkouts ?? 0,
+                    });
+                }
+            });
+            return suggestions;
+        } catch (error) {
+            console.error('FriendService.getSuggestedFriends error:', error);
             return [];
         }
     }
