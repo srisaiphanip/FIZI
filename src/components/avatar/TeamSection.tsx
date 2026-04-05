@@ -30,6 +30,7 @@ export default function TeamSection({ userId, visible = false, onClose }: TeamSe
     
     // Friends list state
     const [friends, setFriends] = useState<FriendProfile[]>([]);
+    const [currentUser, setCurrentUser] = useState<FriendProfile | null>(null);
     const [loadingFriends, setLoadingFriends] = useState(false);
 
     // Friend Profile view (when tapping on a friend in 'added' tab)
@@ -47,7 +48,14 @@ export default function TeamSection({ userId, visible = false, onClose }: TeamSe
     const loadFriends = useCallback(async () => {
         if (!userId) return;
         setLoadingFriends(true);
-        const list = await friendService.getFriends(userId);
+        
+        // Fetch current user and their friends list in parallel
+        const [me, list] = await Promise.all([
+            friendService.getCurrentUserProfile(userId),
+            friendService.getFriends(userId)
+        ]);
+        
+        setCurrentUser(me);
         setFriends(list);
         setLoadingFriends(false);
     }, [userId]);
@@ -145,45 +153,146 @@ export default function TeamSection({ userId, visible = false, onClose }: TeamSe
     if (!visible) return null;
 
     // Sub-renderers
-    const renderAddedFriends = () => (
-        <View style={styles.tabContent}>
-            {loadingFriends ? (
-                <View style={styles.emptyState}>
-                    <ActivityIndicator size="small" color={colors.primaryStart} />
+    const renderAddedFriends = () => {
+        // Merge current user into the participants list
+        const allParticipants: (FriendProfile & { isMe?: boolean })[] = currentUser
+            ? [
+                  ...friends.filter(f => f.uid !== currentUser.uid),
+                  { ...currentUser, isMe: true },
+              ]
+            : [...friends];
+
+        if (loadingFriends) {
+            return (
+                <View style={styles.tabContent}>
+                    <View style={styles.emptyState}>
+                        <ActivityIndicator size="small" color={colors.primaryStart} />
+                    </View>
                 </View>
-            ) : friends.length === 0 ? (
-                <View style={styles.emptyState}>
-                    <MaterialCommunityIcons name="account-group-outline" size={48} color={colors.textTertiary} />
-                    <Text style={styles.emptyTitle}>No teammates yet</Text>
-                    <Text style={styles.emptySubtitle}>Find your friends in the App Friends tab and stay motivated together!</Text>
+            );
+        }
+
+        if (allParticipants.length === 0) {
+            return (
+                <View style={styles.tabContent}>
+                    <View style={styles.emptyState}>
+                        <MaterialCommunityIcons name="account-group-outline" size={48} color={colors.textTertiary} />
+                        <Text style={styles.emptyTitle}>No teammates yet</Text>
+                        <Text style={styles.emptySubtitle}>Find your friends in the App Friends tab and stay motivated together!</Text>
+                    </View>
                 </View>
-            ) : (
-                <View style={styles.friendsList}>
-                    {friends.map((friend, index) => (
-                        <TouchableOpacity
-                            key={friend.uid}
-                            style={[styles.friendRow, index < friends.length - 1 && styles.friendRowBorder]}
-                            onPress={() => setSelectedFriend(friend)}
-                            activeOpacity={0.75}
-                        >
-                            {friend.photoURL ? (
-                                <Image source={{ uri: friend.photoURL }} style={styles.avatar} />
-                            ) : (
-                                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                                    <Text style={styles.avatarInitial}>{(friend.displayName || '?')[0].toUpperCase()}</Text>
+            );
+        }
+
+        const sorted = [...allParticipants].sort((a, b) => {
+            const workoutDiff = (b.totalWorkouts ?? 0) - (a.totalWorkouts ?? 0);
+            if (workoutDiff !== 0) return workoutDiff;
+            return (b.level ?? 1) - (a.level ?? 1);
+        });
+
+        const renderAvatar = (
+            person: FriendProfile & { isMe?: boolean },
+            size: number,
+            accentColor?: string
+        ) => {
+            const radius = size / 2;
+            if (person.photoURL) {
+                return <Image source={{ uri: person.photoURL }} style={{ width: size, height: size, borderRadius: radius }} />;
+            }
+            return (
+                <View style={{ width: size, height: size, borderRadius: radius, backgroundColor: (accentColor ?? colors.primaryStart) + '40', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: accentColor ?? colors.primaryStart, fontWeight: '800', fontSize: size * 0.38 }}>
+                        {(person.displayName || '?')[0].toUpperCase()}
+                    </Text>
+                </View>
+            );
+        };
+
+        const renderPodiumCard = (
+            person: FriendProfile & { isMe?: boolean },
+            medal: string,
+            cardStyle: object,
+            accentColor: string,
+            isFirst: boolean
+        ) => (
+            <TouchableOpacity
+                key={person.uid}
+                style={[styles.podiumCard, cardStyle, person.isMe && styles.podiumCardMe]}
+                onPress={() => !person.isMe && setSelectedFriend(person)}
+                activeOpacity={person.isMe ? 1 : 0.8}
+            >
+                <Text style={[styles.podiumMedal, isFirst && { fontSize: 30 }]}>{medal}</Text>
+                {renderAvatar(person, isFirst ? 58 : 46, accentColor)}
+                {person.isMe && (
+                    <View style={styles.youBadge}>
+                        <Text style={styles.youBadgeText}>YOU</Text>
+                    </View>
+                )}
+                <Text style={[styles.podiumName, isFirst && { color: accentColor, fontSize: 15 }]} numberOfLines={1}>
+                    {person.displayName}
+                </Text>
+                <Text style={styles.podiumWorkouts}>{person.totalWorkouts ?? 0} workouts</Text>
+                <Text style={styles.podiumLevel}>Lv.{person.level ?? 1}</Text>
+            </TouchableOpacity>
+        );
+
+        return (
+            <View style={styles.tabContent}>
+                {/* Leaderboard header */}
+                <View style={styles.rankHeader}>
+                    <Text style={styles.rankHeaderText}>🏆 Leaderboard</Text>
+                    <Text style={styles.rankHeaderSub}>{allParticipants.length} participant{allParticipants.length !== 1 ? 's' : ''}</Text>
+                </View>
+
+                {/* Podium — top 3 */}
+                <View style={styles.podiumRow}>
+                    {/* 2nd place left */}
+                    {sorted[1]
+                        ? renderPodiumCard(sorted[1], '🥈', styles.podiumCardSilver, '#C0C0C0', false)
+                        : <View style={{ flex: 1 }} />}
+                    {/* 1st place center */}
+                    {renderPodiumCard(sorted[0], '🥇', styles.podiumCardGold, '#FFD700', true)}
+                    {/* 3rd place right */}
+                    {sorted[2]
+                        ? renderPodiumCard(sorted[2], '🥉', styles.podiumCardBronze, '#CD7F32', false)
+                        : <View style={{ flex: 1 }} />}
+                </View>
+
+                {/* Ranks 4+ */}
+                {sorted.length > 3 && (
+                    <View style={styles.rankList}>
+                        {sorted.slice(3).map((person, i) => (
+                            <TouchableOpacity
+                                key={person.uid}
+                                style={[
+                                    styles.rankRow,
+                                    i < sorted.length - 4 && styles.rankRowBorder,
+                                    person.isMe && styles.rankRowMe,
+                                ]}
+                                onPress={() => !person.isMe && setSelectedFriend(person)}
+                                activeOpacity={person.isMe ? 1 : 0.75}
+                            >
+                                <Text style={styles.rankNumber}>#{i + 4}</Text>
+                                {renderAvatar(person, 44)}
+                                <View style={styles.friendInfo}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={styles.friendName} numberOfLines={1}>{person.displayName}</Text>
+                                        {person.isMe && (
+                                            <View style={styles.youBadge}>
+                                                <Text style={styles.youBadgeText}>YOU</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    <Text style={styles.friendMeta}>Lv.{person.level ?? 1} · {person.totalWorkouts ?? 0} workouts</Text>
                                 </View>
-                            )}
-                            <View style={styles.friendInfo}>
-                                <Text style={styles.friendName} numberOfLines={1}>{friend.displayName}</Text>
-                                <Text style={styles.friendMeta}>Lv.{friend.level ?? 1} · {friend.totalWorkouts ?? 0} workouts</Text>
-                            </View>
-                            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            )}
-        </View>
-    );
+                                {!person.isMe && <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textTertiary} />}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+            </View>
+        );
+    };
 
     const renderAppFriends = () => (
         <View style={styles.tabContent}>
@@ -349,7 +458,7 @@ export default function TeamSection({ userId, visible = false, onClose }: TeamSe
             onRequestClose={handleClose}
         >
             <KeyboardAvoidingView style={styles.modalBackdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <BlurView intensity={90} tint={isDark ? 'dark' : 'light'} style={styles.modalContainer}>
+                <View style={styles.modalContainer}>
                     {/* Header */}
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>My Team</Text>
@@ -388,7 +497,7 @@ export default function TeamSection({ userId, visible = false, onClose }: TeamSe
                             </ScrollView>
                         </>
                     )}
-                </BlurView>
+                </View>
             </KeyboardAvoidingView>
         </Modal>
     );
@@ -407,6 +516,7 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         paddingHorizontal: 20,
         height: '88%',
         overflow: 'hidden',
+        backgroundColor: colors.backgroundDark,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -519,6 +629,120 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
         color: colors.textTertiary,
         fontSize: 13,
         marginTop: 2,
+    },
+    rankHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+        paddingHorizontal: 4,
+    },
+    rankHeaderText: {
+        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '800',
+    },
+    rankHeaderSub: {
+        color: colors.textTertiary,
+        fontSize: 13,
+        fontWeight: '500',
+    },
+    podiumRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 8,
+        marginBottom: 20,
+    },
+    podiumCard: {
+        flex: 1,
+        alignItems: 'center',
+        borderRadius: 18,
+        paddingVertical: 16,
+        paddingHorizontal: 8,
+        gap: 6,
+    },
+    podiumCardGold: {
+        backgroundColor: isDark ? 'rgba(255, 215, 0, 0.12)' : 'rgba(255, 215, 0, 0.15)',
+        borderWidth: 1,
+        borderColor: '#FFD700' + '50',
+        paddingVertical: 22,
+    },
+    podiumCardSilver: {
+        backgroundColor: isDark ? 'rgba(192, 192, 192, 0.1)' : 'rgba(192, 192, 192, 0.15)',
+        borderWidth: 1,
+        borderColor: '#C0C0C0' + '50',
+    },
+    podiumCardBronze: {
+        backgroundColor: isDark ? 'rgba(205, 127, 50, 0.1)' : 'rgba(205, 127, 50, 0.15)',
+        borderWidth: 1,
+        borderColor: '#CD7F32' + '50',
+    },
+    podiumMedal: {
+        fontSize: 22,
+    },
+    podiumAvatar: {
+        width: 46,
+        height: 46,
+        borderRadius: 23,
+    },
+    podiumAvatarLarge: {
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+    },
+    podiumInitial: {
+        fontWeight: '800',
+        fontSize: 18,
+    },
+    podiumName: {
+        color: colors.textPrimary,
+        fontWeight: '700',
+        fontSize: 13,
+        textAlign: 'center',
+    },
+    podiumWorkouts: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    podiumLevel: {
+        color: colors.textTertiary,
+        fontSize: 11,
+        fontWeight: '600',
+        textAlign: 'center',
+    },
+    rankList: {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.6)',
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginBottom: 8,
+    },
+    rankRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        gap: 12,
+    },
+    rankRowBorder: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)',
+    },
+    rankRowMe: {
+        backgroundColor: colors.primaryStart + '15',
+        borderRadius: 12,
+    },
+    podiumCardMe: {
+        borderColor: colors.primaryStart + '80',
+        borderWidth: 2,
+    },
+    rankNumber: {
+        color: colors.textTertiary,
+        fontWeight: '700',
+        fontSize: 14,
+        width: 28,
+        textAlign: 'center',
     },
     searchContainer: {
         marginBottom: 20,
@@ -697,5 +921,17 @@ const createStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     removeFromTeamText: {
         fontWeight: '700',
         fontSize: 15,
+    },
+    youBadge: {
+        backgroundColor: colors.primaryStart + '25',
+        borderRadius: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+    },
+    youBadgeText: {
+        color: colors.primaryStart,
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 0.3,
     },
 });

@@ -722,8 +722,8 @@ export default function ProfileSetupScreen({ navigation }: ProfileSetupScreenPro
                 ...user,
                 ...profileUpdate,
                 uid: user.uid,
-                createdAt: user.createdAt || new Date(),
-                updatedAt: new Date(),
+                createdAt: user.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
                 transformationPhotos: user.transformationPhotos || [],
             };
 

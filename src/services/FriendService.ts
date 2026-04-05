@@ -123,6 +123,29 @@ class FriendService {
     }
 
     /**
+     * Get the current user's profile info formatted as FriendProfile for ranking
+     */
+    async getCurrentUserProfile(uid: string): Promise<FriendProfile | null> {
+        try {
+            const docRef = doc(db, 'users', uid);
+            const snap = await getDoc(docRef);
+            if (!snap.exists()) return null;
+            const data = snap.data();
+            return {
+                uid: data.uid,
+                displayName: data.displayName || 'You',
+                email: data.email,
+                photoURL: data.photoURL ?? undefined,
+                level: data.level ?? 1,
+                totalWorkouts: data.totalWorkouts ?? 0,
+            };
+        } catch (error) {
+            console.error('FriendService.getCurrentUserProfile error:', error);
+            return null;
+        }
+    }
+
+    /**
      * Get a list of suggested friends (other FIZI users).
      */
     async getSuggestedFriends(currentUid: string, limitCount: number = 20): Promise<FriendProfile[]> {

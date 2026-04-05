@@ -1082,7 +1082,7 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
             <TeamSection 
                 userId={user?.uid} 
                 visible={showTeamModal} 
-                onClose={() => setShowTeamModal(false)} 
+                onClose={() => setShowTeamModal(false)}
             />
 
             {/* User Info Modal */}
