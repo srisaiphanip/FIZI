@@ -294,9 +294,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         directionalLockEnabled={true}
                     >
                         <View style={styles.topSpacing} />
-                        <Text style={styles.greeting}>
-                            HELLO, {(user?.displayName || 'CHAMPION').toUpperCase()}!
-                        </Text>
                         <WorkTab
                             user={user}
                             navigation={navigation}
@@ -351,7 +348,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 </View>
             </ScrollView>
 
-            {/* Instagram-Style Bottom Navigation Bar */}
+            {/* Bottom Navigation Bar */}
             <Animated.View style={[
                 styles.bottomNavBarContainer,
                 { transform: [{ translateY: bottomBarAnim }] }
@@ -363,32 +360,28 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         onPress={() => handleTabPress('profile')}
                         activeOpacity={0.6}
                     >
-                        {user?.photoURL ? (
-                            <View style={[styles.profileNavIcon, selectedTab === 'profile' && styles.profileNavIconActive]}>
-                                <Image source={{ uri: user.photoURL }} style={styles.profileNavImage} />
-                            </View>
-                        ) : (
-                            <MaterialCommunityIcons
-                                name={selectedTab === 'profile' ? "account" : "account-outline"}
-                                size={28}
-                                color={selectedTab === 'profile' ? colors.primaryStart : colors.textTertiary}
-                            />
-                        )}
-                        <Text style={[styles.navText, selectedTab === 'profile' && styles.navTextActive]}>Profile</Text>
+                        <MaterialCommunityIcons
+                            name={selectedTab === 'profile' ? "account" : "account-outline"}
+                            size={26}
+                            color={selectedTab === 'profile' ? '#C4FF1A' : colors.textTertiary}
+                        />
+                        <Text style={[styles.navText, selectedTab === 'profile' && styles.navTextActive]}>PROFILE</Text>
+                        {selectedTab === 'profile' && <View style={styles.navActiveDot} />}
                     </TouchableOpacity>
 
-                    {/* Work Tab */}
+                    {/* Workout Tab */}
                     <TouchableOpacity
                         style={styles.navItem}
                         onPress={() => handleTabPress('work')}
                         activeOpacity={0.6}
                     >
                         <MaterialCommunityIcons
-                            name={selectedTab === 'work' ? "dumbbell" : "dumbbell"}
-                            size={28}
-                            color={selectedTab === 'work' ? colors.primaryStart : colors.textTertiary}
+                            name="dumbbell"
+                            size={26}
+                            color={selectedTab === 'work' ? '#C4FF1A' : colors.textTertiary}
                         />
-                        <Text style={[styles.navText, selectedTab === 'work' && styles.navTextActive]}>Work</Text>
+                        <Text style={[styles.navText, selectedTab === 'work' && styles.navTextActive]}>WORKOUT</Text>
+                        {selectedTab === 'work' && <View style={styles.navActiveDot} />}
                     </TouchableOpacity>
 
                     {/* Diet Tab */}
@@ -398,11 +391,12 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                         activeOpacity={0.6}
                     >
                         <MaterialCommunityIcons
-                            name={selectedTab === 'diet' ? "food-apple" : "food-apple-outline"}
-                            size={28}
-                            color={selectedTab === 'diet' ? colors.primaryStart : colors.textTertiary}
+                            name={selectedTab === 'diet' ? "heart-plus" : "heart-plus-outline"}
+                            size={26}
+                            color={selectedTab === 'diet' ? '#C4FF1A' : colors.textTertiary}
                         />
-                        <Text style={[styles.navText, selectedTab === 'diet' && styles.navTextActive]}>Diet</Text>
+                        <Text style={[styles.navText, selectedTab === 'diet' && styles.navTextActive]}>DIET</Text>
+                        {selectedTab === 'diet' && <View style={styles.navActiveDot} />}
                     </TouchableOpacity>
                 </BlurView>
             </Animated.View>
@@ -443,43 +437,36 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
     },
     bottomNavBar: {
         flexDirection: 'row' as 'row',
-        backgroundColor: isDark ? 'rgba(20,20,30,0.95)' : 'rgba(255,255,255,0.95)',
-        paddingBottom: 6,
-        paddingTop: 3,
+        backgroundColor: isDark ? 'rgba(10,12,20,0.95)' : 'rgba(255,255,255,0.95)',
+        paddingBottom: 14,
+        paddingTop: 12,
         borderTopWidth: 0.5,
-        borderTopColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+        borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.1)',
         justifyContent: 'space-around' as 'space-around',
         alignItems: 'center' as 'center',
     },
     navItem: {
         alignItems: 'center' as 'center',
         justifyContent: 'center' as 'center',
-        paddingVertical: 4,
+        paddingVertical: 2,
         minWidth: 70,
     },
-    profileNavIcon: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        overflow: 'hidden',
-        borderWidth: 1.5,
-        borderColor: colors.textTertiary,
-    },
-    profileNavIconActive: {
-        borderColor: colors.primaryStart,
-    },
-    profileNavImage: {
-        width: 28,
-        height: 28,
-    },
     navText: {
-        fontSize: 10,
-        fontWeight: '600' as '600',
+        fontSize: 11,
+        fontWeight: '700' as '700',
         color: colors.textTertiary,
-        marginTop: 2,
+        marginTop: 4,
+        letterSpacing: 0.6,
     },
     navTextActive: {
-        color: colors.primaryStart,
+        color: '#C4FF1A',
+    },
+    navActiveDot: {
+        marginTop: 4,
+        width: 5,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: '#C4FF1A',
     },
 
     greeting: {

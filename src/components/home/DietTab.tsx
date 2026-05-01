@@ -8,241 +8,114 @@ import {
     Dimensions,
     ActivityIndicator,
     Image,
-    Animated,
     Modal,
-    StatusBar
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useTheme } from '../../hooks/useTheme';
-import { ThemeColorsType, ThemeShadowsType, Layout, Spacing } from '../../theme/Theme';
+import { ThemeColorsType, ThemeShadowsType, Spacing } from '../../theme/Theme';
 import NutritionService from '../../services/NutritionService';
-import { DietPlan, FoodSuggestion } from '../../types/nutrition';
+import { DietPlan } from '../../types/nutrition';
+import { RingProgress } from './RingProgress';
+
+const NEON_GREEN = '#C4FF1A';
+const CARD_BG = '#13182A';
+const TILE_BG = 'rgba(255,255,255,0.04)';
+
+const PROTEIN_COLOR = '#F472B6';
+const CARBS_COLOR = '#60A5FA';
+const FATS_COLOR = '#FBBF24';
 
 interface DietTabProps {
     user: any;
 }
 
+const getInitials = (name?: string | null) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0]?.toUpperCase() || 'U';
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
 export function DietTab({ user }: DietTabProps) {
-    const { colors, gradients, shadows, isDark } = useTheme();
+    const { colors, shadows, isDark } = useTheme();
     const styles = useMemo(() => createStyles(colors, shadows, isDark), [colors, shadows, isDark]);
     const [dietPlan, setDietPlan] = useState<DietPlan | null>(null);
     const [loading, setLoading] = useState(true);
-    const [expandedMealIndices, setExpandedMealIndices] = useState<Set<number>>(new Set([0, 1, 2, 3, 4]));
     const [eatenMealIds, setEatenMealIds] = useState<string[]>([]);
     const [takenSupplementIds, setTakenSupplementIds] = useState<string[]>([]);
     const [dietaryPreference, setDietaryPreference] = useState<'veg' | 'non-veg'>('non-veg');
+    const [foodCategory, setFoodCategory] = useState<'protein' | 'carbs' | 'fats'>('protein');
+    const [workoutNutritionTab, setWorkoutNutritionTab] = useState<'pre' | 'post'>('pre');
     const [selectedRecipe, setSelectedRecipe] = useState<any>(null);
-    const [waterDrank, setWaterDrank] = useState(0); // L consumed
 
-    // Generate last 7 days for calendar strip
-    const weekDates = useMemo(() => {
-        const dates = [];
-        for (let i = 0; i < 7; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - 3 + i); // 3 days back, 3 days forward
-            dates.push(d);
-        }
-        return dates;
-    }, []);
-    // Weekly rotating recipes - one for each day
     const weeklyRecipes = useMemo(() => [
-        // Monday - Veg
         {
             title: 'Avocado & Quinoa Power Bowl',
             image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80',
-            calories: 450,
-            time: '15 min',
-            difficulty: 'Easy',
-            dietaryType: 'veg',
-            ingredients: [
-                '1 cup cooked Quinoa',
-                '1/2 Avocado, sliced',
-                '1/2 cup Chickpeas, rinsed',
-                '1/4 Cucumber, diced',
-                '1 tbsp Olive Oil',
-                'Lemon juice to taste',
-                'Salt & Pepper'
-            ],
-            instructions: [
-                'In a bowl, combine the cooked quinoa, chickpeas, and cucumber.',
-                'Top with fresh avocado slices.',
-                'Drizzle with olive oil and lemon juice.',
-                'Season with salt and pepper to taste.'
-            ],
+            calories: 450, time: '15 min', difficulty: 'Easy', dietaryType: 'veg',
+            ingredients: ['1 cup cooked Quinoa', '1/2 Avocado, sliced', '1/2 cup Chickpeas, rinsed', '1/4 Cucumber, diced', '1 tbsp Olive Oil', 'Lemon juice to taste', 'Salt & Pepper'],
+            instructions: ['In a bowl, combine the cooked quinoa, chickpeas, and cucumber.', 'Top with fresh avocado slices.', 'Drizzle with olive oil and lemon juice.', 'Season with salt and pepper to taste.'],
             macros: { protein: 12, carbs: 45, fats: 18 }
         },
-        // Tuesday - Non-Veg
         {
             title: 'Grilled Salmon with Asparagus',
             image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=500&q=80',
-            calories: 520,
-            time: '25 min',
-            difficulty: 'Medium',
-            dietaryType: 'non-veg',
-            ingredients: [
-                '1 Salmon Fillet (6oz)',
-                '1 bunch Asparagus, trimmed',
-                '1 tbsp Olive Oil',
-                '1 clove Garlic, minced',
-                'Lemon slices',
-                'Fresh dill'
-            ],
-            instructions: [
-                'Season salmon fillet with salt, pepper, and minced garlic.',
-                'Toss asparagus with olive oil and season.',
-                'Grill or pan-sear salmon for 4-5 mins per side.',
-                'Grill asparagus until tender (approx 5 mins).',
-                'Serve with lemon wedges and fresh dill.'
-            ],
+            calories: 520, time: '25 min', difficulty: 'Medium', dietaryType: 'non-veg',
+            ingredients: ['1 Salmon Fillet (6oz)', '1 bunch Asparagus, trimmed', '1 tbsp Olive Oil', '1 clove Garlic, minced', 'Lemon slices', 'Fresh dill'],
+            instructions: ['Season salmon fillet with salt, pepper, and minced garlic.', 'Toss asparagus with olive oil and season.', 'Grill or pan-sear salmon for 4-5 mins per side.', 'Grill asparagus until tender (approx 5 mins).', 'Serve with lemon wedges and fresh dill.'],
             macros: { protein: 42, carbs: 5, fats: 28 }
         },
-        // Wednesday - Veg
         {
             title: 'Mediterranean Chickpea Bowl',
             image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80',
-            calories: 380,
-            time: '20 min',
-            difficulty: 'Easy',
-            dietaryType: 'veg',
-            ingredients: [
-                '1 cup Chickpeas',
-                '1/2 cup Cherry Tomatoes, halved',
-                '1/4 cup Cucumber, diced',
-                '2 tbsp Feta Cheese (optional)',
-                '1 tbsp Olive Oil',
-                'Dried Oregano'
-            ],
-            instructions: [
-                'Rinse and drain chickpeas.',
-                'In a bowl, mix chickpeas, tomatoes, and cucumber.',
-                'Crumble toppings over the salad.',
-                'Drizzle with olive oil and sprinkle oregano.',
-                'Toss gently to combine.'
-            ],
+            calories: 380, time: '20 min', difficulty: 'Easy', dietaryType: 'veg',
+            ingredients: ['1 cup Chickpeas', '1/2 cup Cherry Tomatoes, halved', '1/4 cup Cucumber, diced', '2 tbsp Feta Cheese (optional)', '1 tbsp Olive Oil', 'Dried Oregano'],
+            instructions: ['Rinse and drain chickpeas.', 'In a bowl, mix chickpeas, tomatoes, and cucumber.', 'Crumble toppings over the salad.', 'Drizzle with olive oil and sprinkle oregano.', 'Toss gently to combine.'],
             macros: { protein: 14, carbs: 40, fats: 15 }
         },
-        // Thursday - Non-Veg
         {
             title: 'Chicken Teriyaki with Broccoli',
             image: 'https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=500&q=80',
-            calories: 480,
-            time: '30 min',
-            difficulty: 'Medium',
-            dietaryType: 'non-veg',
-            ingredients: [
-                '1 Chicken Breast, cubed',
-                '1 cup Broccoli florets',
-                '2 tbsp Teriyaki Sauce',
-                '1/2 cup Brown Rice, cooked',
-                '1 tsp Sesame Seeds',
-                'Green onions for garnish'
-            ],
-            instructions: [
-                'Sauté chicken cubes in a pan until golden.',
-                'Add broccoli and a splash of water, cover to steam for 3 mins.',
-                'Pour in teriyaki sauce and toss to coat.',
-                'Serve over brown rice.',
-                'Garnish with sesame seeds and green onions.'
-            ],
+            calories: 480, time: '30 min', difficulty: 'Medium', dietaryType: 'non-veg',
+            ingredients: ['1 Chicken Breast, cubed', '1 cup Broccoli florets', '2 tbsp Teriyaki Sauce', '1/2 cup Brown Rice, cooked', '1 tsp Sesame Seeds', 'Green onions for garnish'],
+            instructions: ['Sauté chicken cubes in a pan until golden.', 'Add broccoli and a splash of water, cover to steam for 3 mins.', 'Pour in teriyaki sauce and toss to coat.', 'Serve over brown rice.', 'Garnish with sesame seeds and green onions.'],
             macros: { protein: 35, carbs: 55, fats: 10 }
         },
-        // Friday - Veg
         {
             title: 'Thai Peanut Tofu Stir-Fry',
             image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
-            calories: 420,
-            time: '20 min',
-            difficulty: 'Easy',
-            dietaryType: 'veg',
-            ingredients: [
-                '1 block Firm Tofu, cubed',
-                '1 cup Mixed Veggies (Bell pepper, snap peas)',
-                '2 tbsp Peanut Butter',
-                '1 tbsp Soy Sauce (or Tamari)',
-                '1 tsp Sriracha',
-                '1/2 Lime'
-            ],
-            instructions: [
-                'Pan-fry tofu cubes until crispy.',
-                'Stir-fry mixed vegetables until tender-crisp.',
-                'Whisk peanut butter, soy sauce, sriracha, and lime juice for sauce.',
-                'Add tofu back to pan with veggies and pour sauce over.',
-                'Toss to combine and serve warm.'
-            ],
+            calories: 420, time: '20 min', difficulty: 'Easy', dietaryType: 'veg',
+            ingredients: ['1 block Firm Tofu, cubed', '1 cup Mixed Veggies', '2 tbsp Peanut Butter', '1 tbsp Soy Sauce', '1 tsp Sriracha', '1/2 Lime'],
+            instructions: ['Pan-fry tofu cubes until crispy.', 'Stir-fry mixed vegetables until tender-crisp.', 'Whisk peanut butter, soy sauce, sriracha, and lime juice.', 'Combine and serve warm.'],
             macros: { protein: 22, carbs: 30, fats: 24 }
         },
-        // Saturday - Non-Veg
         {
             title: 'Honey Garlic Shrimp & Veggies',
             image: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=500&q=80',
-            calories: 390,
-            time: '18 min',
-            difficulty: 'Easy',
-            dietaryType: 'non-veg',
-            ingredients: [
-                '1/2 lb Shrimp, peeled',
-                '1 Zucchini, sliced',
-                '1 tbsp Honey',
-                '1 tbsp Soy Sauce',
-                '1 clove Garlic, minced',
-                'Red pepper flakes'
-            ],
-            instructions: [
-                'Whisk honey, soy sauce, and garlic.',
-                'Sauté zucchini in a pan for 3 mins.',
-                'Add shrimp and cook until pink (2-3 mins).',
-                'Pour sauce into pan and simmer until thickened.',
-                'Serve immediately, sprinkled with red pepper flakes.'
-            ],
+            calories: 390, time: '18 min', difficulty: 'Easy', dietaryType: 'non-veg',
+            ingredients: ['1/2 lb Shrimp, peeled', '1 Zucchini, sliced', '1 tbsp Honey', '1 tbsp Soy Sauce', '1 clove Garlic, minced', 'Red pepper flakes'],
+            instructions: ['Whisk honey, soy sauce, and garlic.', 'Sauté zucchini for 3 mins.', 'Add shrimp and cook until pink.', 'Pour sauce and simmer.', 'Serve immediately.'],
             macros: { protein: 30, carbs: 25, fats: 12 }
         },
-        // Sunday - Veg
         {
             title: 'Roasted Veggie Buddha Bowl',
             image: 'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?w=500&q=80',
-            calories: 410,
-            time: '35 min',
-            difficulty: 'Medium',
-            dietaryType: 'veg',
-            ingredients: [
-                '1 cup Sweet Potato, cubed',
-                '1 cup Kale, chopped',
-                '1/2 cup Chickpeas',
-                '1 tbsp Tahini',
-                'Lemon juice',
-                '1 tbsp Pumpkin Seeds'
-            ],
-            instructions: [
-                'Roast sweet potato cubes at 400°F (200°C) for 25 mins.',
-                'Massage kale with a little olive oil.',
-                'Assemble bowl with roasted sweet potato, kale, and chickpeas.',
-                'Whisk tahini and lemon juice with water for dressing.',
-                'Drizzle dressing and top with pumpkin seeds.'
-            ],
+            calories: 410, time: '35 min', difficulty: 'Medium', dietaryType: 'veg',
+            ingredients: ['1 cup Sweet Potato, cubed', '1 cup Kale, chopped', '1/2 cup Chickpeas', '1 tbsp Tahini', 'Lemon juice', '1 tbsp Pumpkin Seeds'],
+            instructions: ['Roast sweet potato at 400°F for 25 mins.', 'Massage kale with olive oil.', 'Assemble bowl.', 'Whisk tahini dressing.', 'Drizzle and top with seeds.'],
             macros: { protein: 12, carbs: 55, fats: 16 }
-        }
+        },
     ], []);
 
     const defaultSupplements = useMemo(() => [
-        { id: 'supp_1', name: 'Whey Protein', icon: 'cup-water', calories: 120 },
-        { id: 'supp_2', name: 'Creatine Monohydrate', icon: 'atom', calories: 0 },
-        { id: 'supp_3', name: 'Omega-3 (Fish Oil)', icon: 'fish', calories: 20 },
-        { id: 'supp_4', name: 'Multivitamin', icon: 'pill', calories: 0 }
+        { id: 'supp_1', name: 'Whey Protein', icon: 'cup-water', schedule: 'POST-WORKOUT', calories: 120 },
+        { id: 'supp_2', name: 'Creatine Monohydrate', icon: 'atom', schedule: 'DAILY · 5G', calories: 0 },
+        { id: 'supp_3', name: 'Omega-3 (Fish Oil)', icon: 'fish', schedule: 'WITH MEALS', calories: 20 },
+        { id: 'supp_4', name: 'Multivitamin', icon: 'pill', schedule: 'MORNING', calories: 0 }
     ], []);
-
-    const consumedCalories = useMemo(() => {
-        if (!dietPlan) return 0;
-        const mealCals = dietPlan.nutritionProfile.mealPlan.mealTimings
-            .filter(m => eatenMealIds.includes(m.id))
-            .reduce((sum, m) => sum + m.calories, 0);
-        const suppCals = defaultSupplements
-            .filter(s => takenSupplementIds.includes(s.id))
-            .reduce((sum, s) => sum + s.calories, 0);
-        return mealCals + suppCals;
-    }, [eatenMealIds, takenSupplementIds, dietPlan, defaultSupplements]);
 
     useEffect(() => {
         loadDietPlan();
@@ -250,7 +123,6 @@ export function DietTab({ user }: DietTabProps) {
 
     const loadDietPlan = async () => {
         if (!user) return;
-
         setLoading(true);
         try {
             const plan = await NutritionService.generateDietPlan(user);
@@ -263,40 +135,50 @@ export function DietTab({ user }: DietTabProps) {
     };
 
     const filteredSuggestions = useMemo(() => {
-        if (!dietPlan || !dietPlan.foodSuggestions) return null;
-        const suggestions = dietPlan.foodSuggestions;
-
-        // For veg: exclude non-veg items only
-        // For non-veg: show ALL items (non-veg people eat everything)
+        if (!dietPlan?.foodSuggestions) return null;
         const filterFn = (food: any) => {
-            if (dietaryPreference === 'veg') {
-                return food.dietaryType !== 'non-veg';
-            } else {
-                return true; // show all items
-            }
+            if (dietaryPreference === 'veg') return food.dietaryType !== 'non-veg';
+            return true;
         };
-
         return {
-            protein: suggestions.protein.filter(filterFn),
-            carbs: suggestions.carbs.filter(filterFn),
-            fats: suggestions.fats.filter(filterFn),
-            vegetables: suggestions.vegetables.filter(filterFn),
-            fruits: suggestions.fruits.filter(filterFn)
+            protein: dietPlan.foodSuggestions.protein.filter(filterFn),
+            carbs: dietPlan.foodSuggestions.carbs.filter(filterFn),
+            fats: dietPlan.foodSuggestions.fats.filter(filterFn),
         };
     }, [dietPlan, dietaryPreference]);
 
-    // Get current day's recipe (0 = Sunday, 1 = Monday, etc.)
     const dailyRecipe = useMemo(() => {
-        const day = new Date().getDay(); // 0 is Sunday
-        // Convert so 0 is Monday (index 0) and 6 is Sunday (index 6)
+        const day = new Date().getDay();
         const adjustedIndex = day === 0 ? 6 : day - 1;
         return weeklyRecipes[adjustedIndex];
     }, [weeklyRecipes]);
 
+    const consumedCalories = useMemo(() => {
+        if (!dietPlan) return 0;
+        const mealCals = dietPlan.nutritionProfile.mealPlan.mealTimings
+            .filter(m => eatenMealIds.includes(m.id))
+            .reduce((sum, m) => sum + m.calories, 0);
+        const suppCals = defaultSupplements
+            .filter(s => takenSupplementIds.includes(s.id))
+            .reduce((sum, s) => sum + s.calories, 0);
+        return mealCals + suppCals;
+    }, [eatenMealIds, takenSupplementIds, dietPlan, defaultSupplements]);
+
+    const consumedMacros = useMemo(() => {
+        if (!dietPlan) return { protein: 0, carbs: 0, fats: 0 };
+        return dietPlan.nutritionProfile.mealPlan.mealTimings
+            .filter(m => eatenMealIds.includes(m.id))
+            .reduce((acc, m) => ({
+                protein: acc.protein + m.macros.protein,
+                carbs: acc.carbs + m.macros.carbs,
+                fats: acc.fats + m.macros.fats,
+            }), { protein: 0, carbs: 0, fats: 0 });
+    }, [eatenMealIds, dietPlan]);
+
     if (loading || !dietPlan) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.accentCyan} />
+                <ActivityIndicator size="large" color={NEON_GREEN} />
                 <Text style={styles.loadingText}>Calculating your personalized nutrition plan...</Text>
             </View>
         );
@@ -305,448 +187,451 @@ export function DietTab({ user }: DietTabProps) {
     const { nutritionProfile, preworkoutTips, postworkoutTips, guidelines } = dietPlan;
     const calorieProgress = Math.min(consumedCalories / nutritionProfile.dailyCalories, 1);
     const caloriesRemaining = Math.max(nutritionProfile.dailyCalories - consumedCalories, 0);
+    const totalMacros = nutritionProfile.macros.protein + nutritionProfile.macros.carbs + nutritionProfile.macros.fats;
+    const consumedMacrosTotal = consumedMacros.protein + consumedMacros.carbs + consumedMacros.fats;
 
-    const toggleMeal = (id: string) => {
+    const goalLabel = (user?.fitnessGoal || 'maintenance')
+        .replace(/_/g, ' ')
+        .split(' ')
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+
+    const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    const initials = getInitials(user?.displayName);
+
+    const toggleMeal = (id: string) =>
         setEatenMealIds(prev => prev.includes(id) ? prev.filter(mid => mid !== id) : [...prev, id]);
-    };
 
-    const toggleSupplement = (id: string) => {
+    const toggleSupplement = (id: string) =>
         setTakenSupplementIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
+
+    const getSuggestionItems = (meal: any) => {
+        const cals = meal.calories;
+        if (meal.id === 'breakfast') {
+            if (dietaryPreference === 'veg') return [
+                { icon: 'barley', text: `Oats (${Math.round(cals / 4)}g) + Milk` },
+                { icon: 'sprout', text: '1 Banana + Almonds' }
+            ];
+            return [
+                { icon: 'egg-outline', text: `${Math.round(cals / 70)} Eggs + Toast` },
+                { icon: 'cup', text: 'Greek Yogurt + Berries' }
+            ];
+        }
+        if (meal.id === 'lunch' || meal.id === 'dinner') {
+            if (dietaryPreference === 'veg') return [
+                { icon: 'cheese', text: `Tofu/Paneer (${Math.round(cals / 2.5)}g)` },
+                { icon: 'bowl-mix', text: 'Rice/Quinoa + Veggies' }
+            ];
+            return [
+                { icon: 'food-drumstick-outline', text: `Chicken Breast (${Math.round(cals / 1.5)}g)` },
+                { icon: 'bowl-mix', text: 'Rice + Veggies' }
+            ];
+        }
+        if (meal.id === 'snack' || meal.id === 'preworkout') {
+            return [
+                { icon: 'food-apple-outline', text: '1 Apple + Peanut Butter' },
+                { icon: 'cup-water', text: 'Whey Protein Shake' }
+            ];
+        }
+        return [
+            { icon: 'cup', text: 'Protein Shake' },
+            { icon: 'peanut', text: 'Handful of Nuts' }
+        ];
     };
 
-    const getFoodInsight = (category: string, foodName: string) => {
-        if (category === 'protein') return 'High Bioavailability';
-        if (category === 'carbs') {
-            if (foodName.toLowerCase().includes('rice') || foodName.toLowerCase().includes('potato')) return 'Slow Digestion';
-            return 'Fiber Rich';
-        }
-        if (category === 'fats') return 'Heart Healthy';
-        return 'Nutrient Dense';
-    };
+    const macroData = [
+        { name: 'Protein', current: consumedMacros.protein, target: nutritionProfile.macros.protein, pct: nutritionProfile.macroPercentages.protein, color: PROTEIN_COLOR },
+        { name: 'Carbs', current: consumedMacros.carbs, target: nutritionProfile.macros.carbs, pct: nutritionProfile.macroPercentages.carbs, color: CARBS_COLOR },
+        { name: 'Fats', current: consumedMacros.fats, target: nutritionProfile.macros.fats, pct: nutritionProfile.macroPercentages.fats, color: FATS_COLOR },
+    ];
+
+    const activeFoodList = filteredSuggestions
+        ? (foodCategory === 'protein' ? filteredSuggestions.protein
+            : foodCategory === 'carbs' ? filteredSuggestions.carbs
+                : filteredSuggestions.fats)
+        : [];
 
     return (
         <>
-            {/* Goal Header */}
-            <LinearGradient
-                colors={gradients.ocean}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.goalHeader}
-            >
-                <Text style={styles.goalText}>
-                    {user?.fitnessGoal?.replace('_', ' ').toUpperCase() || 'MAINTENANCE'}
-                </Text>
-                <View style={styles.preferenceToggle}>
+            {/* Header */}
+            <View style={styles.header}>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.headerLabel}>Today's Nutrition</Text>
+                    <Text style={styles.headerTitle} numberOfLines={1}>{dateLabel}</Text>
+                </View>
+                <View style={styles.avatarCircle}>
+                    {user?.photoURL ? (
+                        <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
+                    ) : (
+                        <Text style={styles.avatarText}>{initials}</Text>
+                    )}
+                </View>
+            </View>
+
+            {/* Goal + Veg/Non-Veg toggle */}
+            <View style={styles.goalCard}>
+                <View style={styles.goalAccent} />
+                <View style={styles.goalIconWrap}>
+                    <MaterialCommunityIcons name="dumbbell" size={20} color={NEON_GREEN} />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.goalLabel}>GOAL</Text>
+                    <Text style={styles.goalValue} numberOfLines={1}>{goalLabel}</Text>
+                </View>
+                <View style={styles.prefToggle}>
                     <TouchableOpacity
                         style={[styles.prefOption, dietaryPreference === 'veg' && styles.prefOptionActive]}
                         onPress={() => setDietaryPreference('veg')}
                     >
-                        <MaterialCommunityIcons name="leaf" size={16} color={dietaryPreference === 'veg' ? '#FFF' : colors.textSecondary} />
-                        <Text style={[styles.prefText, dietaryPreference === 'veg' && styles.prefTextActive]}>VEG</Text>
+                        <MaterialCommunityIcons name="leaf" size={14} color={dietaryPreference === 'veg' ? '#0A0A0A' : '#FFFFFF'} />
+                        <Text style={[styles.prefText, dietaryPreference === 'veg' && styles.prefTextActive]}>Veg</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.prefOption, dietaryPreference === 'non-veg' && styles.prefOptionActive]}
                         onPress={() => setDietaryPreference('non-veg')}
                     >
-                        <MaterialCommunityIcons name="food-steak" size={16} color={dietaryPreference === 'non-veg' ? '#FFF' : colors.textSecondary} />
-                        <Text style={[styles.prefText, dietaryPreference === 'non-veg' && styles.prefTextActive]}>NON-VEG</Text>
+                        <MaterialCommunityIcons name="food-drumstick" size={14} color={dietaryPreference === 'non-veg' ? '#0A0A0A' : '#FFFFFF'} />
+                        <Text style={[styles.prefText, dietaryPreference === 'non-veg' && styles.prefTextActive]}>Non-Veg</Text>
                     </TouchableOpacity>
                 </View>
-            </LinearGradient>
+            </View>
 
-            {/* Calorie Progress Card */}
-            <BlurView intensity={isDark ? 30 : 50} tint={isDark ? "light" : "dark"} style={styles.calorieCard}>
-                <View style={styles.calorieHeaderRow}>
-                    <View>
-                        <Text style={styles.sectionTitle}>Daily Fuel</Text>
-                        <Text style={styles.calorieGoalText}>Target: {nutritionProfile.dailyCalories} kcal</Text>
+            {/* Daily Fuel */}
+            <View style={styles.fuelCard}>
+                <View style={styles.fuelHeader}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.cardTitle}>Daily Fuel</Text>
+                        <Text style={styles.cardSubtitle}>Target: {nutritionProfile.dailyCalories.toLocaleString()} kcal</Text>
                     </View>
-                    <View style={styles.calorieSummary}>
-                        <Text style={styles.remainingValue}>{caloriesRemaining}</Text>
-                        <Text style={styles.remainingLabel}>Remaining</Text>
+                    <View style={styles.fuelHeaderPill}>
+                        <MaterialCommunityIcons name="lightning-bolt" size={12} color={NEON_GREEN} />
+                        <Text style={styles.fuelHeaderPillText}>{consumedCalories} / {nutritionProfile.dailyCalories}</Text>
                     </View>
                 </View>
 
-                <View style={styles.progressContainer}>
-                    <View style={styles.progressHeaderRow}>
-                        <View style={styles.progressLabelGroup}>
-                            <MaterialCommunityIcons name="fire" size={28} color={colors.accentWarning} style={{ marginRight: 6, alignSelf: 'center' }} />
-                            <Text style={styles.consumedValue}>{consumedCalories}</Text>
-                            <Text style={styles.consumedLabel}>KCAL EATEN</Text>
+                <View style={styles.fuelBody}>
+                    <RingProgress
+                        size={150}
+                        strokeWidth={10}
+                        progress={calorieProgress}
+                        color={NEON_GREEN}
+                        showHeadDot
+                    >
+                        <View style={styles.ringInner}>
+                            <Text style={styles.ringValue}>{caloriesRemaining.toLocaleString()}</Text>
+                            <Text style={styles.ringLabel}>REMAINING</Text>
+                            <Text style={styles.ringFootnote}>
+                                {Math.round(calorieProgress * 100)}% <Text style={styles.ringFootnoteAccent}>· {nutritionProfile.mealPlan.mealsPerDay} meals</Text>
+                            </Text>
                         </View>
-                        <View style={styles.progressPercentGroup}>
-                            <View style={[styles.percentBadge, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                                <Text style={styles.percentValue}>{Math.round(calorieProgress * 100)}%</Text>
+                    </RingProgress>
+
+                    <View style={styles.fuelMetrics}>
+                        <View style={styles.fuelMetric}>
+                            <View style={styles.fuelMetricIcon}>
+                                <MaterialCommunityIcons name="heart-outline" size={16} color="#FFFFFF" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.fuelMetricLabel}>BMR</Text>
+                                <Text style={styles.fuelMetricValue}>
+                                    {Math.round(nutritionProfile.bmr).toLocaleString()} <Text style={styles.fuelMetricUnit}>kcal</Text>
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.fuelMetric}>
+                            <View style={styles.fuelMetricIcon}>
+                                <MaterialCommunityIcons name="code-tags" size={16} color="#FFFFFF" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.fuelMetricLabel}>TDEE</Text>
+                                <Text style={styles.fuelMetricValue}>
+                                    {Math.round(nutritionProfile.tdee).toLocaleString()} <Text style={styles.fuelMetricUnit}>kcal</Text>
+                                </Text>
+                            </View>
+                        </View>
+                        <View style={styles.fuelMetric}>
+                            <View style={styles.fuelMetricIcon}>
+                                <MaterialCommunityIcons name="water-outline" size={16} color="#22D3EE" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.fuelMetricLabel}>WATER</Text>
+                                <Text style={styles.fuelMetricValue}>
+                                    {nutritionProfile.waterIntake} <Text style={styles.fuelMetricUnit}>L target</Text>
+                                </Text>
                             </View>
                         </View>
                     </View>
-                    <View style={styles.progressBarBackground}>
-                        <LinearGradient
-                            colors={gradients.ocean}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={[
-                                styles.progressBarFill,
-                                { width: `${calorieProgress * 100}%` }
-                            ]}
-                        />
-                    </View>
                 </View>
+            </View>
 
-                <View style={styles.metabolicInfo}>
-                    <View style={styles.metabolicItem}>
-                        <MaterialCommunityIcons name="fire" size={16} color={colors.textTertiary} style={{ marginBottom: 4 }} />
-                        <Text style={styles.metabolicLabel}>BMR</Text>
-                        <Text style={styles.metabolicValue}>{Math.round(nutritionProfile.bmr)}</Text>
-                    </View>
-                    <View style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                    <View style={styles.metabolicItem}>
-                        <MaterialCommunityIcons name="run" size={16} color={colors.textTertiary} style={{ marginBottom: 4 }} />
-                        <Text style={styles.metabolicLabel}>TDEE</Text>
-                        <Text style={styles.metabolicValue}>{Math.round(nutritionProfile.tdee)}</Text>
-                    </View>
-                    <View style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                    <View style={styles.metabolicItem}>
-                        <MaterialCommunityIcons name="water-outline" size={16} color={colors.textTertiary} style={{ marginBottom: 4 }} />
-                        <Text style={styles.metabolicLabel}>Water</Text>
-                        <Text style={styles.metabolicValue}>{nutritionProfile.waterIntake}L</Text>
-                    </View>
-                </View>
-            </BlurView>
+            {/* Daily Macros */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleH2}>Daily Macros</Text>
+                <Text style={styles.sectionMeta}>{consumedMacrosTotal} of {totalMacros}g logged</Text>
+            </View>
+            <View style={styles.macrosRow}>
+                {macroData.map(m => {
+                    const pct = m.target > 0 ? Math.min(m.current / m.target, 1) : 0;
+                    return (
+                        <View key={m.name} style={styles.macroGaugeCard}>
+                            <RingProgress
+                                size={110}
+                                strokeWidth={9}
+                                progress={pct}
+                                color={m.color}
+                            >
+                                <View style={{ alignItems: 'center', paddingHorizontal: 4 }}>
+                                    <Text style={styles.macroGaugeName}>{m.name}</Text>
+                                    <Text style={styles.macroGaugeValue} numberOfLines={1}>
+                                        {m.current} / {m.target}g
+                                    </Text>
+                                    <Text style={[styles.macroGaugePct, { color: m.color }]}>{m.pct}%</Text>
+                                </View>
+                            </RingProgress>
+                        </View>
+                    );
+                })}
+            </View>
 
-            {/* Macronutrient Breakdown */}
-            <BlurView intensity={isDark ? 30 : 50} tint={isDark ? "light" : "dark"} style={styles.macroCard}>
-                <Text style={styles.sectionTitle}>Daily Macros</Text>
+            {/* Meal Schedule */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleH2}>Meal Schedule</Text>
+                <Text style={styles.sectionMeta}>{nutritionProfile.mealPlan.mealsPerDay} meals today</Text>
+            </View>
+            {nutritionProfile.mealPlan.mealTimings.map((meal: any) => {
+                const isEaten = eatenMealIds.includes(meal.id);
+                return (
+                    <View key={meal.id} style={styles.mealCard}>
+                        <View style={styles.mealTopRow}>
+                            <TouchableOpacity
+                                style={[styles.mealCheck, isEaten && styles.mealCheckActive]}
+                                onPress={() => toggleMeal(meal.id)}
+                                activeOpacity={0.7}
+                            >
+                                {isEaten && <MaterialCommunityIcons name="check" size={16} color="#0A0A0A" />}
+                            </TouchableOpacity>
+                            <View style={{ flex: 1, marginLeft: 14 }}>
+                                <Text style={[styles.mealName, isEaten && styles.mealNameEaten]} numberOfLines={1}>{meal.name}</Text>
+                                <View style={styles.mealTimePill}>
+                                    <MaterialCommunityIcons name="clock-outline" size={11} color={colors.textSecondary} />
+                                    <Text style={styles.mealTimeText}>{meal.time}</Text>
+                                </View>
+                            </View>
+                            <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={styles.mealKcal}>{meal.calories}</Text>
+                                <Text style={styles.mealKcalLabel}>KCAL</Text>
+                            </View>
+                        </View>
 
-                {/* Protein */}
-                <View style={styles.macroRow}>
-                    <View style={styles.macroInfo}>
-                        <Text style={styles.macroName}>Protein</Text>
-                        <Text style={styles.macroAmount}>{nutritionProfile.macros.protein}g</Text>
-                    </View>
-                    <View style={styles.macroBarContainer}>
-                        <View style={[styles.macroBar, { width: `${nutritionProfile.macroPercentages.protein}%`, backgroundColor: colors.accentPink }]} />
-                    </View>
-                    <Text style={styles.macroPercent}>{nutritionProfile.macroPercentages.protein}%</Text>
-                </View>
+                        {meal.macros && (
+                            <View style={styles.mealMacroRow}>
+                                <View style={styles.mealMacroPill}>
+                                    <Text style={[styles.mealMacroValue, { color: PROTEIN_COLOR }]}>{meal.macros.protein}g</Text>
+                                    <Text style={styles.mealMacroLabel}>PROTEIN</Text>
+                                </View>
+                                <View style={styles.mealMacroPill}>
+                                    <Text style={[styles.mealMacroValue, { color: CARBS_COLOR }]}>{meal.macros.carbs}g</Text>
+                                    <Text style={styles.mealMacroLabel}>CARBS</Text>
+                                </View>
+                                <View style={styles.mealMacroPill}>
+                                    <Text style={[styles.mealMacroValue, { color: FATS_COLOR }]}>{meal.macros.fats}g</Text>
+                                    <Text style={styles.mealMacroLabel}>FATS</Text>
+                                </View>
+                            </View>
+                        )}
 
-                {/* Carbs */}
-                <View style={styles.macroRow}>
-                    <View style={styles.macroInfo}>
-                        <Text style={styles.macroName}>Carbs</Text>
-                        <Text style={styles.macroAmount}>{nutritionProfile.macros.carbs}g</Text>
+                        <View style={styles.mealDivider} />
+                        <Text style={styles.suggestedLabel}>SUGGESTED</Text>
+                        {getSuggestionItems(meal).map((item, idx) => (
+                            <View key={idx} style={styles.suggestionRow}>
+                                <MaterialCommunityIcons name={item.icon as any} size={14} color={colors.textSecondary} />
+                                <Text style={styles.suggestionText}>{item.text}</Text>
+                            </View>
+                        ))}
                     </View>
-                    <View style={styles.macroBarContainer}>
-                        <View style={[styles.macroBar, { width: `${nutritionProfile.macroPercentages.carbs}%`, backgroundColor: colors.accentCyan }]} />
-                    </View>
-                    <Text style={styles.macroPercent}>{nutritionProfile.macroPercentages.carbs}%</Text>
-                </View>
+                );
+            })}
 
-                {/* Fats */}
-                <View style={styles.macroRow}>
-                    <View style={styles.macroInfo}>
-                        <Text style={styles.macroName}>Fats</Text>
-                        <Text style={styles.macroAmount}>{nutritionProfile.macros.fats}g</Text>
-                    </View>
-                    <View style={styles.macroBarContainer}>
-                        <View style={[styles.macroBar, { width: `${nutritionProfile.macroPercentages.fats}%`, backgroundColor: colors.accentYellow }]} />
-                    </View>
-                    <Text style={styles.macroPercent}>{nutritionProfile.macroPercentages.fats}%</Text>
-                </View>
-            </BlurView>
-
-            <View style={styles.mealContainer}>
-                <Text style={styles.sectionTitle}>Meal Schedule ({nutritionProfile.mealPlan.mealsPerDay} meals/day)</Text>
-                {nutritionProfile.mealPlan.mealTimings.map((meal: any, index: number) => {
-                    const isEaten = eatenMealIds.includes(meal.id);
-                    const isSelected = expandedMealIndices.has(index);
-
-                    // Get suggestion based on meal type and calories
-                    const getSuggestionItems = () => {
-                        const cals = meal.calories;
-                        if (meal.id === 'breakfast') {
-                            if (dietaryPreference === 'veg') return [
-                                { icon: 'barley', text: `Oats (${Math.round(cals / 4)}g) + Milk` },
-                                { icon: 'sprout', text: '1 Banana + Almonds' }
-                            ];
-                            return [
-                                { icon: 'egg', text: `${Math.round(cals / 70)} Eggs + Toast` },
-                                { icon: 'cup', text: 'Greek Yogurt + Berries' }
-                            ];
-                        }
-                        if (meal.id === 'lunch' || meal.id === 'dinner') {
-                            if (dietaryPreference === 'veg') return [
-                                { icon: 'cheese', text: `Tofu/Paneer (${Math.round(cals / 2.5)}g)` },
-                                { icon: 'bowl-mix', text: 'Rice/Quinoa + Veggies' } // Changed rice to bowl-mix
-                            ];
-                            return [
-                                { icon: 'food-drumstick', text: `Chicken Breast (${Math.round(cals / 1.5)}g)` },
-                                { icon: 'bowl-mix', text: 'Rice + Veggies' }
-                            ];
-                        }
-                        if (meal.id === 'snack' || meal.id === 'preworkout') {
-                            return [
-                                { icon: 'food-apple', text: '1 Apple + Peanut Butter' }, // Changed fruit-apple to food-apple
-                                { icon: 'cup-water', text: 'Whey Protein Shake' }
-                            ];
-                        }
-                        return [
-                            { icon: 'cup', text: 'Protein Shake' },
-                            { icon: 'peanut', text: 'Handful of Nuts' }
-                        ];
-                    };
-
+            {/* Daily Supplements */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleH2}>Daily Supplements</Text>
+                <Text style={styles.sectionMeta}>{defaultSupplements.length} items</Text>
+            </View>
+            <View style={styles.supplementsGrid}>
+                {defaultSupplements.map((supp) => {
+                    const isTaken = takenSupplementIds.includes(supp.id);
                     return (
                         <TouchableOpacity
-                            key={meal.id}
-                            activeOpacity={0.9}
-                            style={[
-                                styles.mealRow,
-                                isSelected && { flexDirection: 'column', alignItems: 'stretch' },
-                                isEaten && styles.mealRowEaten
-                            ]}
-                            disabled={true} // Disable turning off the expansion
+                            key={supp.id}
+                            activeOpacity={0.85}
+                            style={styles.suppCard}
+                            onPress={() => toggleSupplement(supp.id)}
                         >
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <TouchableOpacity
-                                    style={[styles.checkCircle, isEaten && styles.checkCircleActive]}
-                                    onPress={() => toggleMeal(meal.id)}
-                                >
-                                    {isEaten && <MaterialCommunityIcons name="check" size={16} color="#FFF" />}
-                                </TouchableOpacity>
-                                <View style={styles.mealContent}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Text style={[styles.mealName, isEaten && styles.strikethrough]}>{meal.name}</Text>
-                                        <Text style={[styles.mealCalories, isEaten && { color: '#FFF' }]}>{meal.calories} kcal</Text>
-                                    </View>
-                                    <View style={styles.mealSpecs}>
-                                        <Text style={[styles.mealTime, isEaten && { color: 'rgba(255,255,255,0.7)' }]}>{meal.time}</Text>
-                                    </View>
-                                </View>
+                            <View style={[styles.suppIconWrap, isTaken && { backgroundColor: NEON_GREEN }]}>
+                                <MaterialCommunityIcons
+                                    name={supp.icon as any}
+                                    size={22}
+                                    color={isTaken ? '#0A0A0A' : NEON_GREEN}
+                                />
                             </View>
-
-                            {isSelected && (
-                                <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.glassBorder }}>
-                                    {/* Component: Macro Breakdown */}
-                                    {meal.macros && (
-                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 4 }}>
-                                            <View style={{ alignItems: 'center' }}>
-                                                <Text style={{ color: colors.accentCyan, fontSize: 12, fontWeight: '700' }}>{meal.macros.protein}g</Text>
-                                                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Protein</Text>
-                                            </View>
-                                            <View style={{ width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                                            <View style={{ alignItems: 'center' }}>
-                                                <Text style={{ color: colors.accentYellow, fontSize: 12, fontWeight: '700' }}>{meal.macros.carbs}g</Text>
-                                                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Carbs</Text>
-                                            </View>
-                                            <View style={{ width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                                            <View style={{ alignItems: 'center' }}>
-                                                <Text style={{ color: '#FF6B6B', fontSize: 12, fontWeight: '700' }}>{meal.macros.fats}g</Text>
-                                                <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>Fats</Text>
-                                            </View>
-                                        </View>
-                                    )}
-
-                                    {/* Component: Structured Suggestions */}
-                                    <Text style={{ fontSize: 11, color: colors.accentCyan, fontWeight: '800', marginBottom: 8, letterSpacing: 1 }}>SUGGESTED MEAL</Text>
-                                    <View>
-                                        {getSuggestionItems().map((item, idx) => (
-                                            <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                                                <MaterialCommunityIcons name={item.icon as any} size={14} color={colors.textSecondary} style={{ marginRight: 8, opacity: 0.8 }} />
-                                                <Text style={{ fontSize: 13, color: colors.textSecondary, lineHeight: 20, fontWeight: '500' }}>{item.text}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                </View>
-                            )}
+                            <Text style={styles.suppName} numberOfLines={2}>{supp.name}</Text>
+                            <Text style={styles.suppSchedule}>{supp.schedule}</Text>
                         </TouchableOpacity>
                     );
                 })}
             </View>
 
-            {/* Supplements Checklist */}
-            <View style={styles.supplementsSection}>
-                <Text style={styles.sectionTitle}>Daily Supplements</Text>
-                <View style={styles.supplementsGrid}>
-                    {defaultSupplements.map((supp) => {
-                        const isTaken = takenSupplementIds.includes(supp.id);
-                        return (
-                            <TouchableOpacity
-                                key={supp.id}
-                                style={[styles.suppItem, isTaken && styles.suppItemActive]}
-                                onPress={() => toggleSupplement(supp.id)}
-                            >
-                                <MaterialCommunityIcons
-                                    name={supp.icon as any}
-                                    size={24}
-                                    color={isTaken ? '#FFF' : colors.accentCyan}
-                                />
-                                <Text style={[styles.suppName, isTaken && { color: '#FFF' }]} numberOfLines={2}>{supp.name}</Text>
-                                {isTaken && (
-                                    <View style={styles.suppCheck}>
-                                        <MaterialCommunityIcons name="check" size={10} color={colors.accentCyan} />
-                                    </View>
-                                )}
-                            </TouchableOpacity>
-                        );
-                    })}
+            {/* Smart Food Choices */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleH2}>Smart Food Choices</Text>
+            </View>
+            <View style={styles.foodTabs}>
+                {([
+                    { key: 'protein', label: 'Proteins' },
+                    { key: 'carbs', label: 'Carbs' },
+                    { key: 'fats', label: 'Healthy Fats' },
+                ] as const).map(tab => (
+                    <TouchableOpacity
+                        key={tab.key}
+                        onPress={() => setFoodCategory(tab.key)}
+                        style={[styles.foodTab, foodCategory === tab.key && styles.foodTabActive]}
+                    >
+                        <Text style={[styles.foodTabText, foodCategory === tab.key && styles.foodTabTextActive]}>{tab.label}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: Spacing.m }}
+                style={{ marginBottom: Spacing.l }}
+            >
+                {activeFoodList.slice(0, 8).map((food: any, idx: number) => {
+                    const macroLabel = foodCategory === 'protein' ? `${food.protein}g protein`
+                        : foodCategory === 'carbs' ? `${food.carbs}g carbs`
+                            : `${food.fats}g fats`;
+                    const macroColor = foodCategory === 'protein' ? PROTEIN_COLOR
+                        : foodCategory === 'carbs' ? CARBS_COLOR : FATS_COLOR;
+                    const insight = foodCategory === 'protein' ? 'HIGH BIOAVAILABILITY'
+                        : foodCategory === 'carbs' ? 'FIBER RICH' : 'HEART HEALTHY';
+                    return (
+                        <View key={idx} style={styles.foodCard}>
+                            <Text style={styles.foodName}>{food.name}</Text>
+                            <Text style={styles.foodServing}>{food.servingSize}</Text>
+                            <Text style={styles.foodCalories}>{food.calories} kcal</Text>
+                            <Text style={[styles.foodMacro, { color: macroColor }]}>{macroLabel}</Text>
+                            <View style={styles.foodInsightPill}>
+                                <Text style={styles.foodInsightText}>{insight}</Text>
+                            </View>
+                        </View>
+                    );
+                })}
+            </ScrollView>
+
+            {/* Recipe of the Day */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleH2}>Recipe of the Day</Text>
+            </View>
+            <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setSelectedRecipe(dailyRecipe)}
+                style={styles.recipeCard}
+            >
+                <Image source={{ uri: dailyRecipe.image }} style={styles.recipeImage} />
+                <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.85)']}
+                    style={StyleSheet.absoluteFillObject}
+                />
+                <View style={styles.recipeFeaturedPill}>
+                    <MaterialCommunityIcons name="star" size={11} color="#0A0A0A" />
+                    <Text style={styles.recipeFeaturedText}>FEATURED</Text>
+                </View>
+                <View style={styles.recipeBody}>
+                    <Text style={styles.recipeTitle}>{dailyRecipe.title}</Text>
+                    <View style={styles.recipeMeta}>
+                        <View style={styles.recipeMetaItem}>
+                            <MaterialCommunityIcons name="lightning-bolt" size={14} color={NEON_GREEN} />
+                            <Text style={styles.recipeMetaText}>{dailyRecipe.calories} kcal</Text>
+                        </View>
+                        <View style={styles.recipeMetaItem}>
+                            <MaterialCommunityIcons name="clock-outline" size={14} color="#FFFFFF" />
+                            <Text style={styles.recipeMetaText}>{dailyRecipe.time}</Text>
+                        </View>
+                        <View style={styles.recipeMetaItem}>
+                            <MaterialCommunityIcons name="rhombus-outline" size={14} color="#FFFFFF" />
+                            <Text style={styles.recipeMetaText}>{dailyRecipe.difficulty}</Text>
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
+
+            {/* Nutrition Guidelines */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleH2}>Nutrition Guidelines</Text>
+            </View>
+            <View style={styles.guidelinesCard}>
+                {guidelines.map((guideline: string, index: number) => (
+                    <View key={index}>
+                        <View style={styles.guidelineRow}>
+                            <View style={styles.guidelineCheckCircle}>
+                                <MaterialCommunityIcons name="check" size={14} color={NEON_GREEN} />
+                            </View>
+                            <Text style={styles.guidelineText}>{guideline}</Text>
+                        </View>
+                        {index < guidelines.length - 1 && <View style={styles.guidelineDivider} />}
+                    </View>
+                ))}
+            </View>
+
+            {/* Workout Nutrition */}
+            <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitleH2}>Workout Nutrition</Text>
+            </View>
+            <View style={styles.workoutNutritionCard}>
+                <View style={styles.wnTabs}>
+                    <TouchableOpacity
+                        style={[styles.wnTab, workoutNutritionTab === 'pre' && styles.wnTabActive]}
+                        onPress={() => setWorkoutNutritionTab('pre')}
+                    >
+                        <MaterialCommunityIcons name="lightning-bolt" size={14} color={workoutNutritionTab === 'pre' ? '#0A0A0A' : '#FFFFFF'} />
+                        <Text style={[styles.wnTabText, workoutNutritionTab === 'pre' && styles.wnTabTextActive]}>Pre-Workout</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.wnTab, workoutNutritionTab === 'post' && styles.wnTabActive]}
+                        onPress={() => setWorkoutNutritionTab('post')}
+                    >
+                        <MaterialCommunityIcons name="heart-outline" size={14} color={workoutNutritionTab === 'post' ? '#0A0A0A' : '#FFFFFF'} />
+                        <Text style={[styles.wnTabText, workoutNutritionTab === 'post' && styles.wnTabTextActive]}>Post-Workout</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={{ marginTop: 14 }}>
+                    {(workoutNutritionTab === 'pre' ? preworkoutTips : postworkoutTips).map((tip: string, idx: number) => (
+                        <View key={idx} style={styles.wnTipRow}>
+                            <MaterialCommunityIcons name="lightning-bolt" size={14} color={NEON_GREEN} />
+                            <Text style={styles.wnTipText}>{tip}</Text>
+                        </View>
+                    ))}
                 </View>
             </View>
 
-            {/* Food Suggestions */}
-            <View style={styles.foodSection}>
-                <Text style={styles.sectionTitle}>Smart Food Choices</Text>
+            <View style={{ height: 60 }} />
 
-                <Text style={styles.foodCategoryTitle}>Proteins</Text>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: Spacing.m }}
-                    nestedScrollEnabled={true}
-                >
-                    {filteredSuggestions?.protein.slice(0, 6).map((food: any, index: number) => (
-                        <BlurView key={index} intensity={20} tint={isDark ? "light" : "dark"} style={styles.foodItem}>
-                            <Text style={styles.foodName}>{food.name}</Text>
-                            <Text style={styles.foodServing}>{food.servingSize}</Text>
-                            <Text style={styles.foodCalories}>{food.calories} kcal</Text>
-                            <Text style={[styles.foodProtein, { color: colors.accentPink }]}>{food.protein}g protein</Text>
-                            <View style={styles.foodInsightBadge}>
-                                <Text style={styles.foodInsightText}>{getFoodInsight('protein', food.name)}</Text>
-                            </View>
-                        </BlurView>
-                    ))}
-                </ScrollView>
-
-                <Text style={styles.foodCategoryTitle}>Carbohydrates</Text>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: Spacing.m }}
-                    nestedScrollEnabled={true}
-                >
-                    {filteredSuggestions?.carbs.slice(0, 6).map((food: any, index: number) => (
-                        <BlurView key={index} intensity={20} tint={isDark ? "light" : "dark"} style={styles.foodItem}>
-                            <Text style={styles.foodName}>{food.name}</Text>
-                            <Text style={styles.foodServing}>{food.servingSize}</Text>
-                            <Text style={styles.foodCalories}>{food.calories} kcal</Text>
-                            <Text style={[styles.foodCarbs, { color: colors.accentCyan }]}>{food.carbs}g carbs</Text>
-                            <View style={styles.foodInsightBadge}>
-                                <Text style={styles.foodInsightText}>{getFoodInsight('carbs', food.name)}</Text>
-                            </View>
-                        </BlurView>
-                    ))}
-                </ScrollView>
-
-                <Text style={styles.foodCategoryTitle}>Healthy Fats</Text>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: Spacing.m }}
-                    nestedScrollEnabled={true}
-                >
-                    {filteredSuggestions?.fats.slice(0, 6).map((food: any, index: number) => (
-                        <BlurView key={index} intensity={20} tint={isDark ? "light" : "dark"} style={styles.foodItem}>
-                            <Text style={styles.foodName}>{food.name}</Text>
-                            <Text style={styles.foodServing}>{food.servingSize}</Text>
-                            <Text style={styles.foodCalories}>{food.calories} kcal</Text>
-                            <Text style={[styles.foodFats, { color: colors.accentYellow }]}>{food.fats}g fats</Text>
-                            <View style={styles.foodInsightBadge}>
-                                <Text style={styles.foodInsightText}>{getFoodInsight('fats', food.name)}</Text>
-                            </View>
-                        </BlurView>
-                    ))}
-                </ScrollView>
-            </View>
-
-            {/* Recipe of the Day */}
-            <TouchableOpacity
-                activeOpacity={0.9}
-                style={styles.recipeCard}
-                onPress={() => setSelectedRecipe(dailyRecipe)}
-            >
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.recipeCard}>
-                    <Image source={{ uri: dailyRecipe.image }} style={styles.recipeImage} />
-                    <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.8)']}
-                        style={styles.recipeGradient}
-                    />
-                    <View style={styles.recipeBadge}>
-                        <Text style={styles.recipeBadgeText}>RECIPE OF THE DAY</Text>
-                    </View>
-                    <View style={styles.recipeInfo}>
-                        <Text style={styles.recipeTitle}>{dailyRecipe.title}</Text>
-                        <View style={styles.recipeMeta}>
-                            <View style={styles.recipeMetaItem}>
-                                <MaterialCommunityIcons name="fire" size={14} color={colors.accentWarning} />
-                                <Text style={styles.recipeMetaText}>{dailyRecipe.calories} kcal</Text>
-                            </View>
-                            <View style={styles.recipeMetaItem}>
-                                <MaterialCommunityIcons name="clock-outline" size={14} color={colors.accentCyan} />
-                                <Text style={styles.recipeMetaText}>{dailyRecipe.time}</Text>
-                            </View>
-                            <View style={styles.recipeMetaItem}>
-                                <MaterialCommunityIcons name="chef-hat" size={14} color={colors.accentPink} />
-                                <Text style={styles.recipeMetaText}>{dailyRecipe.difficulty}</Text>
-                            </View>
-                        </View>
-                    </View>
-                </BlurView>
-            </TouchableOpacity>
-
-            {/* Guidelines */}
-            <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.guidelinesCard}>
-                <Text style={styles.sectionTitle}>Nutrition Guidelines</Text>
-                {guidelines.map((guideline: string, index: number) => (
-                    <View key={index} style={styles.guidelineRow}>
-                        <MaterialCommunityIcons name="check-circle-outline" size={16} color={colors.accentCyan} style={styles.guidelineIcon} />
-                        <Text style={styles.guidelineText}>{guideline}</Text>
-                    </View>
-                ))}
-            </BlurView>
-
-            {/* Workout Nutrition Tips */}
-            <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.workoutTipsCard}>
-                <Text style={styles.sectionTitle}>💪 Workout Nutrition</Text>
-
-                <Text style={styles.tipSubtitle}>Pre-Workout</Text>
-                {preworkoutTips.map((tip: string, index: number) => (
-                    <View key={index} style={styles.tipRow}>
-                        <MaterialCommunityIcons name="flash" size={14} color={colors.accentYellow} style={styles.tipIcon} />
-                        <Text style={styles.tipText}>{tip}</Text>
-                    </View>
-                ))}
-
-                <Text style={[styles.tipSubtitle, { marginTop: 15 }]}>Post-Workout</Text>
-                {postworkoutTips.map((tip: string, index: number) => (
-                    <View key={index} style={styles.tipRow}>
-                        <MaterialCommunityIcons name="heart-flash" size={14} color={colors.accentPink} style={styles.tipIcon} />
-                        <Text style={styles.tipText}>{tip}</Text>
-                    </View>
-                ))}
-            </BlurView>
-
-            {/* Recipe Details Modal */}
+            {/* Recipe Modal (kept) */}
             <Modal
                 visible={!!selectedRecipe}
                 animationType="slide"
-                transparent={true}
+                transparent
                 onRequestClose={() => setSelectedRecipe(null)}
             >
-                <BlurView intensity={100} tint={isDark ? "dark" : "light"} style={styles.modalContainer}>
+                <BlurView intensity={100} tint="dark" style={styles.modalContainer}>
                     {selectedRecipe && (
                         <View style={{ flex: 1 }}>
                             <ScrollView contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
                                 <View>
                                     <Image source={{ uri: selectedRecipe.image }} style={styles.modalImage} />
-                                    <LinearGradient
-                                        colors={['transparent', 'rgba(0,0,0,0.8)']}
-                                        style={styles.modalImageGradient}
-                                    />
-                                    <TouchableOpacity
-                                        style={styles.closeButton}
-                                        onPress={() => setSelectedRecipe(null)}
-                                    >
-                                        <MaterialCommunityIcons name="close" size={24} color="#FFF" />
+                                    <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.modalImageGradient} />
+                                    <TouchableOpacity style={styles.closeButton} onPress={() => setSelectedRecipe(null)}>
+                                        <MaterialCommunityIcons name="close" size={22} color="#FFFFFF" />
                                     </TouchableOpacity>
                                     <View style={styles.modalTitleContainer}>
                                         <Text style={styles.modalTitle}>{selectedRecipe.title}</Text>
@@ -756,34 +641,33 @@ export function DietTab({ user }: DietTabProps) {
                                 <View style={styles.modalContent}>
                                     <View style={styles.modalMetaRow}>
                                         <View style={styles.modalMetaBadge}>
-                                            <MaterialCommunityIcons name="fire" size={16} color={colors.accentWarning} />
+                                            <MaterialCommunityIcons name="lightning-bolt" size={14} color={NEON_GREEN} />
                                             <Text style={styles.modalMetaText}>{selectedRecipe.calories} kcal</Text>
                                         </View>
                                         <View style={styles.modalMetaBadge}>
-                                            <MaterialCommunityIcons name="clock-outline" size={16} color={colors.accentCyan} />
+                                            <MaterialCommunityIcons name="clock-outline" size={14} color="#FFFFFF" />
                                             <Text style={styles.modalMetaText}>{selectedRecipe.time}</Text>
                                         </View>
                                         <View style={styles.modalMetaBadge}>
-                                            <MaterialCommunityIcons name="chef-hat" size={16} color={colors.accentPink} />
+                                            <MaterialCommunityIcons name="rhombus-outline" size={14} color="#FFFFFF" />
                                             <Text style={styles.modalMetaText}>{selectedRecipe.difficulty}</Text>
                                         </View>
                                     </View>
 
-                                    {/* Macro Breakdown Badge */}
                                     {selectedRecipe.macros && (
                                         <View style={styles.modalMacros}>
                                             <View style={styles.macroBadgeItem}>
-                                                <Text style={[styles.macroBadgeLabel, { color: colors.accentPink }]}>Protein</Text>
+                                                <Text style={[styles.macroBadgeLabel, { color: PROTEIN_COLOR }]}>Protein</Text>
                                                 <Text style={styles.macroBadgeValue}>{selectedRecipe.macros.protein}g</Text>
                                             </View>
                                             <View style={styles.verticalDivider} />
                                             <View style={styles.macroBadgeItem}>
-                                                <Text style={[styles.macroBadgeLabel, { color: colors.accentCyan }]}>Carbs</Text>
+                                                <Text style={[styles.macroBadgeLabel, { color: CARBS_COLOR }]}>Carbs</Text>
                                                 <Text style={styles.macroBadgeValue}>{selectedRecipe.macros.carbs}g</Text>
                                             </View>
                                             <View style={styles.verticalDivider} />
                                             <View style={styles.macroBadgeItem}>
-                                                <Text style={[styles.macroBadgeLabel, { color: colors.accentYellow }]}>Fats</Text>
+                                                <Text style={[styles.macroBadgeLabel, { color: FATS_COLOR }]}>Fats</Text>
                                                 <Text style={styles.macroBadgeValue}>{selectedRecipe.macros.fats}g</Text>
                                             </View>
                                         </View>
@@ -793,7 +677,9 @@ export function DietTab({ user }: DietTabProps) {
                                         <Text style={styles.modalSectionTitle}>Ingredients</Text>
                                         {selectedRecipe.ingredients?.map((ing: string, i: number) => (
                                             <View key={i} style={styles.ingredientRow}>
-                                                <MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.accentCyan} style={{ marginRight: 12, opacity: 0.8 }} />
+                                                <View style={styles.guidelineCheckCircle}>
+                                                    <MaterialCommunityIcons name="check" size={12} color={NEON_GREEN} />
+                                                </View>
                                                 <Text style={styles.ingredientText}>{ing}</Text>
                                             </View>
                                         ))}
@@ -829,525 +715,671 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
     },
     loadingText: {
         color: colors.textSecondary,
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'center',
-        marginTop: 20,
-        fontWeight: '500',
+        marginTop: 16,
     },
-    tabHeader: {
-        paddingTop: Dimensions.get('window').height * 0.08,
-        paddingBottom: Spacing.xl,
-        paddingHorizontal: 24,
-        borderBottomLeftRadius: Layout.borderRadius.xl,
-        borderBottomRightRadius: Layout.borderRadius.xl,
+
+    // Header
+    header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: Spacing.m,
+        paddingHorizontal: 4,
     },
-    preferenceToggle: {
+    headerLabel: {
+        fontSize: 14,
+        color: colors.textSecondary,
+        fontWeight: '500',
+        marginBottom: 2,
+    },
+    headerTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.4,
+    },
+    avatarCircle: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: 'rgba(196,255,26,0.18)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: 'rgba(196,255,26,0.4)',
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: 52,
+        height: 52,
+    },
+    avatarText: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: NEON_GREEN,
+        letterSpacing: 0.5,
+    },
+
+    // Goal card
+    goalCard: {
         flexDirection: 'row',
-        backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-        borderRadius: 20,
-        padding: 2,
+        alignItems: 'center',
+        backgroundColor: CARD_BG,
+        borderRadius: 18,
+        paddingVertical: 14,
+        paddingHorizontal: 14,
+        paddingLeft: 18,
+        marginBottom: Spacing.m,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        gap: 12,
+        overflow: 'hidden',
+    },
+    goalAccent: {
+        position: 'absolute',
+        left: 0,
+        top: 8,
+        bottom: 8,
+        width: 4,
+        backgroundColor: NEON_GREEN,
+        borderRadius: 4,
+    },
+    goalIconWrap: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: 'rgba(196,255,26,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    goalLabel: {
+        color: colors.textTertiary,
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1.2,
+    },
+    goalValue: {
+        color: '#FFFFFF',
+        fontSize: 17,
+        fontWeight: '900',
+        letterSpacing: -0.2,
+    },
+    prefToggle: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        borderRadius: 999,
+        padding: 3,
     },
     prefOption: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
+        gap: 4,
+        paddingHorizontal: 10,
         paddingVertical: 6,
-        borderRadius: 18,
+        borderRadius: 999,
     },
     prefOptionActive: {
-        backgroundColor: colors.accentCyan,
+        backgroundColor: NEON_GREEN,
     },
     prefText: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: colors.textSecondary,
-        marginLeft: 4,
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '700',
     },
     prefTextActive: {
-        color: '#FFF',
-    },
-    goalHeader: {
-        paddingVertical: Spacing.s,
-        paddingHorizontal: 20,
-        borderRadius: Layout.borderRadius.m,
-        marginBottom: Spacing.m,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    goalText: {
-        color: '#FFF',
-        fontSize: 12,
+        color: '#0A0A0A',
         fontWeight: '900',
-        letterSpacing: 1,
     },
-    calorieCard: {
-        marginHorizontal: 8,
+
+    // Daily Fuel
+    fuelCard: {
+        backgroundColor: CARD_BG,
+        borderRadius: 22,
+        padding: Spacing.m,
         marginBottom: Spacing.l,
-        padding: Spacing.l,
-        borderRadius: Layout.borderRadius.xl,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.15)',
-        backgroundColor: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)',
-        ...shadows.card,
-    },
-    calorieHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: Spacing.l,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: colors.textPrimary,
-        marginBottom: 4,
-    },
-    calorieGoalText: {
-        fontSize: 12,
-        color: colors.textTertiary,
-        fontWeight: '600',
-    },
-    calorieSummary: {
-        alignItems: 'flex-end',
-    },
-    remainingValue: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: colors.accentCyan,
-    },
-    remainingLabel: {
-        fontSize: 10,
-        color: colors.textTertiary,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-    },
-    progressContainer: {
-        marginVertical: Spacing.m,
-        paddingHorizontal: Spacing.xs,
-    },
-    progressHeaderRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: Spacing.m,
-    },
-    progressLabelGroup: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-    },
-    progressPercentGroup: {
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-    },
-    percentBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    progressBarBackground: {
-        height: 16,
-        backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-        borderRadius: 8,
-        overflow: 'hidden',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
-    progressBarFill: {
-        height: '100%',
-        borderRadius: 8,
+    fuelHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: Spacing.m,
     },
-    consumedValue: {
-        fontSize: 36,
-        fontWeight: '900',
-        color: colors.textPrimary,
-        marginRight: 6,
-        letterSpacing: -1,
+    fuelHeaderPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
     },
-    consumedLabel: {
+    fuelHeaderPillText: {
+        color: '#FFFFFF',
         fontSize: 12,
+        fontWeight: '800',
+    },
+    fuelBody: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    ringInner: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    ringValue: {
+        fontSize: 30,
+        fontWeight: '900',
+        color: NEON_GREEN,
+        letterSpacing: -0.8,
+        lineHeight: 32,
+    },
+    ringLabel: {
+        fontSize: 10,
         color: colors.textTertiary,
         fontWeight: '800',
         letterSpacing: 1.5,
+        marginTop: 2,
     },
-    percentValue: {
-        fontSize: 14,
-        fontWeight: '900',
-        color: colors.accentCyan,
+    ringFootnote: {
+        fontSize: 11,
+        color: '#FFFFFF',
+        marginTop: 4,
+        fontWeight: '500',
     },
-    metabolicInfo: {
+    ringFootnoteAccent: {
+        color: '#FFFFFF',
+        fontWeight: '800',
+    },
+    fuelMetrics: {
+        flex: 1,
+        gap: 8,
+    },
+    fuelMetric: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: Spacing.l,
-        paddingTop: Spacing.l,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(255,255,255,0.1)',
-        backgroundColor: 'rgba(0,0,0,0.1)',
-        marginHorizontal: -Spacing.l,
-        paddingHorizontal: Spacing.l,
-        marginBottom: -Spacing.l,
-        paddingBottom: Spacing.l,
-    },
-    metabolicItem: {
         alignItems: 'center',
+        backgroundColor: TILE_BG,
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.04)',
+        gap: 10,
     },
-    metabolicLabel: {
+    fuelMetricIcon: {
+        width: 30,
+        height: 30,
+        borderRadius: 9,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    fuelMetricLabel: {
         fontSize: 10,
         color: colors.textTertiary,
+        fontWeight: '700',
+        letterSpacing: 1.2,
+    },
+    fuelMetricValue: {
+        fontSize: 14,
+        color: '#FFFFFF',
+        fontWeight: '900',
+    },
+    fuelMetricUnit: {
+        fontSize: 11,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
+
+    // Cards / common
+    cardTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.3,
+    },
+    cardSubtitle: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        marginTop: 2,
+    },
+
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        marginTop: Spacing.s,
+        marginBottom: 12,
+        paddingHorizontal: 4,
+    },
+    sectionTitleH2: {
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.3,
+    },
+    sectionMeta: {
+        fontSize: 13,
+        color: colors.textSecondary,
+        fontWeight: '500',
+    },
+
+    // Macros gauges
+    macrosRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: Spacing.l,
+    },
+    macroGaugeCard: {
+        flex: 1,
+        backgroundColor: CARD_BG,
+        borderRadius: 18,
+        paddingVertical: 14,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    macroGaugeName: {
+        fontSize: 12,
+        color: colors.textSecondary,
         fontWeight: '700',
         marginBottom: 2,
     },
-    metabolicValue: {
-        fontSize: 14,
-        color: colors.textPrimary,
-        fontWeight: '800',
+    macroGaugeValue: {
+        fontSize: 12,
+        color: '#FFFFFF',
+        fontWeight: '900',
     },
-    macroCard: {
-        marginHorizontal: 8,
-        marginBottom: Spacing.m,
-        padding: Spacing.m,
-        borderRadius: Layout.borderRadius.xl,
-        overflow: 'hidden',
+    macroGaugePct: {
+        fontSize: 12,
+        fontWeight: '900',
+        marginTop: 2,
+    },
+
+    // Meals
+    mealCard: {
+        backgroundColor: CARD_BG,
+        borderRadius: 22,
+        padding: 16,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255,255,255,0.05)',
     },
-    macroRow: {
+    mealTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: Spacing.m,
     },
-    macroInfo: {
-        width: 70,
-    },
-    macroName: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textPrimary,
-    },
-    macroAmount: {
-        fontSize: 10,
-        color: colors.textTertiary,
-    },
-    macroBarContainer: {
-        flex: 1,
-        height: 8,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 4,
-        marginHorizontal: Spacing.m,
-        overflow: 'hidden',
-    },
-    macroBar: {
-        height: '100%',
-        borderRadius: 4,
-    },
-    macroPercent: {
-        fontSize: 12,
-        fontWeight: '800',
-        color: colors.textPrimary,
-        width: 35,
-        textAlign: 'right',
-    },
-    mealContainer: {
-        paddingHorizontal: 12,
-        marginBottom: Spacing.xl,
-    },
-    mealRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: Spacing.m,
-        borderRadius: Layout.borderRadius.l,
-        backgroundColor: colors.cardSurface,
-        marginBottom: Spacing.s,
-        borderWidth: 1,
-        borderColor: colors.glassBorder,
-        ...shadows.card,
-    },
-    mealRowSelected: {
-        backgroundColor: colors.accentCyan,
-        borderColor: colors.accentCyan,
-    },
-    mealRowEaten: {
-        opacity: 0.8,
-        backgroundColor: colors.cardSurface,
-    },
-    checkCircle: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: colors.accentCyan,
+    mealCheck: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.25)',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: Spacing.m,
     },
-    checkCircleActive: {
-        backgroundColor: colors.accentCyan,
-    },
-    mealContent: {
-        flex: 1,
+    mealCheckActive: {
+        backgroundColor: NEON_GREEN,
+        borderColor: NEON_GREEN,
     },
     mealName: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: colors.textPrimary,
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.3,
     },
-    strikethrough: {
+    mealNameEaten: {
         textDecorationLine: 'line-through',
         color: colors.textTertiary,
     },
-    mealSpecs: {
+    mealTimePill: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 2,
+        alignSelf: 'flex-start',
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 999,
+        marginTop: 4,
+        gap: 4,
     },
-    mealTime: {
+    mealTimeText: {
+        fontSize: 11,
+        color: colors.textSecondary,
+        fontWeight: '600',
+    },
+    mealKcal: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: NEON_GREEN,
+        letterSpacing: -0.5,
+        lineHeight: 26,
+    },
+    mealKcalLabel: {
         fontSize: 10,
         color: colors.textTertiary,
-        marginRight: 8,
-    },
-    mealCalories: {
-        fontSize: 10,
         fontWeight: '700',
-        color: colors.accentCyan,
+        letterSpacing: 1,
     },
-    mealMacros: {
-        alignItems: 'flex-end',
+    mealMacroRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: 14,
     },
-    mealMacroText: {
+    mealMacroPill: {
+        flex: 1,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 12,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.04)',
+    },
+    mealMacroValue: {
+        fontSize: 15,
+        fontWeight: '900',
+    },
+    mealMacroLabel: {
         fontSize: 9,
-        fontWeight: '600',
-        color: colors.textSecondary,
+        color: colors.textTertiary,
+        fontWeight: '700',
+        letterSpacing: 1.2,
+        marginTop: 2,
     },
-    supplementsSection: {
-        paddingHorizontal: 12,
-        marginBottom: Spacing.xl,
+    mealDivider: {
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        marginVertical: 12,
     },
+    suggestedLabel: {
+        fontSize: 11,
+        color: NEON_GREEN,
+        fontWeight: '900',
+        letterSpacing: 1.2,
+        marginBottom: 6,
+    },
+    suggestionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginTop: 4,
+    },
+    suggestionText: {
+        fontSize: 13,
+        color: '#FFFFFF',
+        fontWeight: '500',
+    },
+
+    // Supplements
     supplementsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginHorizontal: -8,
-        marginTop: Spacing.m,
+        gap: 10,
+        marginBottom: Spacing.l,
     },
-    suppItem: {
-        width: (Dimensions.get('window').width - 72) / 2,
-        backgroundColor: colors.cardSurface,
-        margin: 8,
-        padding: Spacing.m,
-        borderRadius: Layout.borderRadius.l,
+    suppCard: {
+        width: (Dimensions.get('window').width - Spacing.s * 2 - 10 - 4) / 2,
+        backgroundColor: CARD_BG,
+        borderRadius: 18,
+        paddingVertical: 18,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        ...shadows.card,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
-    suppItemActive: {
-        backgroundColor: colors.accentCyan,
-        borderColor: colors.accentCyan,
+    suppIconWrap: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: 'rgba(196,255,26,0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 14,
     },
     suppName: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textPrimary,
-        marginTop: 8,
-        textAlign: 'center',
-    },
-    suppCheck: {
-        position: 'absolute',
-        top: 8,
-        right: 8,
-        backgroundColor: '#FFF',
-        borderRadius: 8,
-        padding: 2,
-    },
-    foodSection: {
-        paddingHorizontal: 12,
-        marginBottom: Spacing.xl,
-    },
-    foodCategoryTitle: {
         fontSize: 14,
-        fontWeight: '800',
-        color: colors.textSecondary,
-        marginTop: Spacing.l,
-        marginBottom: Spacing.m,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    foodScroll: {
-        marginHorizontal: -8,
-        paddingHorizontal: 8,
-    },
-    foodItem: {
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: Layout.borderRadius.m,
-        padding: Spacing.s,
-        marginRight: 8,
-        width: 130,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    foodName: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: colors.textPrimary,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        textAlign: 'center',
         marginBottom: 4,
     },
-    foodServing: {
-        fontSize: 10,
+    suppSchedule: {
+        fontSize: 11,
         color: colors.textTertiary,
-        marginBottom: 6,
+        fontWeight: '700',
+        letterSpacing: 1,
+    },
+
+    // Food Choices
+    foodTabs: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 12,
+        paddingHorizontal: 4,
+    },
+    foodTab: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 999,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    foodTabActive: {
+        backgroundColor: NEON_GREEN,
+        borderColor: NEON_GREEN,
+    },
+    foodTabText: {
+        fontSize: 13,
+        color: '#FFFFFF',
+        fontWeight: '700',
+    },
+    foodTabTextActive: {
+        color: '#0A0A0A',
+        fontWeight: '900',
+    },
+    foodCard: {
+        width: 170,
+        backgroundColor: CARD_BG,
+        borderRadius: 18,
+        padding: 14,
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    foodName: {
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.2,
+    },
+    foodServing: {
+        fontSize: 11,
+        color: colors.textTertiary,
+        marginTop: 2,
+        marginBottom: 10,
     },
     foodCalories: {
-        fontSize: 12,
-        color: colors.textPrimary,
-        fontWeight: '600',
-        marginBottom: 2,
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        marginBottom: 4,
     },
-    foodProtein: {
-        fontSize: 11,
-        fontWeight: '700',
+    foodMacro: {
+        fontSize: 13,
+        fontWeight: '800',
+        marginBottom: 10,
     },
-    foodCarbs: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    foodFats: {
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    foodInsightBadge: {
-        marginTop: 8,
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
+    foodInsightPill: {
+        alignSelf: 'flex-start',
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
     },
     foodInsightText: {
-        fontSize: 8,
-        fontWeight: '800',
-        color: '#FFF',
-        textTransform: 'uppercase',
+        fontSize: 9,
+        color: colors.textSecondary,
+        fontWeight: '900',
+        letterSpacing: 0.6,
     },
+
+    // Recipe of the day
     recipeCard: {
-        marginHorizontal: 8,
         height: 200,
-        borderRadius: Layout.borderRadius.xl,
+        borderRadius: 22,
         overflow: 'hidden',
-        marginBottom: Spacing.xl,
-        ...shadows.card,
+        marginBottom: Spacing.l,
+        borderWidth: 1,
+        borderColor: 'rgba(196,255,26,0.15)',
     },
     recipeImage: {
         ...StyleSheet.absoluteFillObject,
         width: '100%',
         height: '100%',
     },
-    recipeGradient: {
-        ...StyleSheet.absoluteFillObject,
-        zIndex: 1,
-    },
-    recipeBadge: {
+    recipeFeaturedPill: {
         position: 'absolute',
-        top: Spacing.m,
-        left: Spacing.m,
-        backgroundColor: colors.accentCyan,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-        zIndex: 2,
+        top: 14,
+        left: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: NEON_GREEN,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 999,
     },
-    recipeBadgeText: {
-        color: '#FFF',
-        fontSize: 10,
+    recipeFeaturedText: {
+        color: '#0A0A0A',
+        fontSize: 11,
         fontWeight: '900',
+        letterSpacing: 0.5,
     },
-    recipeInfo: {
+    recipeBody: {
         position: 'absolute',
-        bottom: Spacing.m,
-        left: Spacing.m,
-        right: Spacing.m,
-        zIndex: 2,
+        bottom: 14,
+        left: 14,
+        right: 14,
     },
     recipeTitle: {
-        color: '#FFF',
-        fontSize: 20,
-        fontWeight: '800',
+        color: '#FFFFFF',
+        fontSize: 22,
+        fontWeight: '900',
         marginBottom: 8,
+        letterSpacing: -0.3,
     },
     recipeMeta: {
         flexDirection: 'row',
-        alignItems: 'center',
+        gap: 14,
     },
     recipeMetaItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 16,
+        gap: 5,
     },
     recipeMetaText: {
-        color: '#FFF',
-        fontSize: 12,
-        fontWeight: '600',
-        marginLeft: 4,
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '700',
     },
+
+    // Guidelines
     guidelinesCard: {
-        marginHorizontal: 8,
+        backgroundColor: CARD_BG,
+        borderRadius: 22,
+        paddingVertical: 6,
+        paddingHorizontal: 16,
         marginBottom: Spacing.l,
-        padding: Spacing.l,
-        borderRadius: Layout.borderRadius.xl,
-        overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     guidelineRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginTop: Spacing.m,
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 12,
     },
-    guidelineIcon: {
-        marginTop: 2,
-        marginRight: Spacing.s,
+    guidelineCheckCircle: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: 'rgba(196,255,26,0.18)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(196,255,26,0.3)',
+    },
+    guidelineDivider: {
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.06)',
     },
     guidelineText: {
-        fontSize: 13,
-        color: colors.textSecondary,
         flex: 1,
-        lineHeight: 18,
-    },
-    workoutTipsCard: {
-        marginHorizontal: 8,
-        marginBottom: 100,
-        padding: Spacing.l,
-        borderRadius: Layout.borderRadius.xl,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-    },
-    tipSubtitle: {
         fontSize: 14,
-        fontWeight: '800',
-        color: colors.textPrimary,
-        marginTop: Spacing.m,
-        marginBottom: Spacing.s,
+        color: '#FFFFFF',
+        lineHeight: 20,
+        fontWeight: '500',
     },
-    tipRow: {
+
+    // Workout Nutrition
+    workoutNutritionCard: {
+        backgroundColor: CARD_BG,
+        borderRadius: 22,
+        padding: 16,
+        marginBottom: Spacing.l,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    wnTabs: {
+        flexDirection: 'row',
+        gap: 8,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 999,
+        padding: 4,
+    },
+    wnTab: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.xs,
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 9,
+        borderRadius: 999,
     },
-    tipIcon: {
-        marginRight: Spacing.s,
+    wnTabActive: {
+        backgroundColor: NEON_GREEN,
     },
-    tipText: {
-        fontSize: 12,
-        color: colors.textSecondary,
+    wnTabText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#FFFFFF',
     },
+    wnTabTextActive: {
+        color: '#0A0A0A',
+        fontWeight: '900',
+    },
+    wnTipRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 8,
+    },
+    wnTipText: {
+        flex: 1,
+        fontSize: 14,
+        color: '#FFFFFF',
+        lineHeight: 20,
+        fontWeight: '500',
+    },
+
+    // Recipe Modal
     modalContainer: {
         flex: 1,
-        backgroundColor: isDark ? 'rgba(0,0,0,0.9)' : 'rgba(255,255,255,0.9)',
+        backgroundColor: 'rgba(0,0,0,0.95)',
     },
     modalImage: {
         width: '100%',
@@ -1368,93 +1400,12 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
     modalContent: {
         flex: 1,
         marginTop: -30,
-        backgroundColor: isDark ? '#121212' : '#FFFFFF',
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
-        padding: Spacing.l,
+        backgroundColor: '#0A0F1A',
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        padding: Spacing.m,
         paddingBottom: 40,
         minHeight: Dimensions.get('window').height - 250,
-    },
-    modalHeader: {
-        marginBottom: Spacing.xl,
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 28, // increased
-        fontWeight: '800',
-        color: '#FFF', // Always white on image
-        textAlign: 'left',
-        marginBottom: Spacing.m,
-        textShadowColor: 'rgba(0,0,0,0.5)',
-        textShadowOffset: { width: 0, height: 2 },
-        textShadowRadius: 4,
-    },
-    modalMetaRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: Spacing.s, // Reduced from xl
-        marginTop: Spacing.s,
-    },
-    modalMetaItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginHorizontal: 12,
-    },
-    modalMetaText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: colors.textSecondary,
-        marginLeft: 6,
-    },
-    modalMacros: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        paddingHorizontal: 12,
-        paddingVertical: 12,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
-        marginTop: 0, // Removed extra margin
-    },
-    modalMacroText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: colors.textSecondary,
-    },
-    modalSection: {
-        marginBottom: Spacing.xl,
-    },
-    modalSectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: colors.textPrimary,
-        marginBottom: Spacing.m,
-    },
-    ingredientRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    bulletPoint: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: colors.accentCyan,
-        marginRight: 12,
-    },
-    ingredientText: {
-        fontSize: 15,
-        color: colors.textSecondary,
-        lineHeight: 22,
-    },
-
-    instructionText: {
-        fontSize: 15,
-        color: colors.textSecondary,
-        lineHeight: 24,
-        flex: 1,
     },
     modalImageGradient: {
         position: 'absolute',
@@ -1465,61 +1416,122 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark
     },
     modalTitleContainer: {
         position: 'absolute',
-        bottom: 20,
+        bottom: 50,
         left: 20,
         right: 20,
+    },
+    modalTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.5,
+    },
+    modalMetaRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: Spacing.s,
+        marginBottom: Spacing.m,
+        flexWrap: 'wrap',
     },
     modalMetaBadge: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 6,
         backgroundColor: 'rgba(255,255,255,0.05)',
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    modalMetaText: {
+        fontSize: 13,
+        color: '#FFFFFF',
+        fontWeight: '700',
+    },
+    modalMacros: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        paddingVertical: 14,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        marginBottom: Spacing.l,
     },
     macroBadgeItem: {
         alignItems: 'center',
-        paddingHorizontal: 12,
+        flex: 1,
     },
     macroBadgeLabel: {
-        fontSize: 10,
-        fontWeight: '700',
+        fontSize: 11,
+        fontWeight: '800',
         marginBottom: 2,
+        letterSpacing: 0.5,
     },
     macroBadgeValue: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '900',
+        color: '#FFFFFF',
     },
     verticalDivider: {
         width: 1,
-        height: 24,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        height: 28,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    modalSection: {
+        marginBottom: Spacing.l,
+    },
+    modalSectionTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        marginBottom: 12,
+        letterSpacing: -0.2,
+    },
+    ingredientRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 8,
+    },
+    ingredientText: {
+        flex: 1,
+        fontSize: 14,
+        color: '#FFFFFF',
+        lineHeight: 20,
+        fontWeight: '500',
     },
     instructionCard: {
         flexDirection: 'row',
-        padding: 16,
+        padding: 14,
         backgroundColor: 'rgba(255,255,255,0.03)',
-        borderRadius: 16,
-        marginBottom: 12,
+        borderRadius: 14,
+        marginBottom: 10,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.05)',
     },
     instructionNumberContainer: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: colors.accentCyan,
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: NEON_GREEN,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 12,
         marginTop: 2,
     },
     instructionNumber: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '900',
-        color: '#000', // Black text on Cyan background
+        color: '#0A0A0A',
+    },
+    instructionText: {
+        fontSize: 14,
+        color: '#FFFFFF',
+        lineHeight: 20,
+        flex: 1,
+        fontWeight: '500',
     },
 });

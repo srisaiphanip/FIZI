@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import {
@@ -21,8 +20,11 @@ import {
 } from '../store/slices/workoutSlice';
 import { setHistoryScrollOffset } from '../store/slices/uiSlice';
 import { workoutService } from '../services/WorkoutService';
-import { Spacing, Layout, Shadows, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
+import { Spacing, ThemeColorsType, ThemeShadowsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
+
+const NEON_GREEN = '#C4FF1A';
+const CARD_BG = '#13182A';
 
 interface HistoryScreenProps {
     navigation: any;
@@ -30,7 +32,7 @@ interface HistoryScreenProps {
 
 export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const { colors, gradients, shadows, isDark } = useTheme();
-    const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
+    const styles = useMemo(() => createStyles(colors, shadows, isDark), [colors, shadows, isDark]);
     const dispatch = useAppDispatch();
     const { history, stats, personalBests, loading, error } = useAppSelector(
         (state) => state.workout
@@ -45,7 +47,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
     useEffect(() => {
         loadData();
-        // Restore scroll position
         if (historyScrollOffset > 0) {
             setTimeout(() => {
                 scrollViewRef.current?.scrollTo({ y: historyScrollOffset, animated: false });
@@ -61,7 +62,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 dispatch(fetchPersonalBests())
             ]);
 
-            // Fetch graph data based on period
             let graphData;
             if (graphPeriod === 'week') {
                 graphData = await workoutService.getWeeklyStats();
@@ -77,7 +77,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     };
 
     const onRefresh = async () => {
-
         setRefreshing(true);
         await loadData();
         setRefreshing(false);
@@ -103,19 +102,22 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
-                    <MaterialCommunityIcons name="chevron-left" size={32} color={colors.primaryStart} />
+                    <MaterialCommunityIcons name="chevron-left" size={28} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.title}>History & Stats</Text>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.headerLabel}>YOUR PROGRESS</Text>
+                    <Text style={styles.title}>Workout History</Text>
+                </View>
             </View>
 
             <ScrollView
                 ref={scrollViewRef}
                 style={styles.content}
+                contentContainerStyle={{ paddingBottom: 40 }}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primaryStart} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={NEON_GREEN} />
                 }
                 onMomentumScrollEnd={(e) => {
                     dispatch(setHistoryScrollOffset(e.nativeEvent.contentOffset.y));
@@ -125,8 +127,8 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                 }}
                 scrollEventThrottle={16}
             >
-                {/* Weekly Activity Graph */}
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.graphCard}>
+                {/* Activity Trends */}
+                <View style={styles.card}>
                     <View style={styles.graphHeader}>
                         <Text style={styles.sectionTitle}>Activity Trends</Text>
                         <View style={styles.graphToggle}>
@@ -145,7 +147,6 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                         </View>
                     </View>
 
-                    {/* Period Selector */}
                     <View style={styles.periodSelector}>
                         {(['week', 'month', 'all'] as const).map((period) => (
                             <TouchableOpacity
@@ -169,71 +170,75 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     </View>
 
                     {weeklyStats.length > 0 ? (
-                        <LineChart
-                            data={{
-                                labels: weeklyStats.map(d => d.date),
-                                datasets: [{
-                                    data: weeklyStats.map(d => graphMetric === 'calories' ? d.calories : d.duration),
-                                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.9})`,
-                                    strokeWidth: 3
-                                }]
-                            }}
-                            width={Dimensions.get('window').width - 104}
-                            height={180}
-                            segments={4}
-                            yAxisSuffix={graphMetric === 'calories' ? '' : 'm'}
-                            yAxisInterval={1}
-                            withInnerLines={true}
-                            withOuterLines={false}
-                            withVerticalLines={false}
-                            withHorizontalLines={true}
-                            withShadow={false}
-                            withDots={false}
-                            chartConfig={{
-                                backgroundColor: colors.primaryStart,
-                                backgroundGradientFrom: colors.primaryStart,
-                                backgroundGradientFromOpacity: 1,
-                                backgroundGradientTo: colors.primaryEnd || colors.accentCyan,
-                                backgroundGradientToOpacity: 1,
-                                decimalPlaces: 0,
-                                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.85})`,
-                                style: {
-                                    borderRadius: 16
-                                },
-                                propsForDots: {
-                                    r: "5",
-                                    strokeWidth: "2",
-                                    stroke: "#FFFFFF",
-                                    fill: colors.accentCyan
-                                },
-                                propsForBackgroundLines: {
-                                    strokeDasharray: "",
-                                    stroke: "rgba(255,255,255,0.1)",
-                                    strokeWidth: 1
-                                },
-                                fillShadowGradient: colors.accentCyan,
-                                fillShadowGradientOpacity: 0.2,
-                            }}
-                            bezier
-                            style={{
-                                marginVertical: 8,
-                                borderRadius: 16,
-                                ...shadows.small
-                            }}
-                        />
+                        <View style={styles.chartWrap}>
+                            <LineChart
+                                data={{
+                                    labels: weeklyStats.map(d => d.date),
+                                    datasets: [{
+                                        data: weeklyStats.map(d => graphMetric === 'calories' ? d.calories : d.duration),
+                                        color: (opacity = 1) => `rgba(196, 255, 26, ${opacity})`,
+                                        strokeWidth: 3
+                                    }]
+                                }}
+                                width={Dimensions.get('window').width - 56}
+                                height={200}
+                                segments={4}
+                                yAxisSuffix={graphMetric === 'calories' ? '' : 'm'}
+                                yAxisInterval={1}
+                                fromZero
+                                withInnerLines={true}
+                                withOuterLines={false}
+                                withVerticalLines={false}
+                                withHorizontalLines={true}
+                                withShadow={true}
+                                withDots={true}
+                                chartConfig={{
+                                    backgroundColor: 'transparent',
+                                    backgroundGradientFrom: CARD_BG,
+                                    backgroundGradientFromOpacity: 0,
+                                    backgroundGradientTo: CARD_BG,
+                                    backgroundGradientToOpacity: 0,
+                                    decimalPlaces: 0,
+                                    color: (opacity = 1) => `rgba(196, 255, 26, ${opacity})`,
+                                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.6})`,
+                                    style: { borderRadius: 16 },
+                                    propsForLabels: {
+                                        fontSize: 11,
+                                        fontWeight: '600',
+                                    },
+                                    propsForDots: {
+                                        r: '5',
+                                        strokeWidth: '2',
+                                        stroke: NEON_GREEN,
+                                        fill: '#0A0A0A',
+                                    },
+                                    propsForBackgroundLines: {
+                                        strokeDasharray: '',
+                                        stroke: 'rgba(255,255,255,0.06)',
+                                        strokeWidth: 1
+                                    },
+                                    fillShadowGradient: NEON_GREEN,
+                                    fillShadowGradientOpacity: 0.22,
+                                    fillShadowGradientFrom: NEON_GREEN,
+                                    fillShadowGradientFromOpacity: 0.28,
+                                    fillShadowGradientTo: NEON_GREEN,
+                                    fillShadowGradientToOpacity: 0,
+                                }}
+                                bezier
+                                style={styles.chart}
+                            />
+                        </View>
                     ) : (
                         <View style={styles.noGraphData}>
-                            <Text style={styles.noGraphText}>No activity data for this week</Text>
+                            <Text style={styles.noGraphText}>No activity data for this period</Text>
                         </View>
                     )}
-                </BlurView>
+                </View>
 
-                {/* Stats Overview */}
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.statsCard}>
+                {/* Performance Overview */}
+                <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Performance Overview</Text>
 
-                    {/* Period Selector */}
                     <View style={styles.periodSelector}>
                         {(['week', 'month', 'all'] as const).map((period) => (
                             <TouchableOpacity
@@ -258,7 +263,7 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
 
                     <View style={styles.statsGrid}>
                         <View style={styles.statItem}>
-                            <Text style={styles.statValue}>{stats.totalWorkouts}</Text>
+                            <Text style={[styles.statValue, styles.statAccent]}>{stats.totalWorkouts}</Text>
                             <Text style={styles.statLabel}>Sessions</Text>
                         </View>
                         <View style={styles.statItem}>
@@ -276,7 +281,9 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                     </View>
 
                     <View style={styles.avgScoreContainer}>
-                        <Text style={styles.avgScoreLabel}>Average Form Accuracy</Text>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.avgScoreLabel}>AVERAGE FORM ACCURACY</Text>
+                        </View>
                         <Text style={[
                             styles.avgScoreValue,
                             stats.averageFormScore >= 80 ? styles.scoreGood :
@@ -285,107 +292,126 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
                             {stats.averageFormScore}%
                         </Text>
                     </View>
-                </BlurView>
+                </View>
 
                 {/* Personal Bests */}
                 {(personalBests.maxReps || personalBests.longestWorkout || personalBests.bestFormScore) && (
-                    <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.bestsCard}>
-                        <Text style={styles.sectionTitle}>🏆 Personal Bests</Text>
+                    <View style={styles.card}>
+                        <View style={styles.bestsHeader}>
+                            <View style={styles.bestsBadge}>
+                                <MaterialCommunityIcons name="trophy" size={14} color="#0A0A0A" />
+                            </View>
+                            <Text style={styles.sectionTitleNoMargin}>Personal Bests</Text>
+                        </View>
 
                         {personalBests.maxReps && (
                             <View style={styles.bestItem}>
-                                <View style={styles.bestIconContainer}>
-                                    <Text style={styles.bestIcon}>💪</Text>
+                                <View style={[styles.bestIconContainer, { backgroundColor: 'rgba(196,255,26,0.15)' }]}>
+                                    <MaterialCommunityIcons name="arm-flex" size={20} color={NEON_GREEN} />
                                 </View>
                                 <View style={styles.bestInfo}>
                                     <Text style={styles.bestValue}>{personalBests.maxReps.value} reps</Text>
                                     <Text style={styles.bestLabel}>{personalBests.maxReps.exercise}</Text>
                                 </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                             </View>
                         )}
 
                         {personalBests.longestWorkout && (
                             <View style={styles.bestItem}>
-                                <View style={styles.bestIconContainer}>
-                                    <Text style={styles.bestIcon}>⏱️</Text>
+                                <View style={[styles.bestIconContainer, { backgroundColor: 'rgba(34,211,238,0.15)' }]}>
+                                    <MaterialCommunityIcons name="clock-outline" size={20} color="#22D3EE" />
                                 </View>
                                 <View style={styles.bestInfo}>
-                                    <Text style={styles.bestValue}>
-                                        {formatDuration(personalBests.longestWorkout.value)}
-                                    </Text>
+                                    <Text style={styles.bestValue}>{formatDuration(personalBests.longestWorkout.value)}</Text>
                                     <Text style={styles.bestLabel}>Longest Session</Text>
                                 </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                             </View>
                         )}
 
                         {personalBests.bestFormScore && (
-                            <View style={styles.bestItem}>
-                                <View style={styles.bestIconContainer}>
-                                    <Text style={styles.bestIcon}>⭐</Text>
+                            <View style={[styles.bestItem, { marginBottom: 0 }]}>
+                                <View style={[styles.bestIconContainer, { backgroundColor: 'rgba(192,132,252,0.18)' }]}>
+                                    <MaterialCommunityIcons name="star" size={20} color="#C084FC" />
                                 </View>
                                 <View style={styles.bestInfo}>
                                     <Text style={styles.bestValue}>{personalBests.bestFormScore.value}%</Text>
                                     <Text style={styles.bestLabel}>Highest Form Score</Text>
                                 </View>
+                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
                             </View>
                         )}
-                    </BlurView>
+                    </View>
                 )}
 
-                {/* Workout History */}
+                {/* Recent Activities */}
                 <View style={styles.historySection}>
                     <Text style={styles.sectionTitle}>Recent Activities</Text>
 
                     {error && (
-                        <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.errorState}>
-                            <Text style={styles.errorIcon}>⚠️</Text>
+                        <View style={styles.errorState}>
+                            <MaterialCommunityIcons name="alert-circle-outline" size={42} color={colors.accentError} />
                             <Text style={styles.errorText}>Failed to load history</Text>
                             <Text style={styles.errorSubtext}>{error}</Text>
                             <TouchableOpacity onPress={onRefresh} style={styles.retryButton}>
                                 <Text style={styles.retryButtonText}>Retry</Text>
                             </TouchableOpacity>
-                        </BlurView>
+                        </View>
                     )}
 
                     {!error && loading && history.length === 0 ? (
-                        <ActivityIndicator color={colors.primaryStart} size="large" style={{ marginTop: 20 }} />
+                        <ActivityIndicator color={NEON_GREEN} size="large" style={{ marginTop: 20 }} />
                     ) : !error && history.length === 0 ? (
-                        <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.emptyState}>
-                            <Text style={styles.emptyIcon}>🏋️</Text>
+                        <View style={styles.emptyState}>
+                            <View style={styles.emptyIconWrap}>
+                                <MaterialCommunityIcons name="dumbbell" size={36} color={NEON_GREEN} />
+                            </View>
                             <Text style={styles.emptyText}>No workouts yet</Text>
                             <Text style={styles.emptySubtext}>Complete a workout to see it here</Text>
-                        </BlurView>
+                        </View>
                     ) : !error && (
-                        history.map((workout) => (
-                            <BlurView key={workout.id} intensity={15} tint={isDark ? "light" : "dark"} style={styles.workoutItem}>
-                                <View style={styles.workoutHeaderRow}>
-                                    <View>
-                                        <Text style={styles.workoutExercise}>{workout.exerciseName}</Text>
-                                        <Text style={styles.workoutDate}>{formatDate(workout.createdAt)}</Text>
+                        history.map((workout, idx) => (
+                            <View key={workout.id} style={styles.workoutItem}>
+                                <View style={styles.workoutNumberBadge}>
+                                    <Text style={styles.workoutNumberText}>{idx + 1}</Text>
+                                </View>
+                                <View style={styles.workoutBody}>
+                                    <View style={styles.workoutHeaderRow}>
+                                        <View style={{ flex: 1, marginRight: 8 }}>
+                                            <Text style={styles.workoutExercise} numberOfLines={1}>{workout.exerciseName}</Text>
+                                            <Text style={styles.workoutDate}>{formatDate(workout.createdAt)}</Text>
+                                        </View>
+                                        <View style={[
+                                            styles.scoreBadge,
+                                            workout.averageFormScore >= 80 ? styles.scoreBadgeGood :
+                                                workout.averageFormScore >= 60 ? styles.scoreBadgeWarning : styles.scoreBadgeBad
+                                        ]}>
+                                            <Text style={[
+                                                styles.scoreBadgeText,
+                                                workout.averageFormScore >= 80 ? { color: NEON_GREEN } :
+                                                    workout.averageFormScore >= 60 ? { color: '#FACC15' } : { color: '#F87171' }
+                                            ]}>
+                                                {workout.averageFormScore}%
+                                            </Text>
+                                        </View>
                                     </View>
-                                    <View style={[
-                                        styles.scoreBadge,
-                                        workout.averageFormScore >= 80 ? styles.scoreBadgeGood :
-                                            workout.averageFormScore >= 60 ? styles.scoreBadgeWarning : styles.scoreBadgeBad
-                                    ]}>
-                                        <Text style={styles.scoreBadgeText}>{workout.averageFormScore}%</Text>
+                                    <View style={styles.workoutDetails}>
+                                        <View style={styles.detailPill}>
+                                            <MaterialCommunityIcons name="repeat" size={12} color={colors.textSecondary} />
+                                            <Text style={styles.workoutStat}>{workout.reps} reps</Text>
+                                        </View>
+                                        <View style={styles.detailPill}>
+                                            <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textSecondary} />
+                                            <Text style={styles.workoutStat}>{formatDuration(workout.duration)}</Text>
+                                        </View>
+                                        <View style={styles.detailPill}>
+                                            <MaterialCommunityIcons name="lightning-bolt" size={12} color={colors.textSecondary} />
+                                            <Text style={styles.workoutStat}>{workout.caloriesBurned || 0} kcal</Text>
+                                        </View>
                                     </View>
                                 </View>
-                                <View style={styles.workoutDetails}>
-                                    <View style={styles.detailPill}>
-                                        <MaterialCommunityIcons name="repeat" size={14} color={colors.textSecondary} />
-                                        <Text style={styles.workoutStat}>{workout.reps} reps</Text>
-                                    </View>
-                                    <View style={styles.detailPill}>
-                                        <MaterialCommunityIcons name="clock-outline" size={14} color={colors.textSecondary} />
-                                        <Text style={styles.workoutStat}>{formatDuration(workout.duration)}</Text>
-                                    </View>
-                                    <View style={styles.detailPill}>
-                                        <MaterialCommunityIcons name="fire" size={14} color={colors.textSecondary} />
-                                        <Text style={styles.workoutStat}>{workout.caloriesBurned || 0} kcal</Text>
-                                    </View>
-                                </View>
-                            </BlurView>
+                            </View>
                         ))
                     )}
                 </View>
@@ -395,79 +421,115 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     );
 }
 
-const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 60,
-        paddingHorizontal: Spacing.l,
-        paddingBottom: 20,
+        paddingTop: 56,
+        paddingHorizontal: Spacing.m,
+        paddingBottom: 18,
     },
     backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginRight: 12,
-        marginLeft: -10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
+    },
+    headerLabel: {
+        fontSize: 11,
+        color: NEON_GREEN,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        marginBottom: 2,
     },
     title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
+        fontSize: 26,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.4,
     },
     content: {
         flex: 1,
-        paddingHorizontal: Spacing.l,
+        paddingHorizontal: Spacing.m,
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
-        marginBottom: 16,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        marginBottom: 14,
+        letterSpacing: -0.2,
+    },
+    sectionTitleNoMargin: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.2,
     },
 
-    // Graph Card
-    graphCard: {
-        backgroundColor: colors.glassSurface,
-        borderRadius: Layout.borderRadius.m,
-        padding: 20,
-        marginBottom: 20,
+    // Generic dark card
+    card: {
+        backgroundColor: isDark ? CARD_BG : '#1A1F2E',
+        borderRadius: 22,
+        padding: 18,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        overflow: 'hidden',
+        borderColor: 'rgba(255,255,255,0.05)',
         ...shadows.card,
     },
+
+    // Graph
     graphHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 14,
     },
     graphToggle: {
         flexDirection: 'row',
-        backgroundColor: 'rgba(0,0,0,0.1)',
-        borderRadius: 8,
-        padding: 2,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 10,
+        padding: 3,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     toggleButton: {
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         paddingVertical: 6,
-        borderRadius: 6,
+        borderRadius: 7,
     },
     toggleButtonActive: {
-        backgroundColor: colors.glassSurface,
-        ...shadows.small,
+        backgroundColor: NEON_GREEN,
     },
     toggleText: {
         fontSize: 12,
         color: colors.textSecondary,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     toggleTextActive: {
-        color: colors.textPrimary,
+        color: '#0A0A0A',
+        fontWeight: '900',
+    },
+    chartWrap: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginHorizontal: -8,
+        marginTop: 4,
+        marginBottom: 4,
+    },
+    chart: {
+        borderRadius: 16,
+        paddingRight: 0,
     },
     noGraphData: {
-        height: 200,
+        height: 180,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -476,269 +538,282 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         fontSize: 14,
     },
 
-    // Stats Card
-    statsCard: {
-        backgroundColor: colors.glassSurface,
-        borderRadius: Layout.borderRadius.m,
-        padding: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: colors.glassBorder,
-        overflow: 'hidden',
-        ...shadows.card,
-    },
+    // Period Selector
     periodSelector: {
         flexDirection: 'row',
-        marginBottom: 20,
+        marginBottom: 14,
         gap: 8,
     },
     periodButton: {
         flex: 1,
-        paddingVertical: 10,
-        borderRadius: Layout.borderRadius.s,
-        backgroundColor: colors.glassSurface,
+        paddingVertical: 9,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.04)',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
+        borderColor: 'rgba(255,255,255,0.06)',
         alignItems: 'center',
     },
     periodButtonActive: {
-        backgroundColor: colors.primaryStart,
-        borderColor: colors.primaryStart,
+        backgroundColor: NEON_GREEN,
+        borderColor: NEON_GREEN,
     },
     periodButtonText: {
         color: colors.textSecondary,
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 13,
+        fontWeight: '700',
     },
     periodButtonTextActive: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
+        color: '#0A0A0A',
+        fontWeight: '900',
     },
+
+    // Stats Grid
     statsGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 10,
     },
     statItem: {
-        width: '47%',
-        backgroundColor: colors.glassSurface,
-        borderRadius: Layout.borderRadius.s,
-        padding: 16,
-        alignItems: 'center',
+        width: '48%',
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        borderRadius: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 14,
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        ...shadows.small,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     statValue: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.5,
+    },
+    statAccent: {
+        color: NEON_GREEN,
     },
     statLabel: {
         fontSize: 12,
-        color: colors.textTertiary,
-        marginTop: 4,
-    },
-    avgScoreContainer: {
-        marginTop: 20,
-        alignItems: 'center',
-        paddingTop: 16,
-        borderTopWidth: 1,
-        borderTopColor: colors.glassBorder,
-    },
-    avgScoreLabel: {
         color: colors.textSecondary,
-        fontSize: 14,
-        marginBottom: 4,
-    },
-    avgScoreValue: {
-        fontSize: 36,
-        fontWeight: 'bold',
-    },
-    scoreGood: {
-        color: colors.accentSuccess,
-    },
-    scoreWarning: {
-        color: colors.accentYellow,
-    },
-    scoreBad: {
-        color: colors.accentError,
+        marginTop: 4,
+        fontWeight: '500',
     },
 
-    // Personal Bests Card
-    bestsCard: {
-        backgroundColor: colors.accentYellow + '1A', // ~10% opacity for better visibility
-        borderRadius: Layout.borderRadius.m,
-        padding: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: colors.accentYellow + '4D', // ~30% opacity
-        overflow: 'hidden',
-        ...shadows.card,
+    // Avg Score
+    avgScoreContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 16,
+        paddingTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.06)',
+    },
+    avgScoreLabel: {
+        color: colors.textTertiary,
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
+    avgScoreValue: {
+        fontSize: 30,
+        fontWeight: '900',
+    },
+    scoreGood: { color: NEON_GREEN },
+    scoreWarning: { color: '#FACC15' },
+    scoreBad: { color: '#F87171' },
+
+    // Personal Bests
+    bestsHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 14,
+    },
+    bestsBadge: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: NEON_GREEN,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     bestItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
-        backgroundColor: colors.glassSurface,
+        marginBottom: 10,
+        backgroundColor: 'rgba(255,255,255,0.03)',
         padding: 12,
-        borderRadius: Layout.borderRadius.s,
+        borderRadius: 14,
         borderWidth: 1,
-        borderColor: colors.glassBorder,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     bestIconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: colors.accentYellow + '1A',
-        justifyContent: 'center',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         alignItems: 'center',
+        justifyContent: 'center',
         marginRight: 12,
-    },
-    bestIcon: {
-        fontSize: 22,
     },
     bestInfo: {
         flex: 1,
     },
     bestValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: -0.2,
     },
     bestLabel: {
         fontSize: 12,
         color: colors.textSecondary,
+        marginTop: 2,
     },
 
-    // History Card
+    // History
     historySection: {
         marginBottom: 20,
     },
     workoutItem: {
-        borderRadius: Layout.borderRadius.m,
-        padding: 16,
-        marginBottom: 12,
+        flexDirection: 'row',
+        backgroundColor: isDark ? CARD_BG : '#1A1F2E',
+        borderRadius: 18,
+        padding: 14,
+        marginBottom: 10,
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        backgroundColor: colors.glassSurface,
-        overflow: 'hidden',
-        ...shadows.small,
+        borderColor: 'rgba(255,255,255,0.04)',
+        alignItems: 'center',
+    },
+    workoutNumberBadge: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 14,
+    },
+    workoutNumberText: {
+        color: colors.textSecondary,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    workoutBody: {
+        flex: 1,
     },
     workoutHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     workoutExercise: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        letterSpacing: -0.2,
     },
     workoutDate: {
-        fontSize: 13,
+        fontSize: 12,
         color: colors.textTertiary,
         marginTop: 2,
     },
     scoreBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
         borderRadius: 8,
     },
-    scoreBadgeGood: { backgroundColor: colors.accentSuccess + '33' },
-    scoreBadgeWarning: { backgroundColor: colors.accentWarning + '33' },
-    scoreBadgeBad: { backgroundColor: colors.accentError + '33' },
+    scoreBadgeGood: { backgroundColor: 'rgba(196,255,26,0.15)' },
+    scoreBadgeWarning: { backgroundColor: 'rgba(250,204,21,0.18)' },
+    scoreBadgeBad: { backgroundColor: 'rgba(248,113,113,0.15)' },
     scoreBadgeText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
+        fontSize: 12,
+        fontWeight: '900',
     },
     workoutDetails: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        gap: 6,
     },
     detailPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.glassSurface,
+        backgroundColor: 'rgba(255,255,255,0.04)',
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: colors.glassBorder,
+        borderRadius: 8,
         gap: 4,
     },
     workoutStat: {
-        fontSize: 13,
+        fontSize: 12,
         color: colors.textSecondary,
+        fontWeight: '600',
     },
 
-    // Empty State
+    // Empty
     emptyState: {
         alignItems: 'center',
-        paddingVertical: 60,
-        borderRadius: Layout.borderRadius.m,
-        backgroundColor: colors.glassSurface,
+        paddingVertical: 50,
+        borderRadius: 22,
+        backgroundColor: isDark ? CARD_BG : '#1A1F2E',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        borderStyle: 'dashed',
+        borderColor: 'rgba(255,255,255,0.05)',
     },
-    emptyIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-        opacity: 0.5,
+    emptyIconWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(196,255,26,0.12)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(196,255,26,0.2)',
     },
     emptyText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#FFFFFF',
     },
     emptySubtext: {
-        fontSize: 14,
+        fontSize: 13,
         color: colors.textSecondary,
-        marginTop: 8,
+        marginTop: 6,
         textAlign: 'center',
         paddingHorizontal: 40,
     },
 
-    // Error State
+    // Error
     errorState: {
         alignItems: 'center',
-        paddingVertical: 40,
-        borderRadius: Layout.borderRadius.m,
+        paddingVertical: 36,
+        paddingHorizontal: 20,
+        borderRadius: 22,
         borderWidth: 1,
-        borderColor: colors.accentError,
-        backgroundColor: colors.accentError + '1A',
-    },
-    errorIcon: {
-        fontSize: 48,
-        marginBottom: 12,
+        borderColor: 'rgba(248,113,113,0.3)',
+        backgroundColor: 'rgba(248,113,113,0.08)',
     },
     errorText: {
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontWeight: '800',
         color: colors.accentError,
+        marginTop: 10,
         marginBottom: 4,
     },
     errorSubtext: {
-        fontSize: 13,
+        fontSize: 12,
         color: colors.textSecondary,
         textAlign: 'center',
-        paddingHorizontal: 32,
-        marginBottom: 16,
+        marginBottom: 14,
     },
     retryButton: {
-        backgroundColor: colors.primaryStart,
-        paddingHorizontal: 24,
-        paddingVertical: 10,
-        borderRadius: Layout.borderRadius.m,
-        ...shadows.small,
+        backgroundColor: NEON_GREEN,
+        paddingHorizontal: 22,
+        paddingVertical: 9,
+        borderRadius: 10,
     },
     retryButtonText: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: 'bold',
+        color: '#0A0A0A',
+        fontSize: 13,
+        fontWeight: '900',
     },
 });

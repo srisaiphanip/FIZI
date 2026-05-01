@@ -43,14 +43,6 @@
         {
           "paymentProvider": "Play Store"
         }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/app-icon.png",
-          "color": "#0A0E27",
-          "defaultChannel": "default"
-        }
       ]
     ]
   }

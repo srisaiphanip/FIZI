@@ -1,8 +1,10 @@
 /**
  * ProfileCard
  *
- * Displays the user's avatar photo/emoji, name, title, level badge,
- * and streak pill. Extracted from AvatarScreen.tsx.
+ * Profile hero card matching FitTrack mockup:
+ * - Lime-ring avatar with gold crown badge
+ * - Display name + role/joined date
+ * - Level + streak pill badges
  */
 
 import React from 'react';
@@ -15,10 +17,25 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { Spacing, Layout } from '../../theme/Theme';
+
+const MOCK = {
+    cardBgFrom: '#1F2229',
+    cardBgTo: '#16181F',
+    border: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#F5F6F8',
+    textSecondary: '#9BA0AB',
+    accent: '#B8FF3C',
+    accentBright: '#D4FF6E',
+    accentDim: 'rgba(184, 255, 60, 0.15)',
+    accentGlow: 'rgba(184, 255, 60, 0.35)',
+    accentBorder: 'rgba(184, 255, 60, 0.3)',
+    gold: '#FBBF24',
+    orange: '#FB923C',
+    orangeDim: 'rgba(251, 146, 60, 0.12)',
+    orangeBorder: 'rgba(251, 146, 60, 0.3)',
+};
 
 interface ProfileCardProps {
     user: any;
@@ -30,6 +47,24 @@ interface ProfileCardProps {
     onPickImage: () => void;
 }
 
+const getInitials = (name?: string): string => {
+    if (!name) return 'FZ';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+const formatJoinedDate = (createdAt?: any): string => {
+    try {
+        if (!createdAt) return '';
+        const d = createdAt?.toDate ? createdAt.toDate() : new Date(createdAt);
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    } catch {
+        return '';
+    }
+};
+
 export default function ProfileCard({
     user,
     avatarLevelName,
@@ -39,193 +74,208 @@ export default function ProfileCard({
     isPremium,
     onPickImage,
 }: ProfileCardProps) {
-    const { colors, gradients, isDark } = useTheme();
+    const { colors } = useTheme();
+
+    const joined = formatJoinedDate(user?.createdAt);
+    const role = avatarLevelName || 'Athlete';
+    const subtitle = joined ? `${role} · Joined ${joined}` : role;
 
     return (
-        <BlurView intensity={25} tint={isDark ? 'light' : 'dark'} style={styles.avatarCard}>
-            <LinearGradient
-                colors={isDark
-                    ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']
-                    : ['rgba(255,255,255,0.7)', 'rgba(255,255,255,0.4)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
-            />
-            <View style={styles.avatarContent}>
-                {/* Avatar with ring */}
-                <TouchableOpacity style={styles.avatarContainer} onPress={onPickImage} activeOpacity={0.8}>
+        <LinearGradient
+            colors={[MOCK.cardBgFrom, MOCK.cardBgTo]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.card}
+        >
+            {/* Soft glow accent in corner */}
+            <View style={styles.glow} pointerEvents="none">
+                <LinearGradient
+                    colors={[MOCK.accentDim, 'transparent']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.glowFill}
+                />
+            </View>
+
+            <View style={styles.content}>
+                {/* Avatar */}
+                <TouchableOpacity onPress={onPickImage} activeOpacity={0.85} style={styles.avatarWrap}>
                     <LinearGradient
-                        colors={isPremium ? ['#FFD700', '#FFA500'] : [colors.accentCyan, colors.primaryStart]}
+                        colors={[MOCK.accentBright, '#6FAB1F']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={styles.avatarRing}
+                        style={styles.avatar}
                     >
-                        {isPremium && (
-                            <View style={styles.crownBadge}>
-                                <MaterialCommunityIcons name="crown" size={24} color="#FFD700" />
-                            </View>
-                        )}
                         {user?.photoURL ? (
                             <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
                         ) : (
-                            <View style={[styles.avatarImage, styles.defaultAvatarContainer]}>
-                                <MaterialCommunityIcons name="account" size={48} color="#FFF" />
-                            </View>
+                            <Text style={styles.avatarInitials}>{getInitials(user?.displayName)}</Text>
                         )}
+
                         {authLoading && (
                             <View style={styles.uploadingOverlay}>
                                 <ActivityIndicator color="#FFF" size="small" />
                             </View>
                         )}
                     </LinearGradient>
+
+                    {isPremium && (
+                        <View style={styles.crownBadge}>
+                            <MaterialCommunityIcons name="crown" size={12} color="#0A0B0F" />
+                        </View>
+                    )}
                 </TouchableOpacity>
 
-                {/* Name + badges */}
-                <View style={styles.userInfoSection}>
-                    <View style={styles.nameRow}>
-                        <Text style={[styles.userName, { color: colors.textPrimary }]} numberOfLines={1}>
-                            {user?.displayName || 'Champion'}
-                        </Text>
-                        {isPremium && (
-                            <MaterialCommunityIcons name="crown" size={20} color="#FFD700" />
-                        )}
-                    </View>
-                    <Text style={[styles.userTitle, { color: colors.textSecondary }]}>{avatarLevelName}</Text>
+                {/* Info */}
+                <View style={styles.info}>
+                    <Text style={styles.name} numberOfLines={1}>
+                        {user?.displayName || 'Champion'}
+                    </Text>
+                    <Text style={styles.role} numberOfLines={1}>{subtitle}</Text>
 
-                    <View style={styles.statsRow}>
-                        <LinearGradient
-                            colors={[colors.accentCyan + '30', colors.accentCyan + '10']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={[styles.badge, { borderColor: colors.accentCyan + '50', borderWidth: 1 }]}
-                        >
-                            <Text style={[styles.badgeText, { color: colors.accentCyan }]}>LEVEL {avatarLevel}</Text>
-                        </LinearGradient>
+                    <View style={styles.badgesRow}>
+                        <View style={[styles.badge, styles.levelBadge]}>
+                            <MaterialCommunityIcons name="lightning-bolt" size={10} color={MOCK.accent} />
+                            <Text style={styles.levelBadgeText}>LEVEL {avatarLevel}</Text>
+                        </View>
 
-                        <LinearGradient
-                            colors={['rgba(255,120,100,0.2)', 'rgba(255,120,100,0.05)']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={[styles.badge, styles.streakBadge]}
-                        >
-                            <Text style={styles.streakEmoji}>🔥</Text>
-                            <Text style={styles.streakText}>{avatarCurrentStreak}</Text>
-                        </LinearGradient>
+                        <View style={[styles.badge, styles.streakBadge]}>
+                            <MaterialCommunityIcons name="fire" size={10} color={MOCK.orange} />
+                            <Text style={styles.streakBadgeText}>
+                                {avatarCurrentStreak} DAY STREAK
+                            </Text>
+                        </View>
                     </View>
                 </View>
             </View>
-        </BlurView>
+        </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
-    avatarCard: {
-        marginBottom: Spacing.m,
-        borderRadius: Layout.borderRadius.xl,
-        overflow: 'hidden',
+    card: {
+        borderRadius: 24,
+        padding: 20,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.15)',
+        borderColor: MOCK.border,
+        marginBottom: 14,
+        overflow: 'hidden',
+        position: 'relative',
     },
-    avatarContent: {
+    glow: {
+        position: 'absolute',
+        top: -50,
+        right: -50,
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+    },
+    glowFill: {
+        flex: 1,
+        borderRadius: 100,
+    },
+    content: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
+        gap: 14,
     },
-    avatarContainer: {
-        marginRight: 20,
+    avatarWrap: {
+        width: 64,
+        height: 64,
+        position: 'relative',
     },
-    avatarRing: {
-        width: 74,
-        height: 74,
-        borderRadius: 37,
+    avatar: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 3,
-    },
-    crownBadge: {
-        position: 'absolute',
-        top: -12,
-        zIndex: 10,
-        alignSelf: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
-        elevation: 5,
+        shadowColor: MOCK.accent,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+        elevation: 8,
     },
     avatarImage: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 34,
-        borderWidth: 2,
-        borderColor: 'rgba(0,0,0,0.4)',
+        width: 64,
+        height: 64,
+        borderRadius: 32,
     },
-    defaultAvatarContainer: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        justifyContent: 'center',
-        alignItems: 'center',
+    avatarInitials: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#0A0B0F',
+        letterSpacing: -0.5,
     },
     uploadingOverlay: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 34,
+        borderRadius: 32,
     },
-    userInfoSection: {
-        flex: 1,
+    crownBadge: {
+        position: 'absolute',
+        top: -4,
+        right: -2,
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        backgroundColor: MOCK.gold,
+        borderWidth: 2,
+        borderColor: '#0A0B0F',
         justifyContent: 'center',
-    },
-    nameRow: {
-        flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+    },
+    info: {
+        flex: 1,
+        minWidth: 0,
+    },
+    name: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.5,
+        lineHeight: 26,
         marginBottom: 2,
     },
-    userName: {
-        fontSize: 22,
-        fontWeight: '900',
-        letterSpacing: 0.5,
-        textShadowColor: 'rgba(0,0,0,0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
-        flexShrink: 1,
+    role: {
+        fontSize: 13,
+        color: MOCK.textSecondary,
+        marginBottom: 8,
     },
-    userTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 10,
-        letterSpacing: 0.5,
-    },
-    statsRow: {
+    badgesRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    badge: {
-        paddingHorizontal: 12,
-        paddingVertical: 5,
-        borderRadius: 20,
-    },
-    badgeText: {
-        fontSize: 12,
-        fontWeight: '800',
-        letterSpacing: 0.5,
-    },
-    streakBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255,120,100,0.4)',
+        flexWrap: 'wrap',
         gap: 6,
     },
-    streakEmoji: {
-        fontSize: 12,
+    badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 9,
+        paddingVertical: 4,
+        borderRadius: 100,
+        borderWidth: 1,
     },
-    streakText: {
-        color: '#FF7864',
-        fontSize: 13,
-        fontWeight: '800',
+    levelBadge: {
+        backgroundColor: MOCK.accentDim,
+        borderColor: MOCK.accentBorder,
+    },
+    levelBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: MOCK.accent,
+        letterSpacing: 0.4,
+    },
+    streakBadge: {
+        backgroundColor: MOCK.orangeDim,
+        borderColor: MOCK.orangeBorder,
+    },
+    streakBadgeText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: MOCK.orange,
+        letterSpacing: 0.4,
     },
 });

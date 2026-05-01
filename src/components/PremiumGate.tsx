@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, ImageSourcePropType } from 'react-native';
 import { useBilling } from '../context/BillingContext';
+import { useAppSelector } from '../hooks/reduxHooks';
 import { useTheme } from '../hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -27,9 +28,17 @@ export const PremiumGate = ({
     backgroundImage
 }: PremiumGateProps) => {
     const { purchased } = useBilling();
+    const premiumExpiryDate = useAppSelector(state => state.auth.user?.premiumExpiryDate);
     const { colors, gradients, isDark } = useTheme();
 
-    if (purchased) {
+    // Fall back to the server-side coupon expiry while BillingContext is still
+    // initializing or RNIap is unavailable, so a freshly redeemed coupon doesn't
+    // briefly show locked content.
+    const couponActive = premiumExpiryDate
+        ? new Date(premiumExpiryDate).getTime() > Date.now()
+        : false;
+
+    if (purchased || couponActive) {
         return <>{children}</>;
     }
 

@@ -10,30 +10,47 @@ import {
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getExerciseImage } from '../config/imageMap';
 import { RootState } from '../store';
 import { setExerciseLibraryScrollOffset } from '../store/slices/uiSlice';
 import { exercises } from '../models/exercises';
-import { Spacing, Layout, Shadows, ThemeColorsType } from '../theme/Theme';
+import { Spacing, ThemeColorsType } from '../theme/Theme';
 import { useTheme } from '../hooks/useTheme';
 import { avatarService } from '../services/AvatarService';
+
+const NEON_GREEN = '#C4FF1A';
+const CARD_BG = '#13182A';
 
 interface ExerciseLibraryScreenProps {
     navigation: any;
 }
 
+type CategoryId = 'all' | 'chest' | 'legs' | 'back' | 'abs' | 'arms';
+
+const CATEGORIES: { id: CategoryId; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
+    { id: 'all', label: 'All', icon: 'view-grid-outline' },
+    { id: 'chest', label: 'Chest', icon: 'arm-flex' },
+    { id: 'arms', label: 'Arms', icon: 'dumbbell' },
+    { id: 'back', label: 'Back', icon: 'human-handsup' },
+    { id: 'legs', label: 'Legs', icon: 'run-fast' },
+    { id: 'abs', label: 'Core', icon: 'fire' },
+];
+
+const DIFFICULTY_COLOR: Record<string, string> = {
+    beginner: '#4ADE80',
+    intermediate: '#FACC15',
+    advanced: '#F87171',
+};
+
 export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScreenProps) {
     const { colors, gradients, isDark } = useTheme();
-    const styles = useMemo(() => createStyles(colors), [colors]);
-    const { user } = useSelector((state: RootState) => state.auth);
+    const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
     const { exerciseLibraryScrollOffset } = useSelector((state: RootState) => state.ui);
     const dispatch = useDispatch();
-    const startDate = React.useRef(Date.now());
     const [searchQuery, setSearchQuery] = useState('');
     const scrollViewRef = React.useRef<ScrollView>(null);
-    const [selectedCategory, setSelectedCategory] = useState<'all' | 'chest' | 'legs' | 'back' | 'abs' | 'arms'>('all');
-
+    const [selectedCategory, setSelectedCategory] = useState<CategoryId>('all');
     const [userLevel, setUserLevel] = useState(1);
 
     React.useEffect(() => {
@@ -41,7 +58,6 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
         const loadLevel = async () => {
             const state = await avatarService.getAvatarState();
             if (state && isMounted) {
-                // Ensure we get the latest level from DB or Redux (Firestore cache first, then server)
                 setUserLevel(state.level);
             }
         };
@@ -50,15 +66,25 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
     }, []);
 
     const filteredExercises = useMemo(() => {
-        return exercises.filter(ex => {
-            const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                ex.muscleGroups[0].toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = selectedCategory === 'all' || ex.muscleGroups[0].toLowerCase().includes(selectedCategory);
-            return matchesSearch && matchesCategory;
-        }).sort((a, b) => a.unlockLevel - b.unlockLevel);
+        const query = searchQuery.toLowerCase().trim();
+        return exercises
+            .filter(ex => {
+                const matchesSearch = !query
+                    || ex.name.toLowerCase().includes(query)
+                    || (ex.displayName?.toLowerCase().includes(query) ?? false)
+                    || ex.muscleGroups[0].toLowerCase().includes(query);
+                const matchesCategory = selectedCategory === 'all'
+                    || ex.muscleGroups[0].toLowerCase().includes(selectedCategory);
+                return matchesSearch && matchesCategory;
+            })
+            .sort((a, b) => a.unlockLevel - b.unlockLevel);
     }, [searchQuery, selectedCategory]);
 
-    // Restore scroll position
+    const unlockedCount = useMemo(
+        () => filteredExercises.filter(ex => ex.unlockLevel <= userLevel).length,
+        [filteredExercises, userLevel]
+    );
+
     React.useEffect(() => {
         if (exerciseLibraryScrollOffset > 0) {
             setTimeout(() => {
@@ -67,59 +93,82 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
         }
     }, []);
 
-    const categories = [
-        { id: 'all', label: 'All', icon: '🔍' },
-        { id: 'chest', label: 'Chest', icon: '💪' },
-        { id: 'legs', label: 'Legs', icon: '🦵' },
-        { id: 'back', label: 'Back', icon: '🧗' },
-        { id: 'abs', label: 'Core', icon: '🧱' },
-    ];
-
     return (
         <LinearGradient colors={gradients.background} style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← Back</Text>
+                    <MaterialCommunityIcons name="chevron-left" size={28} color="#FFFFFF" />
                 </TouchableOpacity>
-                <Text style={styles.title}>Exercise Library</Text>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.headerLabel}>TRAIN SMARTER</Text>
+                    <Text style={styles.title}>Exercise Library</Text>
+                </View>
             </View>
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
-                <BlurView intensity={20} tint={isDark ? "light" : "dark"} style={styles.searchBar}>
+                <View style={styles.searchBar}>
+                    <MaterialCommunityIcons name="magnify" size={20} color={colors.textTertiary} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search exercises..."
-                        placeholderTextColor="#999"
+                        placeholder="Search exercises or muscle..."
+                        placeholderTextColor={colors.textTertiary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
-                </BlurView>
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color={colors.textTertiary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {/* Category Filter */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                {categories.map(cat => (
-                    <TouchableOpacity
-                        key={cat.id}
-                        onPress={() => setSelectedCategory(cat.id as any)}
-                        style={[
-                            styles.categoryItem,
-                            selectedCategory === cat.id && styles.categoryItemActive
-                        ]}
-                    >
-                        <Text style={styles.categoryIcon}>{cat.icon}</Text>
-                        <Text style={[
-                            styles.categoryLabel,
-                            selectedCategory === cat.id && styles.categoryLabelActive
-                        ]}>{cat.label}</Text>
-                    </TouchableOpacity>
-                ))}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoryScroll}
+                contentContainerStyle={styles.categoryScrollContent}
+            >
+                {CATEGORIES.map(cat => {
+                    const active = selectedCategory === cat.id;
+                    return (
+                        <TouchableOpacity
+                            key={cat.id}
+                            onPress={() => setSelectedCategory(cat.id)}
+                            style={[styles.categoryItem, active && styles.categoryItemActive]}
+                            activeOpacity={0.85}
+                        >
+                            <MaterialCommunityIcons
+                                name={cat.icon}
+                                size={15}
+                                color={active ? '#0A0A0A' : '#FFFFFF'}
+                                style={{ marginRight: 6 }}
+                            />
+                            <Text style={[styles.categoryLabel, active && styles.categoryLabelActive]}>
+                                {cat.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </ScrollView>
+
+            {/* Result count */}
+            <View style={styles.metaRow}>
+                <Text style={styles.metaText}>
+                    <Text style={styles.metaCount}>{filteredExercises.length}</Text> exercises
+                </Text>
+                <View style={styles.metaDivider} />
+                <Text style={styles.metaText}>
+                    <Text style={[styles.metaCount, { color: NEON_GREEN }]}>{unlockedCount}</Text> unlocked
+                </Text>
+            </View>
 
             <ScrollView
                 ref={scrollViewRef}
                 style={styles.content}
+                contentContainerStyle={{ paddingBottom: 100 }}
                 showsVerticalScrollIndicator={false}
                 onMomentumScrollEnd={(e) => {
                     dispatch(setExerciseLibraryScrollOffset(e.nativeEvent.contentOffset.y));
@@ -129,214 +178,398 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
                 }}
                 scrollEventThrottle={16}
             >
-                <View style={styles.grid}>
-                    {filteredExercises.map(ex => {
-                        const isUnlocked = ex.unlockLevel <= userLevel;
-                        return (
-                            <TouchableOpacity
-                                key={ex.id}
-                                style={[styles.exerciseCard, !isUnlocked && styles.exerciseCardLocked]}
-                                onPress={() => navigation.navigate('ExerciseInstructions', { exerciseId: ex.id, fromLibrary: true })}
-                            >
-                                <View style={styles.imagePlaceholder}>
-                                    {getExerciseImage(ex.id) ? (
-                                        <Image
-                                            source={getExerciseImage(ex.id)}
-                                            style={styles.exerciseImage}
-                                            resizeMode="contain"
+                {filteredExercises.length === 0 ? (
+                    <View style={styles.emptyState}>
+                        <View style={styles.emptyIconWrap}>
+                            <MaterialCommunityIcons name="magnify-close" size={36} color={NEON_GREEN} />
+                        </View>
+                        <Text style={styles.emptyText}>No exercises found</Text>
+                        <Text style={styles.emptySubtext}>Try a different category or search term</Text>
+                    </View>
+                ) : (
+                    <View style={styles.grid}>
+                        {filteredExercises.map(ex => {
+                            const isUnlocked = ex.unlockLevel <= userLevel;
+                            const difficultyColor = DIFFICULTY_COLOR[ex.difficulty] || colors.textSecondary;
+                            const displayName = ex.displayName || ex.name;
+                            const image = getExerciseImage(ex.id);
+
+                            return (
+                                <TouchableOpacity
+                                    key={ex.id}
+                                    style={[styles.exerciseCard, !isUnlocked && styles.exerciseCardLocked]}
+                                    onPress={() => navigation.navigate('ExerciseInstructions', { exerciseId: ex.id, fromLibrary: true })}
+                                    activeOpacity={0.85}
+                                >
+                                    <View style={styles.imageWrap}>
+                                        {image ? (
+                                            <Image source={image} style={styles.exerciseImage} resizeMode="cover" />
+                                        ) : (
+                                            <View style={styles.imageFallback}>
+                                                <MaterialCommunityIcons name="dumbbell" size={32} color={NEON_GREEN} />
+                                            </View>
+                                        )}
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(10,12,20,0.85)']}
+                                            style={styles.imageGradient}
                                         />
-                                    ) : (
-                                        <Text style={styles.exerciseEmoji}>
-                                            {ex.name.includes('Push') ? '💪' : ex.name.includes('Squat') ? '🦵' : '🏋️'}
-                                        </Text>
-                                    )}
-                                    {!isUnlocked && (
-                                        <BlurView intensity={40} style={styles.lockOverlay}>
-                                            <Text style={styles.lockIcon}>🔒</Text>
-                                            <Text style={styles.unlockLevel}>Level {ex.unlockLevel}</Text>
-                                        </BlurView>
-                                    )}
-                                </View>
-                                <View style={styles.cardInfo}>
-                                    <Text style={styles.exerciseName} numberOfLines={1}>{ex.name}</Text>
-                                    <Text style={styles.exerciseMuscle}>{ex.muscleGroups[0]}</Text>
-                                    <View style={styles.tagRow}>
-                                        <View style={[styles.tag, styles.difficultyTag]}>
-                                            <Text style={styles.tagText}>{ex.difficulty}</Text>
+
+                                        {/* Difficulty badge top-left */}
+                                        <View style={[styles.diffBadge, { backgroundColor: difficultyColor + '22', borderColor: difficultyColor + '55' }]}>
+                                            <View style={[styles.diffDot, { backgroundColor: difficultyColor }]} />
+                                            <Text style={[styles.diffText, { color: difficultyColor }]}>
+                                                {ex.difficulty}
+                                            </Text>
                                         </View>
-                                        <View style={[styles.tag, styles.equipmentTag]}>
-                                            <Text style={styles.tagText}>{ex.equipmentRequired}</Text>
+
+                                        {!isUnlocked && (
+                                            <View style={styles.lockOverlay}>
+                                                <View style={styles.lockBadge}>
+                                                    <MaterialCommunityIcons name="lock" size={18} color="#FFFFFF" />
+                                                </View>
+                                                <View style={styles.unlockPill}>
+                                                    <MaterialCommunityIcons name="star-four-points" size={11} color="#0A0A0A" />
+                                                    <Text style={styles.unlockLevelText}>LVL {ex.unlockLevel}</Text>
+                                                </View>
+                                            </View>
+                                        )}
+                                    </View>
+
+                                    <View style={styles.cardInfo}>
+                                        <Text style={styles.exerciseName} numberOfLines={1}>{displayName}</Text>
+                                        <View style={styles.muscleRow}>
+                                            <MaterialCommunityIcons name="target" size={11} color={colors.textTertiary} />
+                                            <Text style={styles.exerciseMuscle} numberOfLines={1}>
+                                                {ex.muscleGroups.slice(0, 2).join(' • ')}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.tagRow}>
+                                            <View style={styles.tag}>
+                                                <MaterialCommunityIcons
+                                                    name={ex.equipmentRequired === 'bodyweight' ? 'human' : 'weight-lifter'}
+                                                    size={10}
+                                                    color={colors.textSecondary}
+                                                />
+                                                <Text style={styles.tagText} numberOfLines={1}>
+                                                    {ex.equipmentRequired === 'bodyweight' ? 'No gear' : ex.equipmentRequired}
+                                                </Text>
+                                            </View>
+                                            {isUnlocked && (
+                                                <MaterialCommunityIcons name="chevron-right" size={16} color={colors.textTertiary} />
+                                            )}
                                         </View>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-                <View style={{ height: 100 }} />
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                )}
             </ScrollView>
         </LinearGradient>
     );
 }
 
-const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
+const createStyles = (colors: ThemeColorsType, isDark: boolean) => StyleSheet.create({
     container: {
         flex: 1,
     },
     header: {
-        paddingTop: 60,
-        paddingHorizontal: Spacing.l,
-        paddingBottom: Spacing.m,
         flexDirection: 'row',
         alignItems: 'center',
+        paddingTop: 56,
+        paddingHorizontal: Spacing.m,
+        paddingBottom: 14,
     },
     backButton: {
-        marginRight: Spacing.m,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
     },
-    backButtonText: {
-        color: colors.primaryStart,
-        fontSize: 16,
+    headerLabel: {
+        fontSize: 11,
+        color: NEON_GREEN,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        marginBottom: 2,
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: colors.textPrimary,
+        fontSize: 26,
+        fontWeight: '900',
+        color: '#FFFFFF',
+        letterSpacing: -0.4,
     },
+
+    // Search
     searchContainer: {
-        paddingHorizontal: Spacing.l,
-        marginBottom: Spacing.m,
+        paddingHorizontal: Spacing.m,
+        marginBottom: 12,
     },
     searchBar: {
-        borderRadius: Layout.borderRadius.m,
-        overflow: 'hidden',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderRadius: 14,
+        paddingHorizontal: 12,
+        height: 46,
         borderWidth: 1,
-        borderColor: colors.glassBorder,
+        borderColor: 'rgba(255,255,255,0.06)',
+    },
+    searchIcon: {
+        marginRight: 8,
     },
     searchInput: {
-        padding: 12,
-        color: colors.textPrimary,
-        fontSize: 16,
+        flex: 1,
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '500',
+        paddingVertical: 0,
     },
+
+    // Categories
     categoryScroll: {
-        paddingLeft: Spacing.l,
-        marginBottom: Spacing.m,
         flexGrow: 0,
+        marginBottom: 10,
+    },
+    categoryScrollContent: {
+        paddingHorizontal: Spacing.m,
+        gap: 8,
     },
     categoryItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.glassSurface,
+        backgroundColor: 'rgba(255,255,255,0.04)',
         paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        marginRight: 10,
+        paddingHorizontal: 14,
+        borderRadius: 22,
         borderWidth: 1,
-        borderColor: 'transparent',
+        borderColor: 'rgba(255,255,255,0.06)',
     },
     categoryItemActive: {
-        backgroundColor: colors.primaryStart + '33', // 20% opacity
-        borderColor: colors.primaryStart,
-    },
-    categoryIcon: {
-        fontSize: 16,
-        marginRight: 6,
+        backgroundColor: NEON_GREEN,
+        borderColor: NEON_GREEN,
     },
     categoryLabel: {
-        color: colors.textSecondary,
-        fontSize: 14,
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '700',
     },
     categoryLabelActive: {
-        color: colors.textPrimary,
-        fontWeight: 'bold',
+        color: '#0A0A0A',
+        fontWeight: '900',
     },
+
+    // Meta row
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.m,
+        marginBottom: 10,
+    },
+    metaText: {
+        color: colors.textSecondary,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    metaCount: {
+        color: '#FFFFFF',
+        fontWeight: '900',
+    },
+    metaDivider: {
+        width: 3,
+        height: 3,
+        borderRadius: 2,
+        backgroundColor: colors.textTertiary,
+        marginHorizontal: 8,
+    },
+
     content: {
         flex: 1,
-        paddingHorizontal: Spacing.l,
+        paddingHorizontal: Spacing.m,
     },
+
+    // Grid
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
     exerciseCard: {
-        width: '48%',
-        backgroundColor: colors.glassSurface,
-        borderRadius: Layout.borderRadius.m,
-        marginBottom: Spacing.l,
+        width: '48.5%',
+        backgroundColor: isDark ? CARD_BG : '#1A1F2E',
+        borderRadius: 18,
+        marginBottom: 14,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: colors.glassBorder,
-        ...Shadows.card,
+        borderColor: 'rgba(255,255,255,0.05)',
     },
     exerciseCardLocked: {
-        opacity: 0.8,
+        opacity: 0.85,
     },
-    imagePlaceholder: {
-        height: 120,
-        backgroundColor: '#1A1A1A',
-        justifyContent: 'center',
-        alignItems: 'center',
+
+    // Image
+    imageWrap: {
+        height: 130,
+        backgroundColor: '#0A0F1C',
+        position: 'relative',
         overflow: 'hidden',
-        borderRadius: Layout.borderRadius.m,
     },
     exerciseImage: {
         width: '100%',
         height: '100%',
     },
-    exerciseEmoji: {
-        fontSize: 40,
+    imageFallback: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(196,255,26,0.06)',
     },
+    imageGradient: {
+        ...StyleSheet.absoluteFillObject,
+    },
+
+    // Difficulty badge
+    diffBadge: {
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: 10,
+        borderWidth: 1,
+    },
+    diffDot: {
+        width: 5,
+        height: 5,
+        borderRadius: 3,
+        marginRight: 5,
+    },
+    diffText: {
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 0.4,
+        textTransform: 'uppercase',
+    },
+
+    // Lock
     lockOverlay: {
         ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
+        backgroundColor: 'rgba(10,15,28,0.7)',
         alignItems: 'center',
+        justifyContent: 'center',
     },
-    lockIcon: {
-        fontSize: 24,
-        marginBottom: 4,
+    lockBadge: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
     },
-    unlockLevel: {
-        color: colors.textPrimary,
-        fontSize: 12,
-        fontWeight: 'bold',
-        backgroundColor: colors.primaryStart,
-        paddingVertical: 2,
-        paddingHorizontal: 8,
-        borderRadius: 10,
+    unlockPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: NEON_GREEN,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        gap: 3,
     },
+    unlockLevelText: {
+        color: '#0A0A0A',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
+
+    // Card info
     cardInfo: {
         padding: 12,
     },
     exerciseName: {
-        color: colors.textPrimary,
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginBottom: 2,
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '800',
+        letterSpacing: -0.2,
+        marginBottom: 4,
+    },
+    muscleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 8,
     },
     exerciseMuscle: {
         color: colors.textSecondary,
-        fontSize: 12,
-        marginBottom: 8,
+        fontSize: 11,
+        fontWeight: '600',
+        textTransform: 'capitalize',
+        flex: 1,
     },
     tagRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 4,
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     tag: {
-        paddingVertical: 2,
-        paddingHorizontal: 6,
-        borderRadius: 4,
-    },
-    difficultyTag: {
-        backgroundColor: colors.glassSurface,
-    },
-    equipmentTag: {
-        backgroundColor: colors.primaryStart + '1A', // 10% opacity
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        paddingHorizontal: 7,
+        paddingVertical: 3,
+        borderRadius: 7,
+        gap: 4,
+        flexShrink: 1,
     },
     tagText: {
         fontSize: 10,
-        color: colors.textTertiary,
+        color: colors.textSecondary,
+        fontWeight: '600',
         textTransform: 'capitalize',
+    },
+
+    // Empty
+    emptyState: {
+        alignItems: 'center',
+        paddingVertical: 60,
+        marginTop: 20,
+        borderRadius: 22,
+        backgroundColor: isDark ? CARD_BG : '#1A1F2E',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+    },
+    emptyIconWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(196,255,26,0.12)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(196,255,26,0.2)',
+    },
+    emptyText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFFFFF',
+    },
+    emptySubtext: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginTop: 6,
+        textAlign: 'center',
+        paddingHorizontal: 40,
     },
 });

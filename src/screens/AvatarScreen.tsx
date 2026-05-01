@@ -22,6 +22,7 @@ import {
     Modal,
     Switch,
     Animated,
+    Dimensions,
     NativeSyntheticEvent,
     NativeScrollEvent
 } from 'react-native';
@@ -35,7 +36,6 @@ import { RootState } from '../store'; // Added RootState import
 import { uploadPhoto, signOut, updateProfile, changePassword } from '../store/slices/authSlice';
 import { setAvatarScrollOffset } from '../store/slices/uiSlice';
 import { regenerateUserPlan, fetchCustomPlans, deleteCustomPlan, duplicatePlan, switchActivePlan, switchToAIPlan } from '../store/slices/workoutPlanSlice';
-import { toggleSetting } from '../store/slices/settingsSlice'; // Added toggleSetting import
 import { UserProfile } from '../types';
 import {
     avatarService,
@@ -61,6 +61,38 @@ const COMMON_HEALTH_ISSUES = [
     'ankle_injury', 'hip_injury', 'neck_pain', 'heart_condition'
 ];
 
+// Mockup palette (FitTrack profile)
+const MOCK = {
+    bgBase: '#0A0B0F',
+    bgElevated: '#14161D',
+    bgCard: '#1A1D26',
+    bgCardHover: '#20242E',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderStrong: 'rgba(255, 255, 255, 0.12)',
+    textPrimary: '#F5F6F8',
+    textSecondary: '#9BA0AB',
+    textTertiary: '#5C6170',
+    accent: '#B8FF3C',
+    accentBright: '#D4FF6E',
+    accentDim: 'rgba(184, 255, 60, 0.15)',
+    accentGlow: 'rgba(184, 255, 60, 0.35)',
+    accentBorder: 'rgba(184, 255, 60, 0.3)',
+    gold: '#FBBF24',
+    goldDim: 'rgba(251, 191, 36, 0.12)',
+    goldBorder: 'rgba(251, 191, 36, 0.2)',
+    purple: '#A78BFA',
+    purpleDim: 'rgba(167, 139, 250, 0.12)',
+    purpleBorder: 'rgba(167, 139, 250, 0.15)',
+    pink: '#F472B6',
+    pinkDim: 'rgba(244, 114, 182, 0.12)',
+    orange: '#FB923C',
+    orangeDim: 'rgba(251, 146, 60, 0.12)',
+    blue: '#60A5FA',
+    blueDim: 'rgba(96, 165, 250, 0.12)',
+    danger: '#FF5A5F',
+    dangerDim: 'rgba(255, 90, 95, 0.1)',
+};
+
 const EQUIPMENT_OPTIONS = [
     { id: 'dumbbells', label: 'Dumbbells' },
     { id: 'resistance_bands', label: 'Resistance Bands' },
@@ -69,6 +101,26 @@ const EQUIPMENT_OPTIONS = [
     { id: 'bench', label: 'Bench' },
     { id: 'kettlebells', label: 'Kettlebells' },
 ];
+
+// Achievements grid: 5 columns × 2 rows (10 achievements). Width is computed
+// from the screen so we don't fight % + pixel-gap rounding on narrower devices.
+const ACHIEVEMENT_COLS = 5;
+const ACHIEVEMENT_GAP = 6;
+const ACHIEVEMENT_TILE_WIDTH = Math.floor(
+    (Dimensions.get('window').width - 40 /* Spacing.m * 2 */ - ACHIEVEMENT_GAP * (ACHIEVEMENT_COLS - 1)) / ACHIEVEMENT_COLS
+);
+
+const formatPremiumExpiry = (date: any): string => {
+    try {
+        const d = date?.toDate ? date.toDate() : new Date(date);
+        if (isNaN(d.getTime())) return '';
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return `${dd} / ${mm} / ${d.getFullYear()}`;
+    } catch {
+        return '';
+    }
+};
 
 interface AvatarScreenProps {
     navigation: any;
@@ -82,7 +134,6 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     const { purchased } = useBilling();
     const styles = useMemo(() => createStyles(colors, shadows), [colors, shadows]);
     const { user, loading: authLoading } = useAppSelector((state: RootState) => state.auth); // Modified to use RootState
-    const { notificationsEnabled } = useAppSelector((state: RootState) => state.settings); // Added settings state
     const { currentPlan, customPlans } = useAppSelector((state) => state.workoutPlan);
     const { avatarScrollOffset } = useAppSelector((state) => state.ui);
     const scrollViewRef = React.useRef<ScrollView>(null);
@@ -355,11 +406,6 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
         );
     };
 
-    // Notification Settings Handlers
-    const handleToggleNotification = (value: boolean) => {
-        dispatch(toggleSetting({ key: 'notificationsEnabled', value }));
-    };
-
 
     const getAvatarEmoji = (level: number): string => {
         const levelData = AVATAR_LEVELS.find(l => l.level === level);
@@ -512,7 +558,9 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
     const bodyComp = getBodyComposition();
 
     const ContentWrapper = isTab ? View : LinearGradient;
-    const wrapperProps = isTab ? { style: styles.container } : { colors: gradients.background, style: styles.container };
+    const wrapperProps = isTab
+        ? { style: [styles.container, { backgroundColor: MOCK.bgBase }] }
+        : { colors: gradients.background, style: styles.container };
 
     return (
         <ContentWrapper {...wrapperProps as any}>
@@ -543,8 +591,14 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                 scrollEventThrottle={16}
                 directionalLockEnabled={true}
             >
-                {/* Avatar Display */}
-                {/* Avatar Header Card - now in ProfileCard sub-component */}
+                {/* Page Title */}
+                {isTab && (
+                    <View style={styles.pageTitleRow}>
+                        <Text style={styles.pageTitle}>Profile</Text>
+                    </View>
+                )}
+
+                {/* Profile Hero Card */}
                 <ProfileCard
                     user={user}
                     avatarLevelName={avatarState.levelName}
@@ -557,511 +611,486 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
 
 
 
-                {/* User Info Section */}
                 {/* Premium Subscription Card */}
                 <TouchableOpacity
                     onPress={() => navigation.navigate('Subscription')}
-                    activeOpacity={0.9}
-                    style={{ marginBottom: 15 }}
+                    activeOpacity={0.85}
+                    style={styles.premiumCard}
                 >
-                    <LinearGradient
-                        colors={gradients.gold}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.menuCard, { borderColor: '#EAB308', borderWidth: 1 }]}
-                    >
-                        <View style={styles.menuItem}>
-                            <View style={[styles.menuIconContainer, { backgroundColor: 'rgba(0,0,0,0.1)' }]}>
-                                <MaterialCommunityIcons name="crown" size={24} color="#000" />
-                            </View>
-                            <View style={styles.userInfoTextContainer}>
-                                <Text style={[styles.userInfoTitle, { color: '#000', fontWeight: 'bold' }]}>
-                                    {purchased ? 'Premium Member' : 'Go Premium'}
-                                </Text>
-                                <Text style={[styles.userInfoSubtitle, { color: 'rgba(0,0,0,0.7)' }]}>
-                                    {purchased
-                                        ? (user?.premiumExpiryDate ? `Valid until ${new Date(user.premiumExpiryDate).toLocaleDateString()}` : 'Manage Subscription')
-                                        : 'Unlock AI Analysis & More'}
-                                </Text>
-                            </View>
-                            <View style={{
-                                backgroundColor: 'rgba(0,0,0,0.1)',
-                                borderRadius: 12,
-                                padding: 6
-                            }}>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color="#000" />
-                            </View>
-                        </View>
-                    </LinearGradient>
+                    <View style={styles.premiumLeftBar} />
+                    <View style={styles.premiumIcon}>
+                        <MaterialCommunityIcons name="crown" size={20} color={MOCK.gold} />
+                    </View>
+                    <View style={styles.premiumInfo}>
+                        <Text style={styles.premiumName}>
+                            {purchased ? 'Premium Member' : 'Go Premium'}
+                        </Text>
+                        <Text style={styles.premiumExpiry}>
+                            {purchased
+                                ? (user?.premiumExpiryDate
+                                    ? `Valid until ${formatPremiumExpiry(user.premiumExpiryDate)}`
+                                    : 'Manage Subscription')
+                                : 'Unlock AI Analysis & More'}
+                        </Text>
+                    </View>
+                    <MaterialCommunityIcons name="chevron-right" size={16} color={MOCK.gold} />
                 </TouchableOpacity>
 
-                {/* User Info Section */}
-                <TouchableOpacity
-                    onPress={() => setShowUserInfoModal(true)}
-                    activeOpacity={0.9}
-                >
-                    <LinearGradient
-                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.3)']}
-                        style={styles.menuCard}
+                {/* Quick Links */}
+                <View style={styles.mockMenuCard}>
+                    <TouchableOpacity
+                        onPress={() => setShowUserInfoModal(true)}
+                        activeOpacity={0.7}
+                        style={[styles.mockMenuItem, styles.mockMenuItemBorder]}
                     >
-                        <View style={styles.menuItem}>
-                            <LinearGradient
-                                colors={[colors.accentCyan + '20', colors.accentCyan + '05']}
-                                style={styles.menuIconContainer}
+                        <View style={[styles.mockMenuIcon, styles.mockMenuIconAccent]}>
+                            <MaterialCommunityIcons name="account-outline" size={18} color={MOCK.accent} />
+                        </View>
+                        <View style={styles.mockMenuContent}>
+                            <Text style={styles.mockMenuTitle}>User Profile</Text>
+                            <Text style={styles.mockMenuDesc}>Personal details & settings</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color={MOCK.textTertiary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('ExerciseLibrary')}
+                        activeOpacity={0.7}
+                        style={styles.mockMenuItem}
+                    >
+                        <View style={[styles.mockMenuIcon, styles.mockMenuIconAccent]}>
+                            <MaterialCommunityIcons name="dumbbell" size={18} color={MOCK.accent} />
+                        </View>
+                        <View style={styles.mockMenuContent}>
+                            <Text style={styles.mockMenuTitle}>Exercise Library</Text>
+                            <Text style={styles.mockMenuDesc}>Browse all 300+ exercises</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color={MOCK.textTertiary} />
+                    </TouchableOpacity>
+                </View>
+
+
+                {/* AI / Custom Plan Active Card */}
+                <View style={styles.aiPlanCard}>
+                    <View style={styles.aiPlanGlow} pointerEvents="none">
+                        <LinearGradient
+                            colors={[MOCK.purpleDim, 'transparent']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={{ flex: 1, borderRadius: 80 }}
+                        />
+                    </View>
+
+                    <View style={styles.aiPlanHeader}>
+                        <View style={styles.aiBot}>
+                            <MaterialCommunityIcons
+                                name={currentPlan?.planType === 'custom' ? 'clipboard-edit' : 'robot'}
+                                size={22}
+                                color="#FFFFFF"
+                            />
+                        </View>
+                        <View style={styles.aiPlanInfo}>
+                            <Text style={styles.aiPlanLabel}>CURRENT STRATEGY</Text>
+                            <Text style={styles.aiPlanName}>
+                                {currentPlan?.planType === 'custom' ? 'Custom Plan Active' : 'AI Plan Active'}
+                            </Text>
+                            <Text style={styles.aiPlanMeta}>
+                                {currentPlan?.frequency || 7} days/week · {currentPlan?.sessions.filter(s => !s.isRestDay).length || 0} sessions
+                            </Text>
+                        </View>
+                    </View>
+
+                    {currentPlan?.planType !== 'custom' && (
+                        <View style={styles.aiPlanTip}>
+                            <MaterialCommunityIcons name="creation" size={14} color={MOCK.purple} />
+                            <Text style={styles.aiPlanTipText}>Adapts to your progress automatically</Text>
+                        </View>
+                    )}
+
+                    {currentPlan?.planType === 'custom' ? (
+                        <TouchableOpacity
+                            style={styles.aiPlanSwitchBtn}
+                            activeOpacity={0.85}
+                            onPress={async () => {
+                                if (user?.uid) {
+                                    try {
+                                        await dispatch(switchToAIPlan(user.uid)).unwrap();
+                                    } catch (err) {
+                                        navigation.navigate('Assessment');
+                                    }
+                                }
+                            }}
+                        >
+                            <MaterialCommunityIcons name="robot" size={14} color={MOCK.textPrimary} />
+                            <Text style={styles.aiPlanSwitchText}>SWITCH TO AI STRATEGY</Text>
+                        </TouchableOpacity>
+                    ) : customPlans.length > 0 ? (
+                        <TouchableOpacity
+                            style={styles.aiPlanCreateBtn}
+                            activeOpacity={0.85}
+                            onPress={() => {
+                                if (user?.uid) {
+                                    const latestPlan = customPlans[0];
+                                    dispatch(switchActivePlan({
+                                        userId: user.uid,
+                                        planId: latestPlan.id,
+                                        planType: 'custom'
+                                    }));
+                                }
+                            }}
+                        >
+                            <MaterialCommunityIcons name="swap-horizontal" size={14} color={MOCK.textPrimary} />
+                            <Text style={styles.aiPlanCreateText}>SWITCH TO CUSTOM PLAN</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <PremiumGate featureName="Custom Plans" navigation={navigation} variant="compact">
+                            <TouchableOpacity
+                                style={styles.aiPlanCreateBtn}
+                                activeOpacity={0.85}
+                                onPress={() => navigation.navigate('CustomPlanBuilder')}
                             >
-                                <MaterialCommunityIcons name="account-details-outline" size={22} color={colors.accentCyan} />
-                            </LinearGradient>
-                            <View style={styles.userInfoTextContainer}>
-                                <Text style={styles.userInfoTitle}>User Profile</Text>
-                                <Text style={styles.userInfoSubtitle}>Personal details & settings</Text>
-                            </View>
-                            <View style={{
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                                borderRadius: 12,
-                                padding: 6
-                            }}>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+                                <MaterialCommunityIcons name="plus-circle-outline" size={14} color={MOCK.textPrimary} />
+                                <Text style={styles.aiPlanCreateText}>CREATE NEW FROM SCRATCH</Text>
+                            </TouchableOpacity>
+                        </PremiumGate>
+                    )}
+                </View>
 
-                {/* Exercise Library */}
-                {/* Exercise Library */}
-                <TouchableOpacity
-                    onPress={() => navigation.navigate('ExerciseLibrary')}
-                    activeOpacity={0.9}
-                >
-                    <LinearGradient
-                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.3)']}
-                        style={styles.menuCard}
-                    >
-                        <View style={styles.menuItem}>
-                            <LinearGradient
-                                colors={[colors.accentCyan + '20', colors.accentCyan + '05']}
-                                style={styles.menuIconContainer}
-                            >
-                                <MaterialCommunityIcons name="dumbbell" size={22} color={colors.accentCyan} />
-                            </LinearGradient>
-                            <View style={styles.userInfoTextContainer}>
-                                <Text style={styles.userInfoTitle}>Exercise Library</Text>
-                                <Text style={styles.userInfoSubtitle}>Browse all 300+ exercises</Text>
-                            </View>
-                            <View style={{
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                                borderRadius: 12,
-                                padding: 6
-                            }}>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+                {/* Saved Plans */}
+                <View style={styles.sectionHeading}>
+                    <Text style={styles.sectionTitleLg}>Saved Plans</Text>
+                    <PremiumGate featureName="Custom Plans" navigation={navigation} variant="icon">
+                        <TouchableOpacity
+                            style={styles.addBtn}
+                            activeOpacity={0.85}
+                            onPress={() => navigation.navigate('CustomPlanBuilder')}
+                        >
+                            <MaterialCommunityIcons name="plus" size={14} color="#0A0B0F" />
+                        </TouchableOpacity>
+                    </PremiumGate>
+                </View>
 
-
-                {/* Custom Workout Plans */}
-                <View style={styles.customPlansSection}>
-                    {/* Active Plan Management Card */}
-                    <LinearGradient
-                        colors={currentPlan?.planType === 'custom' ? ['rgba(7, 185, 231, 0.15)', 'rgba(7, 185, 231, 0.05)'] : ['rgba(255, 113, 113, 0.15)', 'rgba(255, 113, 113, 0.05)']}
-                        style={[styles.customPlanCard, { marginBottom: Spacing.l, flexDirection: 'column', borderWidth: 1, borderColor: currentPlan?.planType === 'custom' ? colors.accentCyan + '4D' : colors.accentPink + '4D' }]}
-                    >
-                        <View style={[styles.customPlansHeader, { marginBottom: Spacing.s, paddingHorizontal: 0 }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.s }}>
-                                <MaterialCommunityIcons
-                                    name={currentPlan?.planType === 'custom' ? 'clipboard-edit' : 'robot'}
-                                    size={24}
-                                    color={currentPlan?.planType === 'custom' ? colors.accentCyan : colors.accentPink}
-                                />
-                                <View>
-                                    <Text style={[styles.sectionTitle, { marginBottom: 2, marginLeft: 0 }]}>Current Strategy</Text>
-                                    <Text style={{ color: colors.textPrimary, fontWeight: '800', fontSize: 18, letterSpacing: 0.5 }}>
-                                        {currentPlan?.planType === 'custom' ? 'Custom Plan Active' : 'AI Plan Active'}
+                {customPlans.length > 0 ? (
+                    <View style={{ gap: 12 }}>
+                        {customPlans.map((plan) => (
+                            <View key={plan.id} style={styles.savedPlanCard}>
+                                <View style={{ flex: 1, marginRight: 12 }}>
+                                    <Text style={styles.savedPlanName} numberOfLines={1}>{plan.name}</Text>
+                                    <Text style={styles.savedPlanMeta} numberOfLines={1}>
+                                        {plan.frequency} d/w · {plan.sessions.filter(s => !s.isRestDay).length} sess
                                     </Text>
-                                    <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2, fontWeight: '500' }}>
-                                        {currentPlan?.frequency} days/week • {currentPlan?.sessions.filter(s => !s.isRestDay).length} sessions
-                                    </Text>
+                                    {currentPlan?.id === plan.id && (
+                                        <View style={styles.activePillBadge}>
+                                            <Text style={styles.activePillText}>Active</Text>
+                                        </View>
+                                    )}
                                 </View>
-                            </View>
-                        </View>
 
-                        <View style={[styles.customPlanActions, { marginTop: Spacing.m }]}>
-                            {currentPlan?.planType === 'custom' ? (
-                                <TouchableOpacity
-                                    style={[styles.actionButton, { flex: 1, backgroundColor: colors.accentPink + '20', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.accentPink + '4D' }]}
-                                    onPress={async () => {
-                                        if (user?.uid) {
-                                            try {
-                                                await dispatch(switchToAIPlan(user.uid)).unwrap();
-                                            } catch (err) {
-                                                navigation.navigate('Assessment');
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <MaterialCommunityIcons name="robot" size={20} color={colors.accentPink} />
-                                    <Text style={{ color: colors.textPrimary, marginLeft: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Switch to AI Strategy</Text>
-                                </TouchableOpacity>
-                            ) : (
-                                <View style={{ gap: Spacing.s, width: '100%' }}>
-                                    <View style={{ paddingVertical: Spacing.s, paddingHorizontal: Spacing.xs, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: Layout.borderRadius.s }}>
-                                        <Text style={{ color: colors.textSecondary, fontStyle: 'italic', fontSize: 13, textAlign: 'center' }}>
-                                            ✨ Your AI plan adapts to your progress automatically.
-                                        </Text>
-                                    </View>
-                                    {customPlans.length > 0 ? (
+                                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                                    <TouchableOpacity
+                                        onPress={() => navigation.navigate('CustomPlanBuilder', { plan })}
+                                    >
+                                        <MaterialCommunityIcons name="pencil" size={18} color={MOCK.accent} />
+                                    </TouchableOpacity>
+                                    {currentPlan?.id !== plan.id && (
                                         <TouchableOpacity
-                                            style={[styles.actionButton, { backgroundColor: 'transparent', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder }]}
                                             onPress={() => {
                                                 if (user?.uid) {
-                                                    const latestPlan = customPlans[0];
                                                     dispatch(switchActivePlan({
                                                         userId: user.uid,
-                                                        planId: latestPlan.id,
+                                                        planId: plan.id,
                                                         planType: 'custom'
                                                     }));
                                                 }
                                             }}
                                         >
-                                            <MaterialCommunityIcons
-                                                name="swap-horizontal"
-                                                size={20}
-                                                color={colors.textSecondary}
-                                            />
-                                            <Text style={{ color: colors.textSecondary, marginLeft: 8, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                                Switch to Custom Plan
-                                            </Text>
+                                            <MaterialCommunityIcons name="play-circle-outline" size={18} color="#4ADE80" />
                                         </TouchableOpacity>
-                                    ) : (
-                                        <PremiumGate featureName="Custom Plans" navigation={navigation} variant="compact">
-                                            <TouchableOpacity
-                                                style={[styles.actionButton, { backgroundColor: 'transparent', borderRadius: Layout.borderRadius.m, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.glassBorder }]}
-                                                onPress={() => navigation.navigate('CustomPlanBuilder')}
-                                            >
-                                                <MaterialCommunityIcons
-                                                    name="plus-circle-outline"
-                                                    size={20}
-                                                    color={colors.textSecondary}
-                                                />
-                                                <Text style={{ color: colors.textSecondary, marginLeft: 8, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                                    Create New From Scratch
-                                                </Text>
-                                            </TouchableOpacity>
-                                        </PremiumGate>
                                     )}
-
-
+                                    <TouchableOpacity
+                                        onPress={async () => {
+                                            if (user?.uid) {
+                                                await dispatch(duplicatePlan({ sourcePlan: plan, userId: user.uid }));
+                                            }
+                                        }}
+                                    >
+                                        <MaterialCommunityIcons name="content-copy" size={18} color={MOCK.textSecondary} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setPlanToDelete(plan);
+                                            setShowDeletePlanAlert(true);
+                                        }}
+                                    >
+                                        <MaterialCommunityIcons name="delete-outline" size={18} color={MOCK.danger} />
+                                    </TouchableOpacity>
                                 </View>
-                            )}
-                        </View>
-                    </LinearGradient>
-
-                    <View style={[styles.customPlansHeader, { paddingHorizontal: 0 }]}>
-                        <View>
-                            <Text style={[styles.sectionTitle, { marginLeft: 0 }]}>SAVED PLANS</Text>
-                            <Text style={styles.customPlansSubtitle}>
-                                {customPlans.length} custom {customPlans.length === 1 ? 'plan' : 'plans'}
-                            </Text>
-                        </View>
-                        <View style={{ overflow: 'hidden', borderRadius: 20 }}>
-                            <PremiumGate featureName="Custom Plans" navigation={navigation} variant="icon">
-                                <TouchableOpacity
-                                    style={styles.createPlanButton}
-                                    onPress={() => navigation.navigate('CustomPlanBuilder')}
-                                >
-                                    <MaterialCommunityIcons name="plus" size={24} color="#000" />
-                                </TouchableOpacity>
-                            </PremiumGate>
-                        </View>
-                    </View>
-
-                    {customPlans.length > 0 ? (
-                        <View style={styles.customPlansList}>
-                            {customPlans.map((plan, index) => (
-                                <BlurView
-                                    key={plan.id}
-                                    intensity={20}
-                                    tint={isDark ? "light" : "dark"}
-                                    style={styles.customPlanCard}
-                                >
-                                    <View style={styles.customPlanInfo}>
-                                        <Text style={styles.customPlanName} numberOfLines={1} ellipsizeMode="tail">{plan.name}</Text>
-                                        <Text style={styles.customPlanMeta} numberOfLines={1} ellipsizeMode="tail">
-                                            {plan.frequency} d/w • {plan.sessions.filter(s => !s.isRestDay).length} sess
-                                        </Text>
-                                        {currentPlan?.id === plan.id && (
-                                            <View style={styles.activePlanBadge}>
-                                                <Text style={styles.activePlanText}>Active</Text>
-                                            </View>
-                                        )}
-                                    </View>
-
-                                    <View style={[styles.customPlanActions, { gap: 10 }]}>
-                                        <TouchableOpacity
-                                            style={[styles.actionButton, { padding: 4 }]}
-                                            onPress={() => navigation.navigate('CustomPlanBuilder', { plan })}
-                                        >
-                                            <MaterialCommunityIcons name="pencil" size={18} color={colors.accentCyan} />
-                                        </TouchableOpacity>
-
-                                        {/* Activate Button - Only show if not active */}
-                                        {currentPlan?.id !== plan.id && (
-                                            <TouchableOpacity
-                                                style={[styles.actionButton, { padding: 4 }]}
-                                                onPress={() => {
-                                                    if (user?.uid) {
-                                                        dispatch(switchActivePlan({
-                                                            userId: user.uid,
-                                                            planId: plan.id,
-                                                            planType: 'custom'
-                                                        }));
-                                                    }
-                                                }}
-                                            >
-                                                <MaterialCommunityIcons name="play-circle-outline" size={18} color={colors.accentSuccess} />
-                                            </TouchableOpacity>
-                                        )}
-
-                                        <TouchableOpacity
-                                            style={[styles.actionButton, { padding: 4 }]}
-                                            onPress={async () => {
-                                                if (user?.uid) {
-                                                    await dispatch(duplicatePlan({ sourcePlan: plan, userId: user.uid }));
-                                                }
-                                            }}
-                                        >
-                                            <MaterialCommunityIcons name="content-copy" size={18} color={colors.textSecondary} />
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={[styles.actionButton, { padding: 4 }]}
-                                            onPress={() => {
-                                                setPlanToDelete(plan);
-                                                setShowDeletePlanAlert(true);
-                                            }}
-                                        >
-                                            <MaterialCommunityIcons name="delete" size={18} color={colors.accentPink} />
-                                        </TouchableOpacity>
-                                    </View>
-                                </BlurView>
-                            ))}
-                        </View>
-                    ) : (
-                        <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.emptyCustomPlansCard}>
-                            <TouchableOpacity
-                                style={styles.emptyCustomPlansContent}
-                                onPress={() => navigation.navigate('CustomPlanBuilder')}
-                            >
-                                <MaterialCommunityIcons name="clipboard-text-outline" size={48} color={colors.textTertiary} />
-                                <Text style={styles.emptyCustomPlansText}>No custom plans yet</Text>
-                                <Text style={styles.emptyCustomPlansSubtext}>Create your first custom workout plan</Text>
-                            </TouchableOpacity>
-                        </BlurView>
-                    )}
-                </View>
-
-                {/* Progress to Next Level */}
-                {nextLevel && (
-                    <BlurView intensity={10} tint="default" style={styles.progressCard}>
-                        <Text style={styles.sectionTitle}>Next Level Progress</Text>
-
-                        <View style={styles.progressItem}>
-                            <View style={styles.progressHeader}>
-                                <Text style={styles.progressLabel}>Workouts</Text>
-                                <Text style={styles.progressValue}>
-                                    {avatarState.totalWorkouts} / {nextLevel.workouts}
-                                </Text>
-                            </View>
-                            <View style={styles.progressBarBg}>
-                                <LinearGradient
-                                    colors={gradients.primary}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[
-                                        styles.progressFill,
-                                        { width: `${calculateProgress(avatarState.totalWorkouts, nextLevel.workouts)}%` }
-                                    ]}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.progressItem}>
-                            <View style={styles.progressHeader}>
-                                <Text style={styles.progressLabel}>Total Reps</Text>
-                                <Text style={styles.progressValue}>
-                                    {avatarState.totalReps} / {nextLevel.reps}
-                                </Text>
-                            </View>
-                            <View style={styles.progressBarBg}>
-                                <LinearGradient
-                                    colors={gradients.ocean}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[
-                                        styles.progressFill,
-                                        { width: `${calculateProgress(avatarState.totalReps, nextLevel.reps)}%` }
-                                    ]}
-                                />
-                            </View>
-                        </View>
-                    </BlurView>
-                )}
-
-                {/* Lifetime Stats */}
-                {/* Lifetime Stats */}
-                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.statsCard}>
-                    <Text style={styles.sectionTitle}>Lifetime Stats</Text>
-                    <View style={styles.statsGrid}>
-                        {[
-                            { label: 'Workouts', value: avatarState.totalWorkouts, icon: 'dumbbell' },
-                            { label: 'Total Reps', value: avatarState.totalReps, icon: 'repeat' },
-                            { label: 'Time', value: `${avatarState.totalMinutes}m`, icon: 'clock-outline' },
-                            { label: 'Best Streak', value: avatarState.longestStreak, icon: 'fire' },
-                        ].map((stat, i) => (
-                            <View key={i} style={styles.statItem}>
-                                <View style={styles.statIconContainer}>
-                                    <MaterialCommunityIcons name={stat.icon as any} size={20} color={colors.accentCyan} />
-                                </View>
-                                <Text style={styles.statValue}>{stat.value}</Text>
-                                <Text style={styles.statLabel}>{stat.label}</Text>
                             </View>
                         ))}
                     </View>
-                </BlurView>
+                ) : (
+                    <View style={styles.emptyState}>
+                        <View style={styles.emptyIcon}>
+                            <MaterialCommunityIcons name="clipboard-text-outline" size={20} color={MOCK.textTertiary} />
+                        </View>
+                        <Text style={styles.emptyTitle}>No custom plans yet</Text>
+                        <Text style={styles.emptyDesc}>Create your first custom workout plan</Text>
+                    </View>
+                )}
+
+                {/* Progress to Next Level */}
+                {nextLevel && (
+                    <>
+                        <View style={styles.sectionHeading}>
+                            <Text style={styles.sectionTitleSm}>Next Level Progress</Text>
+                            <Text style={styles.sectionMeta}>
+                                Lvl {avatarState.level} → {avatarState.level + 1}
+                            </Text>
+                        </View>
+
+                        <View style={styles.mockProgressCard}>
+                            <View style={styles.mockProgressRow}>
+                                <View style={styles.mockProgressHeader}>
+                                    <Text style={styles.mockProgressLabel}>Workouts</Text>
+                                    <Text style={styles.mockProgressValue}>
+                                        {avatarState.totalWorkouts} / {nextLevel.workouts}
+                                    </Text>
+                                </View>
+                                <View style={styles.mockProgressBar}>
+                                    <LinearGradient
+                                        colors={[MOCK.accent, MOCK.accentBright]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={[
+                                            styles.mockProgressFill,
+                                            { width: `${calculateProgress(avatarState.totalWorkouts, nextLevel.workouts)}%` }
+                                        ]}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={[styles.mockProgressRow, { marginBottom: 0 }]}>
+                                <View style={styles.mockProgressHeader}>
+                                    <Text style={styles.mockProgressLabel}>Total Reps</Text>
+                                    <Text style={styles.mockProgressValue}>
+                                        {avatarState.totalReps} / {nextLevel.reps}
+                                    </Text>
+                                </View>
+                                <View style={styles.mockProgressBar}>
+                                    <LinearGradient
+                                        colors={[MOCK.accent, MOCK.accentBright]}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={[
+                                            styles.mockProgressFill,
+                                            { width: `${calculateProgress(avatarState.totalReps, nextLevel.reps)}%` }
+                                        ]}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </>
+                )}
+
+                {/* Lifetime Stats */}
+                <View style={styles.sectionHeading}>
+                    <Text style={styles.sectionTitleSm}>Lifetime Stats</Text>
+                </View>
+                <View style={styles.statsGridMock}>
+                    {[
+                        { label: 'Workouts', value: avatarState.totalWorkouts, icon: 'dumbbell', color: MOCK.accent, bg: MOCK.accentDim },
+                        { label: 'Reps', value: avatarState.totalReps, icon: 'repeat', color: MOCK.accent, bg: MOCK.accentDim },
+                        { label: 'Time', value: `${avatarState.totalMinutes}m`, icon: 'clock-outline', color: MOCK.accent, bg: MOCK.accentDim },
+                        { label: 'Best Streak', value: avatarState.longestStreak, icon: 'fire', color: MOCK.orange, bg: MOCK.orangeDim },
+                    ].map((stat, i) => (
+                        <View key={i} style={styles.statTile}>
+                            <View style={[styles.statTileIcon, { backgroundColor: stat.bg }]}>
+                                <MaterialCommunityIcons name={stat.icon as any} size={14} color={stat.color} />
+                            </View>
+                            <Text style={styles.statTileValue}>{stat.value}</Text>
+                            <Text style={styles.statTileLabel}>{stat.label}</Text>
+                        </View>
+                    ))}
+                </View>
 
                 {/* Body Metrics */}
-                <BlurView intensity={15} tint={isDark ? "light" : "dark"} style={styles.metricsCard}>
-                    <View style={styles.metricsHeader}>
-                        <Text style={styles.sectionTitle}>Body Metrics</Text>
-                        <TouchableOpacity onPress={() => setShowMetricsModal(true)}>
-                            <Text style={styles.editButton}>Edit</Text>
-                        </TouchableOpacity>
-                    </View>
+                <View style={styles.sectionHeading}>
+                    <Text style={styles.sectionTitleSm}>Body Metrics</Text>
+                    <TouchableOpacity onPress={() => setShowMetricsModal(true)}>
+                        <Text style={styles.sectionLink}>Edit</Text>
+                    </TouchableOpacity>
+                </View>
 
-                    {
-                        avatarState.bodyMetrics.startWeight ? (
-                            <View style={styles.metricsContent}>
-                                <View style={styles.metricItem}>
-                                    <Text style={styles.metricLabel}>Start</Text>
-                                    <Text style={styles.metricValue}>
-                                        {avatarState.bodyMetrics.startWeight} <Text style={styles.unit}>kg</Text>
+                {avatarState.bodyMetrics.startWeight ? (
+                    <View style={styles.bodyMetricsCardFilled}>
+                        <View style={styles.bodyMetricItem}>
+                            <Text style={styles.bodyMetricLabel}>Start</Text>
+                            <Text style={styles.bodyMetricValue}>
+                                {avatarState.bodyMetrics.startWeight}<Text style={styles.bodyMetricUnit}>kg</Text>
+                            </Text>
+                        </View>
+                        <MaterialCommunityIcons name="arrow-right" size={16} color={MOCK.textTertiary} />
+                        <View style={styles.bodyMetricItem}>
+                            <Text style={styles.bodyMetricLabel}>Current</Text>
+                            <Text style={styles.bodyMetricValue}>
+                                {avatarState.bodyMetrics.currentWeight || '--'}<Text style={styles.bodyMetricUnit}>kg</Text>
+                            </Text>
+                        </View>
+                        {avatarState.bodyMetrics.goalWeight && (
+                            <>
+                                <MaterialCommunityIcons name="arrow-right" size={16} color={MOCK.textTertiary} />
+                                <View style={styles.bodyMetricItem}>
+                                    <Text style={styles.bodyMetricLabel}>Goal</Text>
+                                    <Text style={[styles.bodyMetricValue, { color: MOCK.accent }]}>
+                                        {avatarState.bodyMetrics.goalWeight}<Text style={[styles.bodyMetricUnit, { color: MOCK.accent }]}>kg</Text>
                                     </Text>
                                 </View>
-                                <View style={styles.metricArrow}>
-                                    <Text style={styles.arrowText}>→</Text>
-                                </View>
-                                <View style={styles.metricItem}>
-                                    <Text style={styles.metricLabel}>Current</Text>
-                                    <Text style={styles.metricValue}>
-                                        {avatarState.bodyMetrics.currentWeight || '--'} <Text style={styles.unit}>kg</Text>
-                                    </Text>
-                                </View>
-                                {avatarState.bodyMetrics.goalWeight && (
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <View style={styles.metricArrow}>
-                                            <Text style={styles.arrowText}>→</Text>
-                                        </View>
-                                        <View style={styles.metricItem}>
-                                            <Text style={styles.metricLabel}>Goal</Text>
-                                            <Text style={[styles.metricValue, styles.goalValue]}>
-                                                {avatarState.bodyMetrics.goalWeight} <Text style={[styles.unit, styles.goalValue]}>kg</Text>
-                                            </Text>
-                                        </View>
-                                    </View>
-                                )}
-                            </View>
-                        ) : (
-                            <TouchableOpacity
-                                style={styles.addMetricsButton}
-                                onPress={() => setShowMetricsModal(true)}
-                            >
-                                <Text style={styles.addMetricsText}>+ Add your body metrics</Text>
-                            </TouchableOpacity>
-                        )
-                    }
-                </BlurView>
+                            </>
+                        )}
+                    </View>
+                ) : (
+                    <TouchableOpacity
+                        style={styles.bodyMetricsCard}
+                        activeOpacity={0.85}
+                        onPress={() => setShowMetricsModal(true)}
+                    >
+                        <View style={styles.bodyMetricsIcon}>
+                            <MaterialCommunityIcons name="chart-timeline-variant" size={18} color={MOCK.accent} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.bodyMetricsTitle}>Track your progress</Text>
+                            <Text style={styles.bodyMetricsDesc}>Add weight, height, body fat & more</Text>
+                        </View>
+                        <Text style={styles.bodyMetricsAdd}>+ ADD</Text>
+                    </TouchableOpacity>
+                )}
 
                 {/* Achievements */}
-                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.achievementsCard}>
-                    <Text style={styles.sectionTitle}>
-                        Achievements ({avatarState.achievements.length}/{ACHIEVEMENTS.length})
+                <View style={styles.sectionHeading}>
+                    <Text style={styles.sectionTitleLg}>Achievements</Text>
+                    <Text style={styles.sectionMeta}>
+                        {avatarState.achievements.length} / {ACHIEVEMENTS.length} unlocked
                     </Text>
-                    <View style={styles.achievementsGrid}>
-                        {ACHIEVEMENTS.map((achievement) => {
-                            const isEarned = avatarState.achievements.includes(achievement.id);
-                            return (
-                                <View
-                                    key={achievement.id}
-                                    style={[
-                                        styles.achievementItem,
-                                        !isEarned && styles.achievementLocked
-                                    ]}
-                                >
-                                    <Text style={[styles.achievementIcon, !isEarned && { opacity: 0.5 }]}>
-                                        {isEarned ? achievement.icon : '🔒'}
-                                    </Text>
+                </View>
+                <View style={styles.achievementsGridMock}>
+                    {ACHIEVEMENTS.map((achievement) => {
+                        const isEarned = avatarState.achievements.includes(achievement.id);
+                        return (
+                            <View
+                                key={achievement.id}
+                                style={[
+                                    styles.achievementMock,
+                                    !isEarned && styles.achievementMockLocked,
+                                ]}
+                            >
+                                <View style={[
+                                    styles.achievementMockIcon,
+                                    isEarned && { backgroundColor: MOCK.accentDim },
+                                ]}>
                                     <Text style={[
-                                        styles.achievementName,
-                                        !isEarned && styles.achievementNameLocked
+                                        { fontSize: 18 },
+                                        !isEarned && { opacity: 0.35 },
                                     ]}>
-                                        {achievement.name}
+                                        {achievement.icon}
                                     </Text>
                                 </View>
-                            );
-                        })}
-                    </View>
-                </BlurView>
-
-                {/* Team Section Button */}
-                <TouchableOpacity
-                    onPress={() => setShowTeamModal(true)}
-                    activeOpacity={0.9}
-                    style={{ marginBottom: Spacing.m }}
-                >
-                    <LinearGradient
-                        colors={isDark ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'] : ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.3)']}
-                        style={styles.menuCard}
-                    >
-                        <View style={styles.menuItem}>
-                            <LinearGradient
-                                colors={[colors.accentPink + '20', colors.accentPink + '05']}
-                                style={styles.menuIconContainer}
-                            >
-                                <MaterialCommunityIcons name="account-group-outline" size={22} color={colors.accentPink} />
-                            </LinearGradient>
-                            <View style={styles.userInfoTextContainer}>
-                                <Text style={styles.userInfoTitle}>My Team</Text>
-                                <Text style={styles.userInfoSubtitle}>Connect with friends and stay motivated</Text>
+                                {!isEarned && (
+                                    <View style={styles.achievementLockBadge}>
+                                        <MaterialCommunityIcons name="lock" size={8} color={MOCK.textTertiary} />
+                                    </View>
+                                )}
+                                <Text
+                                    style={[
+                                        styles.achievementMockName,
+                                        !isEarned && { color: MOCK.textTertiary },
+                                    ]}
+                                    numberOfLines={2}
+                                >
+                                    {achievement.name}
+                                </Text>
                             </View>
-                            <View style={{
-                                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                                borderRadius: 12,
-                                padding: 6
-                            }}>
-                                <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+                        );
+                    })}
+                </View>
 
-                {/* Level Roadmap & Settings */}
-                <Text style={styles.sectionTitle}>Progression</Text>
-                <BlurView intensity={10} tint={isDark ? "light" : "dark"} style={styles.menuCard}>
+                {/* Community */}
+                <View style={styles.sectionHeading}>
+                    <Text style={styles.sectionTitleSm}>Community</Text>
+                </View>
+                <View style={styles.mockMenuCard}>
                     <TouchableOpacity
-                        style={[styles.menuItem, { borderBottomWidth: 0 }]}
-                        onPress={() => setShowRoadmapModal(true)}
+                        onPress={() => setShowTeamModal(true)}
+                        activeOpacity={0.7}
+                        style={[styles.mockMenuItem, styles.mockMenuItemBorder]}
                     >
-                        <View style={styles.menuIconContainer}>
-                            <MaterialCommunityIcons name="map-marker-path" size={22} color={colors.textPrimary} />
+                        <View style={[styles.mockMenuIcon, { backgroundColor: MOCK.pinkDim }]}>
+                            <MaterialCommunityIcons name="account-group-outline" size={18} color={MOCK.pink} />
                         </View>
-                        <Text style={styles.menuItemText}>Level Map & Unlocks</Text>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                        <View style={styles.mockMenuContent}>
+                            <Text style={styles.mockMenuTitle}>My Team</Text>
+                            <Text style={styles.mockMenuDesc}>Connect with friends & stay motivated</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color={MOCK.textTertiary} />
                     </TouchableOpacity>
-                </BlurView>
+
+                    <TouchableOpacity
+                        onPress={handleShareApp}
+                        activeOpacity={0.7}
+                        style={[styles.mockMenuItem, styles.mockMenuItemBorder]}
+                    >
+                        <View style={[styles.mockMenuIcon, styles.mockMenuIconNeutral]}>
+                            <MaterialCommunityIcons name="share-variant-outline" size={18} color={MOCK.textSecondary} />
+                        </View>
+                        <View style={styles.mockMenuContent}>
+                            <Text style={styles.mockMenuTitle}>Refer a Friend</Text>
+                            <Text style={styles.mockMenuDesc}>Share FIZI & earn rewards</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color={MOCK.textTertiary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        onPress={() => Linking.openURL(
+                            Platform.OS === 'android'
+                                ? 'https://play.google.com/store/apps/details?id=com.maheshchalla.fizi'
+                                : 'https://apps.apple.com/app/idYOUR_APP_ID'
+                        )}
+                        activeOpacity={0.7}
+                        style={styles.mockMenuItem}
+                    >
+                        <View style={[styles.mockMenuIcon, { backgroundColor: MOCK.goldDim }]}>
+                            <MaterialCommunityIcons name="star-outline" size={18} color={MOCK.gold} />
+                        </View>
+                        <View style={styles.mockMenuContent}>
+                            <Text style={styles.mockMenuTitle}>Rate Our App</Text>
+                            <Text style={styles.mockMenuDesc}>Tell us what you think</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color={MOCK.textTertiary} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Progression */}
+                <View style={styles.sectionHeading}>
+                    <Text style={styles.sectionTitleSm}>Progression</Text>
+                </View>
+                <View style={styles.mockMenuCard}>
+                    <TouchableOpacity
+                        style={styles.mockMenuItem}
+                        onPress={() => setShowRoadmapModal(true)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={[styles.mockMenuIcon, styles.mockMenuIconAccent]}>
+                            <MaterialCommunityIcons name="map-marker-path" size={18} color={MOCK.accent} />
+                        </View>
+                        <View style={styles.mockMenuContent}>
+                            <Text style={styles.mockMenuTitle}>Level Map & Unlocks</Text>
+                            <Text style={styles.mockMenuDesc}>See your journey ahead</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={18} color={MOCK.textTertiary} />
+                    </TouchableOpacity>
+                </View>
 
                 {/* Settings — now in AppSettings sub-component */}
                 <AppSettings
-                    notificationsEnabled={notificationsEnabled}
-                    onToggleNotification={handleToggleNotification}
                     onChangePassword={() => setShowChangePasswordModal(true)}
                     onShareApp={handleShareApp}
                     onSignOut={() => setShowSignOutAlert(true)}
@@ -1836,6 +1865,536 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
         flex: 1,
         paddingHorizontal: Spacing.m,
     },
+
+    // -------- Mockup styles (FitTrack profile) --------
+    pageTitleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 18,
+        paddingHorizontal: 4,
+        marginTop: 8,
+    },
+    pageTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.6,
+    },
+
+    // Premium card
+    premiumCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        backgroundColor: 'rgba(251, 191, 36, 0.06)',
+        borderWidth: 1,
+        borderColor: MOCK.goldBorder,
+        borderRadius: 18,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        marginBottom: 22,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    premiumLeftBar: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: 3,
+        height: '100%',
+        backgroundColor: MOCK.gold,
+    },
+    premiumIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: MOCK.goldDim,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    premiumInfo: { flex: 1 },
+    premiumName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: MOCK.textPrimary,
+        marginBottom: 1,
+        letterSpacing: -0.1,
+    },
+    premiumExpiry: {
+        fontSize: 11,
+        color: MOCK.textSecondary,
+    },
+
+    // Generic mock menu cards (rows of items)
+    mockMenuCard: {
+        backgroundColor: MOCK.bgCard,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        overflow: 'hidden',
+    },
+    mockMenuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+    },
+    mockMenuItemBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: MOCK.border,
+    },
+    mockMenuIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mockMenuIconAccent: {
+        backgroundColor: MOCK.accentDim,
+    },
+    mockMenuIconNeutral: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    mockMenuContent: { flex: 1, minWidth: 0 },
+    mockMenuTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: MOCK.textPrimary,
+        marginBottom: 1,
+        letterSpacing: -0.1,
+    },
+    mockMenuDesc: {
+        fontSize: 11,
+        color: MOCK.textSecondary,
+    },
+
+    // AI Plan Card
+    aiPlanCard: {
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.purpleBorder,
+        borderRadius: 22,
+        padding: 18,
+        marginTop: 14,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    aiPlanGlow: {
+        position: 'absolute',
+        top: -40,
+        right: -40,
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+    },
+    aiPlanHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 14,
+        marginBottom: 14,
+    },
+    aiBot: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: MOCK.purple,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: MOCK.purple,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    aiPlanInfo: { flex: 1 },
+    aiPlanLabel: {
+        fontSize: 10,
+        color: MOCK.textTertiary,
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    aiPlanName: {
+        fontSize: 19,
+        fontWeight: '800',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.4,
+        lineHeight: 22,
+        marginBottom: 4,
+    },
+    aiPlanMeta: {
+        fontSize: 12,
+        color: MOCK.textSecondary,
+    },
+    aiPlanTip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(167, 139, 250, 0.08)',
+        borderWidth: 1,
+        borderColor: MOCK.purpleBorder,
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        marginBottom: 12,
+    },
+    aiPlanTipText: {
+        fontSize: 12,
+        color: MOCK.textSecondary,
+        flex: 1,
+    },
+    aiPlanCreateBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        borderWidth: 1,
+        borderColor: MOCK.borderStrong,
+        borderStyle: 'dashed',
+        borderRadius: 12,
+        paddingVertical: 12,
+        width: '100%',
+    },
+    aiPlanCreateText: {
+        fontSize: 12,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+        color: MOCK.textPrimary,
+    },
+    aiPlanSwitchBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: MOCK.pinkDim,
+        borderWidth: 1,
+        borderColor: 'rgba(244, 114, 182, 0.3)',
+        borderRadius: 12,
+        paddingVertical: 12,
+        width: '100%',
+    },
+    aiPlanSwitchText: {
+        fontSize: 12,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+        color: MOCK.textPrimary,
+    },
+
+    // Section headings
+    sectionHeading: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: 22,
+        marginBottom: 12,
+        paddingHorizontal: 4,
+    },
+    sectionTitleSm: {
+        fontSize: 11,
+        fontWeight: '700',
+        letterSpacing: 1.6,
+        textTransform: 'uppercase',
+        color: MOCK.textTertiary,
+    },
+    sectionTitleLg: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.4,
+    },
+    sectionMeta: {
+        fontSize: 11,
+        color: MOCK.textSecondary,
+    },
+    sectionLink: {
+        fontSize: 12,
+        color: MOCK.accent,
+        fontWeight: '600',
+    },
+    addBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: MOCK.accent,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: MOCK.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+
+    // Saved plan card (when present)
+    savedPlanCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        borderRadius: 18,
+        padding: 16,
+    },
+    savedPlanName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.2,
+        marginBottom: 4,
+    },
+    savedPlanMeta: {
+        fontSize: 12,
+        color: MOCK.textSecondary,
+    },
+    activePillBadge: {
+        alignSelf: 'flex-start',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 100,
+        backgroundColor: 'rgba(74, 222, 128, 0.15)',
+        marginTop: 6,
+    },
+    activePillText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#4ADE80',
+        letterSpacing: 0.4,
+        textTransform: 'uppercase',
+    },
+
+    // Empty state (saved plans)
+    emptyState: {
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.borderStrong,
+        borderStyle: 'dashed',
+        borderRadius: 16,
+        paddingVertical: 24,
+        paddingHorizontal: 16,
+        alignItems: 'center',
+    },
+    emptyIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    emptyTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: MOCK.textPrimary,
+        marginBottom: 4,
+    },
+    emptyDesc: {
+        fontSize: 12,
+        color: MOCK.textSecondary,
+        textAlign: 'center',
+    },
+
+    // Progress card (mock)
+    mockProgressCard: {
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        borderRadius: 18,
+        padding: 18,
+    },
+    mockProgressRow: {
+        marginBottom: 14,
+    },
+    mockProgressHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        marginBottom: 6,
+    },
+    mockProgressLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: MOCK.textPrimary,
+    },
+    mockProgressValue: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: MOCK.accent,
+        fontVariant: ['tabular-nums'],
+    },
+    mockProgressBar: {
+        height: 6,
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        borderRadius: 100,
+        overflow: 'hidden',
+    },
+    mockProgressFill: {
+        height: 6,
+        borderRadius: 100,
+    },
+
+    // Stats grid (4 cols)
+    statsGridMock: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    statTile: {
+        flex: 1,
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        borderRadius: 14,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        alignItems: 'center',
+    },
+    statTileIcon: {
+        width: 26,
+        height: 26,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    statTileValue: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.4,
+        lineHeight: 20,
+    },
+    statTileLabel: {
+        fontSize: 10,
+        color: MOCK.textSecondary,
+        marginTop: 3,
+    },
+
+    // Body metrics card (empty)
+    bodyMetricsCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        borderRadius: 18,
+        padding: 16,
+    },
+    bodyMetricsCardFilled: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        borderRadius: 18,
+        padding: 16,
+    },
+    bodyMetricsIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: MOCK.accentDim,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    bodyMetricsTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: MOCK.textPrimary,
+        marginBottom: 1,
+    },
+    bodyMetricsDesc: {
+        fontSize: 11,
+        color: MOCK.textSecondary,
+    },
+    bodyMetricsAdd: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: MOCK.accent,
+        letterSpacing: 0.4,
+    },
+    bodyMetricItem: {
+        alignItems: 'center',
+    },
+    bodyMetricLabel: {
+        fontSize: 11,
+        color: MOCK.textSecondary,
+        marginBottom: 2,
+    },
+    bodyMetricValue: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.4,
+    },
+    bodyMetricUnit: {
+        fontSize: 11,
+        fontWeight: '500',
+        color: MOCK.textSecondary,
+    },
+
+    // Achievements grid (5 cols × 2 rows)
+    achievementsGridMock: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        columnGap: ACHIEVEMENT_GAP,
+        rowGap: 10,
+    },
+    achievementMock: {
+        width: ACHIEVEMENT_TILE_WIDTH,
+        aspectRatio: 0.85,
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        borderRadius: 14,
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        gap: 6,
+    },
+    achievementMockLocked: {
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderColor: 'rgba(255,255,255,0.04)',
+    },
+    achievementLockBadge: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        width: 14,
+        height: 14,
+        borderRadius: 4,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    achievementMockIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    achievementMockName: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: MOCK.textPrimary,
+        textAlign: 'center',
+        lineHeight: 11,
+        letterSpacing: -0.1,
+        paddingHorizontal: 2,
+    },
+    // -------- end mockup styles --------
+
     // deleted sectionTitle
 
     // Avatar Card Styles
@@ -2359,11 +2918,11 @@ const createStyles = (colors: ThemeColorsType, shadows: ThemeShadowsType) => Sty
     },
     disclaimerText: {
         ...Typography.caption,
-        color: colors.textTertiary,
+        color: MOCK.textTertiary,
         fontSize: 11,
         textAlign: 'center',
         fontStyle: 'italic',
-        lineHeight: 16,
+        lineHeight: 17,
     },
 
     saveButton: {

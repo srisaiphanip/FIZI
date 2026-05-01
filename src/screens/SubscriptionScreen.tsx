@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { authService } from '../services/authService';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 import { updateProfile } from '../store/slices/authSlice';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { BlurView } from 'expo-blur';
@@ -29,8 +28,6 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
         loading: billingLoading,
         purchaseSubscription,
         restorePurchases,
-        connected,
-        checkSubscriptionStatus
     } = useBilling();
 
     useEffect(() => {
@@ -85,20 +82,14 @@ const SubscriptionScreen = ({ navigation }: { navigation: any }) => {
 
             // Step 2: Handle 100% Free Promo (Premium Overrides)
             if (couponData.type === '100_percent_off') {
-                const durationMonths = couponData.durationMonths || 1; // Default to 1 if not set
+                const durationMonths = couponData.durationMonths || 1;
 
-                // Calculate expiry Date
                 const expiryDate = new Date();
                 expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
 
-                // Update Redux and Firestore
+                // Persist to Firestore + Redux. BillingContext re-evaluates entitlement
+                // automatically when the user's premiumExpiryDate changes.
                 await dispatch(updateProfile({ premiumExpiryDate: expiryDate })).unwrap();
-
-                // Set local flag immediately
-                await AsyncStorage.setItem(`is_premium_${user.uid}`, 'true');
-
-                // Force billing context update
-                await checkSubscriptionStatus();
 
                 setCouponStatus('success');
                 setCouponMessage(`${durationMonths} Months Premium Unlocked!`);

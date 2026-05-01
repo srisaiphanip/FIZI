@@ -8,7 +8,7 @@ import { auth } from './src/services/firebaseConfig';
 import { authService } from './src/services/authService';
 import { setUser } from './src/store/slices/authSlice';
 import { BillingProvider } from './src/context/BillingContext';
-import { View, Text, BackHandler } from 'react-native';
+import { BackHandler } from 'react-native';
 import { useAppDispatch } from './src/hooks/reduxHooks';
 import AnimatedSplash from './src/components/AnimatedSplash';
 import OfflineBanner from './src/components/OfflineBanner';
@@ -34,9 +34,6 @@ import AboutUsScreen from './src/screens/AboutUsScreen';
 import FAQScreen from './src/screens/FAQScreen';
 import ChatbotScreen from './src/screens/ChatbotScreen';
 
-import { notificationService } from './src/services/NotificationService';
-import * as Notifications from 'expo-notifications';
-
 export type ScreenType = 'Login' | 'ForgotPassword' | 'Signup' | 'ProfileSetup' | 'Home' | 'Camera' | 'History' | 'Avatar' | 'Onboarding' | 'ExerciseInstructions' | 'LevelProgress' | 'ExerciseLibrary' | 'AboutUs' | 'DataUsage' | 'CustomPlanBuilder' | 'FAQ' | 'Subscription' | 'Chatbot';
 
 export interface CameraScreenParams {
@@ -54,55 +51,27 @@ export interface NavigationParams {
 
 
 import { loadTheme } from './src/store/slices/themeSlice';
-import { loadSettings } from './src/store/slices/settingsSlice';
 import { useTheme } from './src/hooks/useTheme';
 
 function AppContent() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
-  const { colors, isDark } = useTheme(); // Use custom hook for theme
-  const dispatch = useAppDispatch(); // Need to use typed dispatch
+  const { isDark } = useTheme();
+  const dispatch = useAppDispatch();
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('Login');
   const navigationParamsRef = useRef<NavigationParams>({});
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
-  const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
-  // Register for push notifications on login and track activity
+  // Track activity on login
   useEffect(() => {
     if (isAuthenticated && user) {
-      notificationService.requestPermissionsAsync();
-      notificationService.scheduleDynamicNotifications();
-
-      // Track activity
       authService.updateLastActiveAt();
-
-      // Listener for when a notification is received while the app is foregrounded
-      notificationListener.current = notificationService.addNotificationReceivedListener(_notification => {
-        // Notification received - handle silently in production
-        if (__DEV__) console.log('Notification received in foreground:', _notification);
-      });
-
-      // Listener for when a user taps on or interacts with a notification
-      responseListener.current = notificationService.addNotificationResponseReceivedListener(_response => {
-        if (__DEV__) console.log('Notification interaction:', _response);
-      });
-
-      return () => {
-        if (notificationListener.current) {
-          notificationListener.current.remove();
-        }
-        if (responseListener.current) {
-          responseListener.current.remove();
-        }
-      };
     }
   }, [isAuthenticated, user?.uid]);
 
-  // Load saved theme and settings on mount
+  // Load saved theme on mount
   useEffect(() => {
     dispatch(loadTheme());
-    dispatch(loadSettings());
   }, []);
 
   // Check onboarding status on mount
@@ -139,21 +108,6 @@ function AppContent() {
         if (firebaseUser) {
           const userProfile = await authService.getUserProfile(firebaseUser.uid);
           store.dispatch(setUser(userProfile));
-
-          // Handle Custom Premium Expiry
-          if (userProfile?.premiumExpiryDate) {
-            const now = new Date();
-            const expiryDate = new Date(userProfile.premiumExpiryDate);
-
-            if (expiryDate > now) {
-              // premium is active
-              await AsyncStorage.setItem(`is_premium_${firebaseUser.uid}`, 'true');
-            } else {
-              // premium expired
-              await AsyncStorage.removeItem(`is_premium_${firebaseUser.uid}`);
-            }
-          }
-
         } else {
           store.dispatch(setUser(null));
         }

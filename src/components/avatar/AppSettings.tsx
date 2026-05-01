@@ -1,9 +1,8 @@
 /**
  * AppSettings
  *
- * All settings sections extracted from AvatarScreen, preserving the
- * original order: Appearance → Notifications → Community →
- * Support & Legal → Account → Sign Out
+ * Settings sections matching FitTrack mockup styling:
+ * Preferences (toggle) → Support & Legal → Account
  */
 
 import React from 'react';
@@ -12,18 +11,26 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Switch,
     Linking,
     Platform,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { Spacing, Layout } from '../../theme/Theme';
+
+const MOCK = {
+    bgCard: '#1A1D26',
+    bgCardHover: '#20242E',
+    border: 'rgba(255, 255, 255, 0.06)',
+    textPrimary: '#F5F6F8',
+    textSecondary: '#9BA0AB',
+    textTertiary: '#5C6170',
+    accent: '#B8FF3C',
+    iconNeutralBg: 'rgba(255,255,255,0.05)',
+    danger: '#FF5A5F',
+    dangerBg: 'rgba(255, 90, 95, 0.1)',
+};
 
 interface AppSettingsProps {
-    notificationsEnabled: boolean;
-    onToggleNotification: (value: boolean) => void;
     onChangePassword: () => void;
     onShareApp: () => void;
     onSignOut: () => void;
@@ -31,25 +38,20 @@ interface AppSettingsProps {
 }
 
 export default function AppSettings({
-    notificationsEnabled,
-    onToggleNotification,
     onChangePassword,
-    onShareApp,
     onSignOut,
     navigation,
 }: AppSettingsProps) {
-    const { colors, isDark, toggleTheme } = useTheme();
+    const { isDark, toggleTheme } = useTheme();
 
-    /* ── helpers ─────────────────────────────────────────────────── */
-
-    const SectionTitle = ({ label }: { label: string }) => (
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{label}</Text>
+    const SectionHeading = ({ label }: { label: string }) => (
+        <View style={styles.sectionHeading}>
+            <Text style={styles.sectionTitle}>{label}</Text>
+        </View>
     );
 
     const Card = ({ children }: { children: React.ReactNode }) => (
-        <BlurView intensity={20} tint={isDark ? 'light' : 'dark'} style={styles.menuCard}>
-            {children}
-        </BlurView>
+        <View style={styles.menuCard}>{children}</View>
     );
 
     const Row = ({
@@ -58,100 +60,75 @@ export default function AppSettings({
         onPress,
         right,
         danger,
-        noBorder,
+        last,
     }: {
         icon: string;
         label: string;
         onPress?: () => void;
         right?: React.ReactNode;
         danger?: boolean;
-        noBorder?: boolean;
+        last?: boolean;
     }) => (
         <TouchableOpacity
-            style={[styles.menuItem, noBorder && { borderBottomWidth: 0 }]}
+            style={[styles.menuItem, !last && styles.menuItemBorder]}
             onPress={onPress}
             activeOpacity={onPress ? 0.7 : 1}
         >
-            <View style={[
-                styles.menuIconContainer,
-                danger && { backgroundColor: 'rgba(255, 59, 48, 0.1)' }
-            ]}>
+            <View style={[styles.menuIcon, danger && { backgroundColor: MOCK.dangerBg }]}>
                 <MaterialCommunityIcons
                     name={icon as any}
-                    size={22}
-                    color={danger ? colors.accentError : colors.textPrimary}
+                    size={18}
+                    color={danger ? MOCK.danger : MOCK.textSecondary}
                 />
             </View>
-            <Text style={[
-                styles.menuItemText,
-                { color: danger ? colors.accentError : colors.textPrimary }
-            ]}>
+            <Text style={[styles.menuTitle, danger && { color: MOCK.danger }]}>
                 {label}
             </Text>
             {right ?? (onPress
-                ? <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+                ? <MaterialCommunityIcons name="chevron-right" size={18} color={MOCK.textTertiary} />
                 : null
             )}
         </TouchableOpacity>
     );
 
-    const Toggle = ({ value }: { value: boolean }) => (
-        <View style={[
-            styles.toggleTrack,
-            { backgroundColor: value ? colors.primaryStart : '#ddd', alignItems: value ? 'flex-end' : 'flex-start' }
-        ]}>
-            <View style={styles.toggleThumb} />
-        </View>
+    const Toggle = ({ value, onPress }: { value: boolean; onPress?: () => void }) => (
+        <TouchableOpacity
+            onPress={onPress}
+            activeOpacity={0.85}
+            style={[
+                styles.toggleTrack,
+                { backgroundColor: value ? MOCK.accent : 'rgba(255,255,255,0.1)' },
+            ]}
+        >
+            <View
+                style={[
+                    styles.toggleThumb,
+                    { transform: [{ translateX: value ? 18 : 0 }] },
+                ]}
+            />
+        </TouchableOpacity>
     );
-
-    /* ── render ───────────────────────────────────────────────────── */
 
     return (
         <View>
-            {/* 1 — Appearance */}
-            <SectionTitle label="Appearance" />
-            <Card>
-                <Row
-                    icon={isDark ? 'weather-night' : 'white-balance-sunny'}
-                    label={isDark ? 'Dark Mode' : 'Light Mode'}
-                    onPress={toggleTheme}
-                    right={<Toggle value={isDark} />}
-                    noBorder
-                />
-            </Card>
+            {/* Preferences */}
+            <SectionHeading label="PREFERENCES" />
+            <View style={styles.toggleRow}>
+                <View style={styles.toggleIcon}>
+                    <MaterialCommunityIcons
+                        name={isDark ? 'weather-night' : 'white-balance-sunny'}
+                        size={18}
+                        color={MOCK.textSecondary}
+                    />
+                </View>
+                <Text style={styles.toggleLabel}>Dark Mode</Text>
+                <Toggle value={isDark} onPress={toggleTheme} />
+            </View>
 
-            {/* 2 — Preferences */}
-            <SectionTitle label="Preferences" />
+            {/* Support & Legal */}
+            <SectionHeading label="SUPPORT & LEGAL" />
             <Card>
-                <Row
-                    icon="bell"
-                    label="Notifications"
-                    onPress={() => onToggleNotification(!notificationsEnabled)}
-                    right={<Toggle value={notificationsEnabled} />}
-                    noBorder
-                />
-            </Card>
-
-            {/* 3 — Community */}
-            <SectionTitle label="Community" />
-            <Card>
-                <Row icon="share-variant-outline" label="Refer a Friend" onPress={onShareApp} />
-                <Row
-                    icon="star-outline"
-                    label="Rate Our App"
-                    onPress={() => Linking.openURL(
-                        Platform.OS === 'android'
-                            ? 'https://play.google.com/store/apps/details?id=com.maheshchalla.fizi'
-                            : 'https://apps.apple.com/app/idYOUR_APP_ID'
-                    )}
-                    noBorder
-                />
-            </Card>
-
-            {/* 4 — Support & Legal */}
-            <SectionTitle label="Support & Legal" />
-            <Card>
-                <Row icon="frequently-asked-questions" label="FAQ" onPress={() => navigation.navigate('FAQ')} />
+                <Row icon="help-circle-outline" label="FAQ" onPress={() => navigation.navigate('FAQ')} />
                 <Row
                     icon="shield-account-outline"
                     label="Privacy Policy"
@@ -168,23 +145,23 @@ export default function AppSettings({
                     icon="email-outline"
                     label="Contact Support"
                     onPress={() => Linking.openURL('mailto:fizi.fitnessgenie@gmail.com')}
-                    noBorder
+                    last
                 />
             </Card>
 
-            {/* 5 — Account */}
-            <SectionTitle label="Account" />
+            {/* Account */}
+            <SectionHeading label="ACCOUNT" />
             <Card>
-                <Row icon="lock-reset" label="Change Password" onPress={onChangePassword} />
+                <Row icon="lock-outline" label="Change Password" onPress={onChangePassword} />
                 <Row icon="logout" label="Sign Out" onPress={onSignOut} />
                 <Row
-                    icon="delete-outline"
+                    icon="trash-can-outline"
                     label="Delete Account"
                     danger
                     onPress={() => Linking.openURL(
                         'mailto:fizi.fitnessgenie@gmail.com?subject=Delete Account Request&body=Please delete my account data associated with this email.'
                     )}
-                    noBorder
+                    last
                 />
             </Card>
         </View>
@@ -192,56 +169,87 @@ export default function AppSettings({
 }
 
 const styles = StyleSheet.create({
+    sectionHeading: {
+        marginTop: 22,
+        marginBottom: 12,
+        paddingHorizontal: 4,
+    },
     sectionTitle: {
-        fontSize: 13,
+        fontSize: 11,
         fontWeight: '700',
-        marginTop: 20,
-        marginBottom: 8,
-        letterSpacing: 0.3,
+        letterSpacing: 1.6,
+        textTransform: 'uppercase',
+        color: MOCK.textTertiary,
     },
     menuCard: {
-        borderRadius: 16,
+        backgroundColor: MOCK.bgCard,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: MOCK.border,
         overflow: 'hidden',
-        marginBottom: 4,
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 14,
         paddingVertical: 14,
         paddingHorizontal: 16,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: 'rgba(255,255,255,0.08)',
     },
-    menuIconContainer: {
+    menuItemBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: MOCK.border,
+    },
+    menuIcon: {
         width: 36,
         height: 36,
         borderRadius: 10,
-        backgroundColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: MOCK.iconNeutralBg,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 14,
     },
-    menuItemText: {
+    menuTitle: {
         flex: 1,
         fontSize: 15,
-        fontWeight: '500',
+        fontWeight: '600',
+        color: MOCK.textPrimary,
+        letterSpacing: -0.1,
+    },
+    toggleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        backgroundColor: MOCK.bgCard,
+        borderWidth: 1,
+        borderColor: MOCK.border,
+        borderRadius: 18,
+    },
+    toggleIcon: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: MOCK.iconNeutralBg,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    toggleLabel: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        color: MOCK.textPrimary,
     },
     toggleTrack: {
-        width: 50,
-        height: 30,
-        borderRadius: 15,
+        width: 42,
+        height: 24,
+        borderRadius: 100,
+        padding: 2,
         justifyContent: 'center',
-        paddingHorizontal: 2,
     },
     toggleThumb: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
-        backgroundColor: '#FFF',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2.5,
-        elevation: 2,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
     },
 });

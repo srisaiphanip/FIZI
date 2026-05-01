@@ -62,7 +62,6 @@ class AuthService {
                 level: 1,
                 xp: 0,
                 totalWorkouts: 0,
-                notificationsEnabled: true,
             };
 
             // Add photoURL only if it exists
@@ -187,7 +186,6 @@ class AuthService {
                     level: data.level || 1,
                     xp: data.xp || 0,
                     totalWorkouts: data.totalWorkouts || 0,
-                    notificationsEnabled: data.notificationsEnabled !== undefined ? data.notificationsEnabled : true,
                     createdAt: (data.createdAt?.toDate ? data.createdAt.toDate() : new Date()).toISOString(),
                     updatedAt: (data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date()).toISOString(),
                     premiumExpiryDate: data.premiumExpiryDate?.toDate ? data.premiumExpiryDate.toDate().toISOString() : data.premiumExpiryDate,
@@ -258,42 +256,6 @@ class AuthService {
             return updatedProfile;
         } catch (error: any) {
             throw new Error('Failed to update profile');
-        }
-    }
-
-    /**
-     * Update user's push notification token
-     */
-    async updatePushToken(token: string): Promise<void> {
-        try {
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const docRef = doc(db, 'users', user.uid);
-            await updateDoc(docRef, {
-                pushToken: token,
-                updatedAt: serverTimestamp(),
-            });
-        } catch (error) {
-            console.error('Error updating push token:', error);
-        }
-    }
-
-    /**
-     * Update user's notification preference in Firestore
-     */
-    async updateNotificationPreference(enabled: boolean): Promise<void> {
-        try {
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const docRef = doc(db, 'users', user.uid);
-            await updateDoc(docRef, {
-                notificationsEnabled: enabled,
-                updatedAt: serverTimestamp(),
-            });
-        } catch (error) {
-            console.error('Error updating notification preference:', error);
         }
     }
 

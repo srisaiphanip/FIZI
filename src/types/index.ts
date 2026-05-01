@@ -260,8 +260,6 @@ export interface UserProfile {
     createdAt: string;
     updatedAt: string;
     transformationPhotos: string[];
-    pushToken?: string;
-    notificationsEnabled?: boolean;
     premiumExpiryDate?: Date | any; // Any allows for Firestore timestamps
 
 
