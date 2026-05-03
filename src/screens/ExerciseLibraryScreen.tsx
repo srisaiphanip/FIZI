@@ -69,12 +69,13 @@ export default function ExerciseLibraryScreen({ navigation }: ExerciseLibraryScr
         const query = searchQuery.toLowerCase().trim();
         return exercises
             .filter(ex => {
+                const primaryMuscle = ex.muscleGroups[0]?.toLowerCase() ?? '';
                 const matchesSearch = !query
                     || ex.name.toLowerCase().includes(query)
                     || (ex.displayName?.toLowerCase().includes(query) ?? false)
-                    || ex.muscleGroups[0].toLowerCase().includes(query);
+                    || primaryMuscle.includes(query);
                 const matchesCategory = selectedCategory === 'all'
-                    || ex.muscleGroups[0].toLowerCase().includes(selectedCategory);
+                    || primaryMuscle.includes(selectedCategory);
                 return matchesSearch && matchesCategory;
             })
             .sort((a, b) => a.unlockLevel - b.unlockLevel);

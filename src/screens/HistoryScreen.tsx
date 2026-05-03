@@ -46,13 +46,16 @@ export default function HistoryScreen({ navigation }: HistoryScreenProps) {
     const [graphPeriod, setGraphPeriod] = useState<'week' | 'month' | 'all'>('week');
 
     useEffect(() => {
-        loadData();
         if (historyScrollOffset > 0) {
             setTimeout(() => {
                 scrollViewRef.current?.scrollTo({ y: historyScrollOffset, animated: false });
             }, 100);
         }
     }, []);
+
+    useEffect(() => {
+        loadData();
+    }, [graphPeriod, selectedPeriod]);
 
     const loadData = async () => {
         try {

@@ -166,7 +166,7 @@ class AuthService {
                     fitnessProfile: data.fitnessProfile || {
                         equipmentAccess: data.equipmentAccess || data.equipmentAvailable || 'bodyweight',
                         experienceLevel: data.workoutExperience || 'beginner',
-                        fitnessGoals: data.fitnessGoals || [data.fitnessGoal] || [],
+                        fitnessGoals: data.fitnessGoals || (data.fitnessGoal ? [data.fitnessGoal] : []),
                         healthIssues: data.healthIssues || data.healthConstraints || [],
                         availableDays: data.availableDays || 3
                     },

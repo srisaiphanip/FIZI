@@ -716,7 +716,10 @@ export default function AvatarScreen({ navigation, isTab, onScroll }: AvatarScre
                                     try {
                                         await dispatch(switchToAIPlan(user.uid)).unwrap();
                                     } catch (err) {
-                                        navigation.navigate('Assessment');
+                                        Alert.alert(
+                                            'Could not switch to AI plan',
+                                            'Please try again in a moment.'
+                                        );
                                     }
                                 }
                             }}

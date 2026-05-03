@@ -383,6 +383,7 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
     // Pose detection state
     // const [poses, setPoses] = useState<Pose[]>([]); // Replaced by hook
     const [mockPoses, setMockPoses] = useState<Pose[]>([]);
+    const mockTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     // const [isPoseModelReady, setIsPoseModelReady] = useState(false); // Replaced by hook
     const [poseError, setPoseError] = useState<string | null>(null);
 
@@ -593,6 +594,10 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
             if (timerRef.current) {
                 clearInterval(timerRef.current);
             }
+            if (mockTimerRef.current) {
+                clearInterval(mockTimerRef.current);
+                mockTimerRef.current = null;
+            }
         };
     }, [isWorkoutActive]);
 
@@ -670,6 +675,10 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
                 setIsWorkoutActive(false);
                 setShowOverlay(false);
                 setMockPoses([]); // Clear mock poses
+                if (mockTimerRef.current) {
+                    clearInterval(mockTimerRef.current);
+                    mockTimerRef.current = null;
+                }
 
                 let finalReps = 0;
                 let finalScore = 100;
@@ -781,10 +790,9 @@ export default function CameraScreen({ navigation }: CameraScreenProps) {
         // Mock Animation Loop
         if (AppConfig.features.enableMockPoseOverlay && !AppConfig.features.enablePoseDetection) {
             let frame = 0;
-            // Clear any existing mock timer
-            if ((window as any).mockTimer) clearInterval((window as any).mockTimer);
+            if (mockTimerRef.current) clearInterval(mockTimerRef.current);
 
-            (window as any).mockTimer = setInterval(() => {
+            mockTimerRef.current = setInterval(() => {
                 // Cycle: Up -> Down -> Up every 4 seconds (approx)
                 // 30fps simulation
                 frame++;
