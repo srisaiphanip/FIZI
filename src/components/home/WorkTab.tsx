@@ -62,7 +62,7 @@ export function WorkTab({
     const todayIdx = todayJsDay === 0 ? 6 : todayJsDay - 1;
     const isViewingToday = selectedDayIndex === null || selectedDayIndex === todayIdx;
 
-    const selectedSession = currentPlan && selectedDayIndex !== null
+    const selectedSession = currentPlan?.sessions && selectedDayIndex !== null
         ? currentPlan.sessions.find((s: any) => s.dayOfWeek === (selectedDayIndex + 1) % 7)
         : null;
 

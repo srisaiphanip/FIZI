@@ -171,8 +171,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 if (daysSincePlanCreated < 7) return;
             }
 
-            const uniqueDays = new Set(currentPlan.sessions.map(s => s.dayOfWeek));
-            const hasRestOrRecovery = currentPlan.sessions.some(
+            const sessions = currentPlan.sessions ?? [];
+            const uniqueDays = new Set(sessions.map(s => s.dayOfWeek));
+            const hasRestOrRecovery = sessions.some(
                 s => s.type === 'rest' ||
                     s.isRestDay === true ||
                     s.focus?.toLowerCase().includes('rest') ||
@@ -236,13 +237,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const isRestDay = todaysWorkout?.isRestDay || !todaysWorkout;
 
     const getNextWorkout = () => {
-        if (!currentPlan) return null;
+        const sessions = currentPlan?.sessions;
+        if (!sessions || sessions.length === 0) return null;
         const today = new Date().getDay();
         // Look for the next workout day in the next 7 days
         for (let i = 1; i <= 7; i++) {
             const checkDay = (today + i) % 7;
-            const session = currentPlan.sessions.find(s => s.dayOfWeek === checkDay && !s.isRestDay && s.type !== 'rest');
-            if (session && session.exercises.length > 0) return session;
+            const session = sessions.find(s => s.dayOfWeek === checkDay && !s.isRestDay && s.type !== 'rest');
+            if (session && (session.exercises?.length ?? 0) > 0) return session;
         }
         return null;
     };

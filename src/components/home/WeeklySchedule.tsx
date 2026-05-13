@@ -68,7 +68,7 @@ export const WeeklySchedule: React.FC<WeeklyScheduleProps> = ({
             <View style={styles.weeklyGrid}>
                 {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day, idx) => {
                     const dayOfWeek = (idx + 1) % 7;
-                    const session = currentPlan.sessions.find(s => s.dayOfWeek === dayOfWeek);
+                    const session = currentPlan?.sessions?.find(s => s.dayOfWeek === dayOfWeek);
                     const isToday = idx === todayIndex;
                     const isSelected = selectedDayIndex === idx;
                     const meta = focusToTag(session?.focus);

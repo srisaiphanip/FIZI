@@ -330,39 +330,39 @@ const workoutPlanSlice = createSlice({
             })
             .addCase(fetchWorkoutPlan.fulfilled, (state, action) => {
                 state.loading = false;
-                state.currentPlan = action.payload;
+                // Ensure sessions is always an array — corrupted/legacy Firestore docs may omit it
+                const sessions = action.payload?.sessions ?? [];
+                state.currentPlan = { ...action.payload, sessions };
 
                 // Process exercises to check if they were completed TODAY
-                if (action.payload.sessions) {
-                    action.payload.sessions.forEach(session => {
-                        if (session.exercises) {
-                            session.exercises.forEach(exercise => {
-                                if (exercise.completed && exercise.lastCompletedAt) {
-                                    const lastCompleted = exercise.lastCompletedAt.toDate ? exercise.lastCompletedAt.toDate() : new Date(exercise.lastCompletedAt);
-                                    const now = new Date();
-                                    const isToday = lastCompleted.getDate() === now.getDate() &&
-                                        lastCompleted.getMonth() === now.getMonth() &&
-                                        lastCompleted.getFullYear() === now.getFullYear();
+                sessions.forEach(session => {
+                    if (session.exercises) {
+                        session.exercises.forEach(exercise => {
+                            if (exercise.completed && exercise.lastCompletedAt) {
+                                const lastCompleted = (exercise.lastCompletedAt as any).toDate ? (exercise.lastCompletedAt as any).toDate() : new Date(exercise.lastCompletedAt as any);
+                                const now = new Date();
+                                const isToday = lastCompleted.getDate() === now.getDate() &&
+                                    lastCompleted.getMonth() === now.getMonth() &&
+                                    lastCompleted.getFullYear() === now.getFullYear();
 
-                                    if (!isToday) {
-                                        exercise.completed = false; // Reset if not completed today
-                                    }
-                                } else if (exercise.completed && !exercise.lastCompletedAt) {
-                                    // Legacy: If completed but no timestamp, we assume it's old and reset it (or keep it if we want to be safe, but fixing the bug requires reset)
-                                    // For now, let's reset it to ensure the fix works immediately for old plans too.
-                                    exercise.completed = false;
+                                if (!isToday) {
+                                    exercise.completed = false; // Reset if not completed today
                                 }
-                            });
-                        }
-                    });
-                }
+                            } else if (exercise.completed && !exercise.lastCompletedAt) {
+                                // Legacy: If completed but no timestamp, we assume it's old and reset it (or keep it if we want to be safe, but fixing the bug requires reset)
+                                // For now, let's reset it to ensure the fix works immediately for old plans too.
+                                exercise.completed = false;
+                            }
+                        });
+                    }
+                });
 
                 // Set today's workout
                 const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
 
                 // For multi-week plans, we want to find a session that matches the current day of the week
                 // and ideally the current week. For now, we'll find any session with matching dayOfWeek.
-                const todaysWorkout = action.payload.sessions.find(
+                const todaysWorkout = sessions.find(
                     (s) => s.dayOfWeek === today
                 );
 

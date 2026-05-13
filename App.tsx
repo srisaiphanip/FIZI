@@ -103,6 +103,13 @@ function AppContent() {
 
   // Auth state listener
   useEffect(() => {
+    // Safety net: if Firebase persistence is slow/broken, never block the splash forever.
+    // Without this, a cold-start where onAuthStateChanged never fires would hang the app
+    // and the OS may kill it as unresponsive — surfacing as an "open crash" to the user.
+    const safetyTimeout = setTimeout(() => {
+      setCheckingAuth(false);
+    }, 6000);
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
@@ -114,10 +121,14 @@ function AppContent() {
       } catch (error) {
         console.error('Error in auth state listener:', error);
       } finally {
+        clearTimeout(safetyTimeout);
         setCheckingAuth(false);
       }
     });
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      unsubscribe();
+    };
   }, []);
 
   // Navigation Logic - Only run for auth/onboarding, don't override other screens
