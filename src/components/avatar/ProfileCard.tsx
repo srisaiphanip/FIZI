@@ -23,7 +23,10 @@ import { useTheme } from '../../hooks/useTheme';
 const MOCK = {
     cardBgFrom: '#1F2229',
     cardBgTo: '#16181F',
+    cardBgPremiumFrom: '#26211A',
+    cardBgPremiumTo: '#1A1612',
     border: 'rgba(255, 255, 255, 0.06)',
+    premiumBorder: 'rgba(234, 179, 8, 0.4)',
     textPrimary: '#F5F6F8',
     textSecondary: '#9BA0AB',
     accent: '#B8FF3C',
@@ -31,7 +34,13 @@ const MOCK = {
     accentDim: 'rgba(184, 255, 60, 0.15)',
     accentGlow: 'rgba(184, 255, 60, 0.35)',
     accentBorder: 'rgba(184, 255, 60, 0.3)',
-    gold: '#FBBF24',
+    // Premium gold tokens — aligned with theme Gradients.gold (#FDE047 → #EAB308)
+    gold: '#EAB308',
+    goldBright: '#FDE047',
+    goldDeep: '#A16207',
+    goldDim: 'rgba(234, 179, 8, 0.18)',
+    goldBorder: 'rgba(234, 179, 8, 0.45)',
+    goldText: '#0A0B0F',
     orange: '#FB923C',
     orangeDim: 'rgba(251, 146, 60, 0.12)',
     orangeBorder: 'rgba(251, 146, 60, 0.3)',
@@ -80,17 +89,29 @@ export default function ProfileCard({
     const role = avatarLevelName || 'Athlete';
     const subtitle = joined ? `${role} · Joined ${joined}` : role;
 
+    const avatarRingColors: [string, string, ...string[]] = isPremium
+        ? [MOCK.goldBright, MOCK.gold, MOCK.goldDeep]
+        : [MOCK.accentBright, '#6FAB1F'];
+
+    const cardColors: [string, string] = isPremium
+        ? [MOCK.cardBgPremiumFrom, MOCK.cardBgPremiumTo]
+        : [MOCK.cardBgFrom, MOCK.cardBgTo];
+
+    const glowColors: [string, string] = isPremium
+        ? [MOCK.goldDim, 'transparent']
+        : [MOCK.accentDim, 'transparent'];
+
     return (
         <LinearGradient
-            colors={[MOCK.cardBgFrom, MOCK.cardBgTo]}
+            colors={cardColors}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.card}
+            style={[styles.card, isPremium && styles.cardPremium]}
         >
             {/* Soft glow accent in corner */}
             <View style={styles.glow} pointerEvents="none">
                 <LinearGradient
-                    colors={[MOCK.accentDim, 'transparent']}
+                    colors={glowColors}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.glowFill}
@@ -101,10 +122,10 @@ export default function ProfileCard({
                 {/* Avatar */}
                 <TouchableOpacity onPress={onPickImage} activeOpacity={0.85} style={styles.avatarWrap}>
                     <LinearGradient
-                        colors={[MOCK.accentBright, '#6FAB1F']}
+                        colors={avatarRingColors}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={styles.avatar}
+                        style={[styles.avatar, isPremium && styles.avatarPremium]}
                     >
                         {user?.photoURL ? (
                             <Image source={{ uri: user.photoURL }} style={styles.avatarImage} />
@@ -128,12 +149,34 @@ export default function ProfileCard({
 
                 {/* Info */}
                 <View style={styles.info}>
-                    <Text style={styles.name} numberOfLines={1}>
-                        {user?.displayName || 'Champion'}
-                    </Text>
+                    <View style={styles.nameRow}>
+                        <Text style={styles.name} numberOfLines={1}>
+                            {user?.displayName || 'Champion'}
+                        </Text>
+                        {isPremium && (
+                            <MaterialCommunityIcons
+                                name="check-decagram"
+                                size={16}
+                                color={MOCK.gold}
+                                style={styles.verifiedIcon}
+                            />
+                        )}
+                    </View>
                     <Text style={styles.role} numberOfLines={1}>{subtitle}</Text>
 
                     <View style={styles.badgesRow}>
+                        {isPremium && (
+                            <LinearGradient
+                                colors={[MOCK.goldBright, MOCK.gold]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={[styles.badge, styles.premiumBadge]}
+                            >
+                                <MaterialCommunityIcons name="crown" size={10} color={MOCK.goldText} />
+                                <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+                            </LinearGradient>
+                        )}
+
                         <View style={[styles.badge, styles.levelBadge]}>
                             <MaterialCommunityIcons name="lightning-bolt" size={10} color={MOCK.accent} />
                             <Text style={styles.levelBadgeText}>LEVEL {avatarLevel}</Text>
@@ -161,6 +204,15 @@ const styles = StyleSheet.create({
         marginBottom: 14,
         overflow: 'hidden',
         position: 'relative',
+    },
+    cardPremium: {
+        borderColor: MOCK.premiumBorder,
+        borderWidth: 1.5,
+        shadowColor: MOCK.gold,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.35,
+        shadowRadius: 16,
+        elevation: 10,
     },
     glow: {
         position: 'absolute',
@@ -195,6 +247,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.5,
         shadowRadius: 12,
         elevation: 8,
+    },
+    avatarPremium: {
+        shadowColor: MOCK.gold,
+        shadowOpacity: 0.7,
+        shadowRadius: 14,
     },
     avatarImage: {
         width: 64,
@@ -231,13 +288,24 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 0,
     },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 2,
+    },
     name: {
         fontSize: 22,
         fontWeight: '800',
         color: MOCK.textPrimary,
         letterSpacing: -0.5,
         lineHeight: 26,
-        marginBottom: 2,
+        flexShrink: 1,
+    },
+    verifiedIcon: {
+        textShadowColor: 'rgba(251, 191, 36, 0.6)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 6,
     },
     role: {
         fontSize: 13,
@@ -277,5 +345,19 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: MOCK.orange,
         letterSpacing: 0.4,
+    },
+    premiumBadge: {
+        borderColor: 'rgba(255, 255, 255, 0.25)',
+        shadowColor: MOCK.gold,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    premiumBadgeText: {
+        fontSize: 11,
+        fontWeight: '900',
+        color: MOCK.goldText,
+        letterSpacing: 0.6,
     },
 });

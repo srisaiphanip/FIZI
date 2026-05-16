@@ -214,19 +214,10 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                         </View>
                     </View>
 
-                    {/* Description */}
-                    <GlassView style={styles.card}>
-                        <View style={styles.cardHeader}>
-                            <MaterialCommunityIcons name="information-outline" size={24} color={colors.accentCyan} />
-                            <Text style={styles.cardTitle}>About Exercise</Text>
-                        </View>
-                        <Text style={styles.descriptionText}>{exercise.description || "Perfect your form with AI-powered correction."}</Text>
-                    </GlassView>
-
                     {/* Form Reference Image */}
                     {getExerciseImage(exerciseId) && (
                         <GlassView style={styles.referenceImageCard}>
-                            <View style={styles.cardHeader}>
+                            <View style={styles.referenceImageHeader}>
                                 <MaterialCommunityIcons name="image-outline" size={24} color={colors.accentCyan} />
                                 <Text style={styles.cardTitle}>Form Reference</Text>
                             </View>
@@ -245,6 +236,15 @@ export default function ExerciseInstructionsScreen({ navigation }: ExerciseInstr
                             </View>
                         </GlassView>
                     )}
+
+                    {/* Description */}
+                    <GlassView style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <MaterialCommunityIcons name="information-outline" size={24} color={colors.accentCyan} />
+                            <Text style={styles.cardTitle}>About Exercise</Text>
+                        </View>
+                        <Text style={styles.descriptionText}>{exercise.description || "Perfect your form with AI-powered correction."}</Text>
+                    </GlassView>
 
                     {/* Steps */}
                     <View style={styles.section}>
@@ -581,16 +581,21 @@ const createStyles = (colors: ThemeColorsType) => StyleSheet.create({
         marginBottom: Spacing.xl,
         alignItems: 'center',
     },
+    referenceImageHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: Spacing.s,
+        gap: Spacing.s,
+        alignSelf: 'flex-start',
+    },
     referenceImage: {
         width: '100%',
         height: 300,
         borderRadius: Layout.borderRadius.m,
-        marginTop: Spacing.m,
     },
     imageContainer: {
         position: 'relative',
         width: '100%',
-        marginTop: Spacing.m,
     },
     logoWatermark: {
         position: 'absolute',

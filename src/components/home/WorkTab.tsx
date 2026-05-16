@@ -76,7 +76,7 @@ export function WorkTab({
 
     return (
         <>
-            <HomeHeader user={user} onAvatarPress={() => navigation.navigate('LevelProgress')} />
+            <HomeHeader user={user} onAvatarPress={() => navigation.navigate('LevelProgress')} isPremium={purchased} />
 
             <TouchableOpacity
                 onPress={() => navigation.navigate('LevelProgress')}
